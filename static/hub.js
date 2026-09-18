@@ -1,10 +1,13 @@
-// hub.js — barra de abas do Hub em toda página + quem está logado (sair / trocar senha).
+// hub.js — barra de abas do Hub em toda página + quem está logado (senha / sair).
+// O CSS da barra é o nav.css (injetado daqui), autocontido: páginas com CSS próprio (agenda, missões) não mudam.
 // Sem sessão a API devolve 401 → manda pra tela de login guardando o destino.
 export const el = (tag, props = {}, ...filhos) => {
   const n = Object.assign(document.createElement(tag), props);
   n.append(...filhos.filter((f) => f != null));
   return n;
 };
+document.head.append(el("link", { rel: "stylesheet", href: "/nav.css" }));
+
 // [rota, "emoji Rótulo", externo?] — no celular a barra fica embaixo (emoji em cima, rótulo embaixo)
 export const ABAS = [["/", "📖 Grimório"], ["/criar", "✦ Criar magia"], ["/bestiario", "🐉 Bestiário"], ["/itens", "🎒 Itens"], ["/regras", "⚖️ Regras"],
   ["/compendio", "🏛️ Compêndio"], ["/missoes", "📜 Missões"], ["/agenda", "📅 Agenda"], ["/links", "🎲 Mesa"], ["https://ficha.raynathus.com.br", "🧾 Ficha", true]];
@@ -18,6 +21,7 @@ export const PAGINAS_COL = {
 export function paginaDaColecao(col) { return Object.entries(PAGINAS_COL).find(([, p]) => p.abas.some(([c]) => c === col))?.[0]; }
 export const irParaLogin = () => { location.href = "/login?voltar=" + encodeURIComponent(location.pathname + location.search); return new Promise(() => {}); };
 export const eu = fetch("/api/eu").then((r) => r.ok ? r.json() : irParaLogin()).catch(irParaLogin);
+export const sair = async () => { await fetch("/api/sair", { method: "POST" }); location.href = "/login"; };
 
 function ativa() {
   const p = location.pathname;
@@ -27,13 +31,21 @@ function ativa() {
   return ABAS.find(([h]) => h !== "/" && p.startsWith(h))?.[0] || (p === "/" ? "/" : "");
 }
 
-async function trocarSenha() {
+// diálogo da conta: trocar senha + sair (+ painel do mestre); no celular é o único acesso a isso
+function dialogoConta(u) {
   const dlg = el("dialog", { className: "hub-dialog" });
   const atual = el("input", { type: "password", placeholder: "senha atual", required: true, autocomplete: "current-password" });
   const nova = el("input", { type: "password", placeholder: "senha nova (mín. 4)", required: true, minLength: 4, autocomplete: "new-password" });
-  const msg = el("div", { className: "explica" });
-  const form = el("form", { method: "dialog" }, el("h3", { textContent: "Trocar senha" }), atual, nova, msg,
-    el("div", { className: "acoes" }, el("button", { className: "bt", type: "button", textContent: "cancelar", onclick: () => dlg.close() }), el("button", { className: "bt destaque", textContent: "salvar" })));
+  const msg = el("div", { className: "hub-msg" });
+  const form = el("form", { method: "dialog" },
+    el("h3", { textContent: "Sua conta" }),
+    el("div", { className: "hub-quem" }, el("b", { textContent: u.nome }), u.personagem ? ` · ${u.personagem}` : "", u.mestre ? " · mestre" : ""),
+    atual, nova, msg,
+    el("div", { className: "hub-acoes" },
+      u.mestre ? el("a", { className: "hub-bt", href: "/mestre", textContent: "👑 painel do mestre" }) : null,
+      el("button", { className: "hub-bt", type: "button", textContent: "sair", onclick: sair }),
+      el("button", { className: "hub-bt", type: "button", textContent: "fechar", onclick: () => dlg.close() }),
+      el("button", { className: "hub-bt destaque", textContent: "trocar senha" })));
   form.onsubmit = async (e) => {
     e.preventDefault();
     const r = await (await fetch("/api/senha", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ atual: atual.value, nova: nova.value }) })).json();
@@ -53,15 +65,17 @@ eu.then((u) => {
       el("span", { className: "hub-emoji", textContent: emoji }), el("span", { className: "hub-rotulo", textContent: resto.join(" ") }));
   };
   const nav = el("nav", { className: "hub-nav" },
-    el("div", { className: "hub-abas" }, ...ABAS.map(aba)),
+    el("div", { className: "hub-abas" }, ...ABAS.map(aba),
+      // só aparece no celular (nav.css): a conta como último item da barra
+      el("a", { href: "#", className: "hub-conta", title: u.nome, onclick: (e) => { e.preventDefault(); dialogoConta(u); } },
+        el("span", { className: "hub-emoji", textContent: u.mestre ? "👑" : "👤" }), el("span", { className: "hub-rotulo", textContent: u.nome.split(" ")[0] }))),
     el("div", { className: "hub-eu" },
       el("span", { className: "hub-nome", title: u.personagem ? `${u.nome} · ${u.personagem}` : u.nome }, el("b", { textContent: u.nome }), u.personagem ? el("span", { className: "hub-pers", textContent: " · " + u.personagem }) : null),
-      u.mestre ? el("a", { href: "/mestre", className: "bt mini" + (at === "/mestre" || location.pathname === "/mestre" ? " on" : ""), textContent: "👑 mestre" }) : null,
-      el("button", { className: "bt mini", textContent: "senha", onclick: trocarSenha }),
-      el("button", { className: "bt mini", textContent: "sair", onclick: async () => { await fetch("/api/sair", { method: "POST" }); location.href = "/login"; } })));
+      u.mestre ? el("a", { href: "/mestre", className: "hub-bt" + (location.pathname === "/mestre" ? " on" : ""), textContent: "👑 mestre" }) : null,
+      el("button", { className: "hub-bt", textContent: "senha", onclick: () => dialogoConta(u) }),
+      el("button", { className: "hub-bt", textContent: "sair", onclick: sair })));
   document.body.prepend(nav);
   document.documentElement.classList.add("com-nav");
-  // aba ativa visível na barra rolável do celular
   nav.querySelector(".hub-abas a.on")?.scrollIntoView({ inline: "center", block: "nearest" });
 });
 // PWA: instalável e abre offline o que já foi visto (sw.js = rede primeiro)

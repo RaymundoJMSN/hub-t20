@@ -1,101 +1,108 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Missões — Hub T20</title>
-<meta name="description" content="Quadro de missões da guilda: vote no que o grupo quer fazer; o mestre marca as cumpridas.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Alegreya:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/style.css">
-<link rel="manifest" href="/manifest.webmanifest">
-<meta name="theme-color" content="#120809">
-<link rel="apple-touch-icon" href="/icone-192.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📜</text></svg>">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Guilda de Mineradores — Quadro de Missões</title>
+  <meta name="description" content="Quadro oficial de missões da Guilda de Mineradores. Veja os contratos disponíveis, recompensas e níveis de perigo." />
+
+  <!-- Favicon: brasão da guilda -->
+  <link rel="icon" type="image/svg+xml" href="/missoes-favicon.svg" />
+  <link rel="apple-touch-icon" href="/icone-192.png" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <meta name="theme-color" content="#241608" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+
+  <!-- Fontes medievais -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Pirata+One&display=swap"
+    rel="stylesheet"
+  />
+
+  <!-- CSS original do guilda.raynathus.com.br, intacto (só o editor do mestre foi acrescentado no fim) -->
+  <link rel="stylesheet" href="/missoes.css" />
 </head>
 <body>
-<div class="brasa" aria-hidden="true"></div>
-<header>
-  <h1>Quadro de Missões</h1>
-  <p class="sub">guilda dos mineradores · vote no que quer fazer · <span id="m-conta"></span></p>
-</header>
-<main class="grimorio-main">
-  <section id="quadro" class="painel missoes"></section>
-  <section id="editor" class="painel" hidden></section>
-</main>
-<footer>Ferramenta de fã. Tormenta 20 pertence à Jambo Editora.</footer>
-<script type="module">
-import { el, eu } from "/hub.js";
-const PERIGO = { 1: "Trivial", 2: "Moderado", 3: "Perigoso", 4: "Mortal", 5: "Lendário" };
-const quadro = document.querySelector("#quadro"), editor = document.querySelector("#editor"), conta = document.querySelector("#m-conta");
-let dados = { missoes: [], votos: {}, eu: "" }, mestre = false;
-const post = (rota, corpo) => fetch(rota, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(corpo) }).then((r) => r.json());
+  <!-- Atmosfera: vinheta e textura sobre a madeira -->
+  <div class="vinheta" aria-hidden="true"></div>
 
-function render() {
-  quadro.replaceChildren();
-  const abertas = dados.missoes.filter((m) => !m.concluida).map((m) => ({ ...m, n: Object.keys(dados.votos[m.id] || {}).length }))
-    .sort((a, b) => b.n - a.n);
-  const feitas = dados.missoes.filter((m) => m.concluida);
-  conta.textContent = `${abertas.length} abertas · ${feitas.length} cumpridas`;
-  if (mestre) quadro.append(el("div", { className: "acoes" }, el("button", { className: "bt", textContent: "✎ editar quadro", onclick: abrirEditor })));
-  for (const m of [...abertas, ...feitas]) {
-    const votos = Object.keys(dados.votos[m.id] || {});
-    const meu = votos.includes(dados.eu);
-    quadro.append(el("article", { className: `cartaz perigo-${m.perigo}` + (m.concluida ? " concluida" : "") },
-      el("div", { className: "selo", title: PERIGO[m.perigo], textContent: m.perigo }),
-      el("h3", { textContent: m.titulo }),
-      el("div", { className: "meta", textContent: [m.solicitante && `pede: ${m.solicitante}`, m.local].filter(Boolean).join(" · ") }),
-      el("p", { textContent: m.descricao }),
-      el("div", { className: "meta" }, el("b", { textContent: m.recompensa ? `recompensa: ${m.recompensa}` : "" }), el("span", { textContent: ` · perigo ${PERIGO[m.perigo].toLowerCase()}` })),
-      m.concluida ? el("div", { className: "carimbo", textContent: "✔ cumprida" })
-        : el("div", { className: "votos" },
-          el("button", { className: "bt mini" + (meu ? " destaque" : ""), textContent: meu ? "✓ quero!" : "quero!",
-            onclick: async () => { dados = { ...dados, ...(await post("/api/missoes/votar", { id: m.id, ligar: !meu })) }; render(); } }),
-          el("span", { className: "quem", textContent: votos.length ? votos.join(", ") : "ninguém ainda" })),
-      mestre ? el("button", { className: "bt mini concluir", textContent: m.concluida ? "reabrir" : "marcar cumprida",
-        onclick: async () => { dados = { ...dados, ...(await post("/api/missoes/concluir", { id: m.id, ligar: !m.concluida })) }; render(); } }) : null));
-  }
-  if (!dados.missoes.length) quadro.append(el("div", { className: "vazio", textContent: "o quadro está vazio." }));
-}
+  <header class="cabecalho">
+    <div class="brasao" aria-hidden="true">
+      <svg viewBox="0 0 100 110" width="92" height="100">
+        <!-- Escudo -->
+        <path d="M50 4 L92 18 V58 C92 84 72 100 50 106 C28 100 8 84 8 58 V18 Z"
+              fill="none" stroke="currentColor" stroke-width="3"/>
+        <path d="M50 16 L82 27 V57 C82 77 67 90 50 95 C33 90 18 77 18 57 V27 Z"
+              fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.55"/>
+        <!-- Picaretas cruzadas (cada uma = cabo + cabeça curva pontuda) -->
+        <g transform="rotate(45 50 58)">
+          <rect x="48.6" y="33" width="2.8" height="52" rx="1.4" fill="currentColor"/>
+          <path d="M30 43 Q50 25 70 43 Q50 33 30 43 Z" fill="currentColor"/>
+        </g>
+        <g transform="rotate(-45 50 58)">
+          <rect x="48.6" y="33" width="2.8" height="52" rx="1.4" fill="currentColor"/>
+          <path d="M30 43 Q50 25 70 43 Q50 33 30 43 Z" fill="currentColor"/>
+        </g>
+        <!-- Rebite onde os cabos se cruzam -->
+        <circle cx="50" cy="58" r="3.4" fill="#1a1008" opacity="0.45"/>
+        <circle cx="50" cy="58" r="2.1" fill="currentColor"/>
+        <!-- Gema / minério abaixo do cruzamento -->
+        <path d="M50 75 L54.5 81 L50 90 L45.5 81 Z" fill="currentColor"/>
+        <path d="M45.5 81 H54.5 M50 75 V90" stroke="#1a1008" stroke-width="0.8" opacity="0.5"/>
+      </svg>
+    </div>
+    <p class="sobre-titulo">⛏ Por ordem da ⛏</p>
+    <h1 class="titulo-principal">Guilda de Mineradores</h1>
+    <p class="subtitulo">Quadro Oficial de Missões</p>
+    <div class="filete" aria-hidden="true">
+      <span></span>✠<span></span>
+    </div>
+    <p class="contador" id="contador">Carregando o pergaminho…</p>
 
-// editor do mestre: uma missão por bloco; salvar grava a lista inteira
-function abrirEditor() {
-  editor.hidden = false;
-  editor.replaceChildren(el("h2", { className: "g-grupo", textContent: "Editar quadro" }));
-  const blocos = el("div");
-  const bloco = (m = { perigo: 1 }) => {
-    const campo = (k, ph, tipo = "input") => el(tipo, { value: m[k] || "", placeholder: ph, className: "m-" + k });
-    const b = el("div", { className: "m-bloco" }, campo("titulo", "título"), campo("solicitante", "quem pede"), campo("local", "onde"),
-      campo("descricao", "descrição", "textarea"), campo("recompensa", "recompensa"),
-      el("select", { className: "m-perigo" }, ...[1, 2, 3, 4, 5].map((n) => el("option", { value: n, textContent: `${n} · ${PERIGO[n]}`, selected: n === m.perigo }))),
-      el("button", { className: "bt mini", type: "button", textContent: "✕ tirar", onclick: () => b.remove() }));
-    b.dataset.id = m.id || ""; b.dataset.concluida = m.concluida ? "1" : "";
-    blocos.append(b);
-  };
-  for (const m of dados.missoes) bloco(m);
-  const msg = el("span", { className: "explica" });
-  editor.append(blocos, el("div", { className: "acoes" },
-    el("button", { className: "bt", textContent: "+ missão", onclick: () => bloco() }),
-    el("button", { className: "bt destaque", textContent: "salvar quadro", onclick: async () => {
-      const missoes = [...blocos.children].map((b) => ({ id: b.dataset.id || undefined, concluida: !!b.dataset.concluida,
-        titulo: b.querySelector(".m-titulo").value, solicitante: b.querySelector(".m-solicitante").value, local: b.querySelector(".m-local").value,
-        descricao: b.querySelector(".m-descricao").value, recompensa: b.querySelector(".m-recompensa").value, perigo: +b.querySelector(".m-perigo").value }));
-      const r = await (await fetch("/api/missoes", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ missoes }) })).json();
-      msg.textContent = r.ok ? "salvo ✓" : r.erro;
-      if (r.ok) { editor.hidden = true; carregar(); }
-    } }),
-    el("button", { className: "bt", textContent: "cancelar", onclick: () => (editor.hidden = true) }), msg));
-  editor.scrollIntoView({ behavior: "smooth" });
-}
+    <!-- Quem está logado (vem da sessão do hub) -->
+    <div class="usuario-atual" id="usuarioAtual" hidden>
+      <span class="usuario-rotulo">Aventureiro(a):</span>
+      <strong class="usuario-nome" id="usuarioNome"></strong>
+      <button type="button" class="trocar-usuario" id="editarQuadro" hidden>editar quadro</button>
+    </div>
+  </header>
 
-async function carregar() {
-  dados = await (await fetch("/api/missoes")).json();
-  render();
-}
-eu.then((u) => { mestre = !!u.mestre; carregar(); });
-</script>
+  <main class="quadro" id="quadro">
+    <!-- Os cartazes de missão são injetados por missoes.js -->
+  </main>
+
+  <!-- Editor do quadro (só o Mestre vê) -->
+  <section class="editor" id="editor" hidden>
+    <div class="editor-cartaz">
+      <div class="furo furo-esq"></div>
+      <div class="furo furo-dir"></div>
+      <p class="login-sobre">⛏ Livro de contratos ⛏</p>
+      <h2 class="login-titulo">Editar o quadro</h2>
+      <p class="login-sub">Um bloco por missão. Salvar regrava o quadro inteiro; os votos das missões mantidas ficam.</p>
+      <div id="editorBlocos"></div>
+      <div class="editor-acoes">
+        <button type="button" class="btn-marcar" id="editorNova"><span class="btn-marcar-icone">✚</span><span class="btn-marcar-txt">Nova missão</span></button>
+        <button type="button" class="btn-concluir" id="editorSalvar"><span class="btn-concluir-txt">Salvar quadro</span></button>
+        <button type="button" class="trocar-usuario" id="editorCancelar">cancelar</button>
+        <span class="editor-msg" id="editorMsg"></span>
+      </div>
+    </div>
+  </section>
+
+  <footer class="rodape">
+    <div class="filete" aria-hidden="true">
+      <span></span>✠<span></span>
+    </div>
+    <p class="aviso">
+      A Guilda não se responsabiliza por membros perdidos, soterrados ou
+      transformados. Aventureiros devem estar registrados na Sede.
+    </p>
+  </footer>
+
+  <script type="module" src="/hub.js"></script>
+  <script type="module" src="/missoes.js"></script>
 </body>
 </html>

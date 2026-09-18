@@ -1,0 +1,1033 @@
+/* ============================================================
+   GUILDA DE AVENTUREIROS — Folha de estilo
+   Tema: pergaminho imersivo sobre madeira de taverna
+   ============================================================ */
+
+:root {
+  /* Madeira / pedra de mina / fundo */
+  --madeira-1: #2b1d11;
+  --madeira-2: #160d06;
+  --madeira-borda: #0d0804;
+
+  /* Pergaminho */
+  --pergaminho: #ecdcb8;
+  --pergaminho-escuro: #dcc79a;
+  --pergaminho-sombra: #c2aa78;
+
+  /* Tinta — contraste reforçado para legibilidade */
+  --tinta: #2a1a0a;
+  --tinta-suave: #3a2611;
+  --tinta-fraca: #5c4120;
+
+  /* Cobre / ouro / acentos de minério */
+  --ouro: #c2922f;
+  --ouro-claro: #e2bc63;
+  --cobre: #b06a36;
+  --cobre-claro: #d68a4f;
+  --cera: #8a2820;
+
+  /* Selos de perigo: 1 verde, 2 laranja, 3 vermelho, 4 carmesim, 5 negro */
+  --p1: #44682f;
+  --p2: #c2701c;
+  --p3: #a8281b;
+  --p4: #7e1d14;
+  --p5: #1c1410;
+
+  --fonte-display: "Cinzel Decorative", "Cinzel", serif;
+  --fonte-titulo: "Cinzel", serif;
+  --fonte-corpo: "EB Garamond", Georgia, serif;
+}
+
+* { box-sizing: border-box; }
+
+html {
+  scroll-behavior: smooth;
+  /* evita rolagem horizontal causada pelo selo e pelos realces */
+  overflow-x: hidden;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  /* toque mais responsivo, sem realce azul ao tocar */
+  -webkit-tap-highlight-color: transparent;
+  font-family: var(--fonte-corpo);
+  color: var(--tinta);
+  background-color: #2c1d10;
+  /* parede de tábuas de madeira (verticais) */
+  background-image:
+    /* brilho de minério no topo */
+    radial-gradient(
+      ellipse 70% 38% at 50% 0%,
+      rgba(176, 106, 54, 0.14),
+      transparent 70%
+    ),
+    /* sombra/realce nas bordas de cada tábua */
+    repeating-linear-gradient(
+      90deg,
+      rgba(0, 0, 0, 0.45) 0px,
+      rgba(0, 0, 0, 0.45) 2px,
+      rgba(255, 255, 255, 0.04) 4px,
+      rgba(255, 255, 255, 0.04) 6px,
+      transparent 8px,
+      transparent 148px,
+      rgba(0, 0, 0, 0.45) 150px
+    ),
+    /* veios finos verticais */
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.022) 0px,
+      rgba(255, 255, 255, 0.022) 1px,
+      transparent 1px,
+      transparent 5px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(0, 0, 0, 0.10) 0px,
+      rgba(0, 0, 0, 0.10) 2px,
+      transparent 2px,
+      transparent 11px
+    ),
+    /* variação de tom entre tábuas */
+    repeating-linear-gradient(
+      90deg,
+      rgba(58, 38, 20, 0.55) 0px,
+      rgba(78, 50, 26, 0.55) 74px,
+      rgba(46, 30, 16, 0.55) 148px
+    ),
+    /* veios longos ondulados ao longo da tábua */
+    repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.06) 0px,
+      rgba(0, 0, 0, 0.06) 3px,
+      transparent 3px,
+      transparent 26px
+    ),
+    linear-gradient(180deg, #34230f, #1f1409);
+  background-attachment: fixed;
+}
+
+/* Vinheta escura nas bordas para foco central */
+.vinheta {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 52%,
+    rgba(0, 0, 0, 0.45) 100%
+  );
+}
+
+/* ============================ CABEÇALHO ============================ */
+
+.cabecalho {
+  text-align: center;
+  padding: clamp(2.2rem, 6vw, 4.5rem) 1.2rem 1.5rem;
+  color: var(--ouro-claro);
+  position: relative;
+  z-index: 1;
+}
+
+.brasao {
+  color: var(--ouro);
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6))
+    drop-shadow(0 0 14px rgba(214, 138, 79, 0.3));
+  animation: surgir 0.9s ease both;
+}
+
+.sobre-titulo {
+  margin: 0.6rem 0 0;
+  font-family: var(--fonte-titulo);
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  font-size: clamp(0.6rem, 1.6vw, 0.78rem);
+  color: var(--ouro);
+  opacity: 0.85;
+  animation: surgir 0.9s ease 0.05s both;
+}
+
+.titulo-principal {
+  margin: 0.25rem 0;
+  font-family: var(--fonte-display);
+  font-weight: 900;
+  font-size: clamp(2.1rem, 8vw, 4.6rem);
+  line-height: 1.02;
+  /* gradiente metálico cobre→ouro */
+  background: linear-gradient(
+    178deg,
+    var(--ouro-claro) 0%,
+    var(--ouro) 42%,
+    var(--cobre) 78%,
+    var(--ouro) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.55))
+    drop-shadow(0 0 26px rgba(194, 146, 47, 0.22));
+  animation: surgir 0.9s ease 0.1s both;
+}
+
+.subtitulo {
+  margin: 0.2rem 0 0;
+  font-family: var(--fonte-titulo);
+  font-style: italic;
+  font-size: clamp(0.85rem, 2.6vw, 1.15rem);
+  letter-spacing: 0.08em;
+  color: var(--pergaminho-escuro);
+  animation: surgir 0.9s ease 0.15s both;
+}
+
+.filete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.9rem;
+  margin: 1.1rem auto 0;
+  max-width: 360px;
+  color: var(--ouro);
+}
+.filete span {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--ouro) 40%,
+    var(--ouro) 60%,
+    transparent
+  );
+}
+
+.contador {
+  margin: 1rem 0 0;
+  font-family: var(--fonte-titulo);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-size: clamp(0.62rem, 1.8vw, 0.8rem);
+  color: var(--pergaminho);
+  opacity: 0.9;
+}
+
+/* ============================ QUADRO ============================ */
+
+.quadro {
+  position: relative;
+  z-index: 1;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 1.5rem clamp(0.8rem, 3vw, 2rem) 3rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+  gap: clamp(1.4rem, 3vw, 2.4rem);
+  align-items: start;
+}
+
+/* ============================ CARTAZ ============================ */
+
+.cartaz {
+  position: relative;
+  padding: 2.1rem 1.7rem 1.6rem;
+  color: var(--tinta);
+  background-color: var(--pergaminho);
+  /* manchas e fibra do papel */
+  background-image:
+    radial-gradient(ellipse at 18% 12%, rgba(120, 85, 40, 0.16), transparent 42%),
+    radial-gradient(ellipse at 85% 88%, rgba(120, 85, 40, 0.20), transparent 45%),
+    radial-gradient(circle at 70% 25%, rgba(90, 60, 25, 0.10), transparent 30%),
+    linear-gradient(160deg, var(--pergaminho), var(--pergaminho-escuro));
+  border: 1px solid var(--pergaminho-sombra);
+  border-radius: 3px;
+  box-shadow:
+    inset 0 0 36px rgba(120, 85, 40, 0.28),
+    inset 0 0 4px rgba(60, 40, 18, 0.4),
+    0 10px 22px rgba(0, 0, 0, 0.5),
+    0 2px 5px rgba(0, 0, 0, 0.4);
+  /* leve inclinação aleatória, como cartaz pregado */
+  transform: rotate(var(--tilt, -0.6deg));
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 0.35s ease, filter 0.35s ease;
+  animation: pregar 0.6s cubic-bezier(0.2, 0.9, 0.25, 1) var(--delay, 0ms) both;
+}
+.cartaz:nth-child(even) { --tilt: 0.7deg; }
+.cartaz:nth-child(3n) { --tilt: -1.1deg; }
+.cartaz:nth-child(4n) { --tilt: 0.4deg; }
+
+/* bordas serrilhadas / cantos gastos */
+.cartaz::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border: 1px solid rgba(90, 62, 28, 0.35);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+/* Realce ao passar o mouse — apenas em telas largas com ponteiro fino
+   (mouse/trackpad). Muitos navegadores de celular (Samsung, com S-Pen)
+   relatam "hover: hover" por engano, então exigimos também largura de
+   tela de desktop (min-width) para nunca disparar o efeito no celular. */
+@media (hover: hover) and (pointer: fine) and (min-width: 700px) {
+  /* Ao passar o mouse: escurece os outros cartazes */
+  .quadro:has(.cartaz:hover) .cartaz {
+    filter: brightness(0.55) saturate(0.8);
+    transform: rotate(var(--tilt, -0.6deg)) scale(0.96) !important;
+  }
+
+  /* ...e destaca/expande o cartaz sob o cursor.
+     !important vence o transform deixado pela animação de entrada (fill: both). */
+  .quadro:has(.cartaz:hover) .cartaz:hover,
+  .cartaz:hover {
+    filter: none;
+    transform: rotate(0deg) translateY(-14px) scale(1.12) !important;
+    box-shadow:
+      inset 0 0 36px rgba(120, 85, 40, 0.28),
+      0 34px 60px rgba(0, 0, 0, 0.7),
+      0 0 0 2px var(--ouro);
+    z-index: 5;
+  }
+}
+
+/* furos de prego onde o cartaz foi fixado */
+.furo {
+  position: absolute;
+  top: 11px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #5a3d1a, #1c1206 70%);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.8),
+    0 1px 1px rgba(255, 240, 200, 0.25);
+}
+.furo-esq { left: 16px; }
+.furo-dir { right: 16px; }
+
+.cartaz-topo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 0.4rem 2.4rem 0.9rem;
+}
+.bracket {
+  color: var(--ouro);
+  font-size: 1.1rem;
+  line-height: 1;
+  opacity: 0.8;
+  margin-top: 0.2rem;
+}
+.bracket.flip { transform: scaleX(-1); }
+
+.cartaz-titulo {
+  margin: 0;
+  text-align: center;
+  font-family: var(--fonte-titulo);
+  font-weight: 700;
+  font-size: clamp(1.1rem, 2.6vw, 1.4rem);
+  line-height: 1.15;
+  color: var(--tinta);
+  letter-spacing: 0.01em;
+}
+
+/* ----------- Selo de cera (nível de perigo) ----------- */
+.selo {
+  position: absolute;
+  top: -16px;
+  right: -14px;
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #f7ecd2;
+  font-family: var(--fonte-display);
+  font-weight: 900;
+  z-index: 3;
+  background: radial-gradient(circle at 34% 30%, rgba(255, 255, 255, 0.35), transparent 45%),
+    var(--p1);
+  box-shadow:
+    inset 0 -3px 6px rgba(0, 0, 0, 0.5),
+    inset 0 2px 4px rgba(255, 255, 255, 0.3),
+    0 4px 8px rgba(0, 0, 0, 0.55);
+  /* borda irregular de cera derretida */
+  clip-path: polygon(
+    50% 0%, 63% 8%, 78% 5%, 84% 20%, 98% 28%, 92% 44%, 100% 58%,
+    88% 68%, 90% 84%, 74% 86%, 64% 98%, 50% 90%, 36% 98%, 26% 86%,
+    10% 84%, 12% 68%, 0% 58%, 8% 44%, 2% 28%, 16% 20%, 22% 5%, 37% 8%
+  );
+  transform: rotate(8deg);
+  animation: selar 0.5s cubic-bezier(0.3, 1.4, 0.5, 1) calc(var(--delay, 0ms) + 200ms) both;
+}
+.selo-num {
+  font-family: "Pirata One", var(--fonte-display);
+  font-weight: 400;
+  font-size: 1.85rem;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
+  transform: rotate(-8deg);
+}
+.perigo-1 { background-color: var(--p1); }
+.perigo-2 { background-color: var(--p2); }
+.perigo-3 { background-color: var(--p3); }
+.perigo-4 { background-color: var(--p4); }
+.perigo-5 { background-color: var(--p5); color: #d9b24a; }
+
+/* ----------- Metadados ----------- */
+.cartaz-meta {
+  margin: 0 0 0.9rem;
+  padding: 0.7rem 0;
+  border-top: 1px solid rgba(90, 62, 28, 0.3);
+  border-bottom: 1px solid rgba(90, 62, 28, 0.3);
+}
+.meta-linha {
+  display: flex;
+  gap: 0.6rem;
+  font-size: 0.98rem;
+  line-height: 1.4;
+}
+.meta-linha + .meta-linha { margin-top: 0.3rem; }
+.meta-linha dt {
+  flex: 0 0 92px;
+  font-family: var(--fonte-titulo);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--cobre);
+  padding-top: 0.18rem;
+}
+.meta-linha dd {
+  margin: 0;
+  font-weight: 600;
+  color: var(--tinta-suave);
+}
+
+.cartaz-descricao {
+  margin: 0 0 1.2rem;
+  font-size: 1.06rem;
+  line-height: 1.5;
+  color: var(--tinta);
+  text-align: justify;
+  hyphens: auto;
+}
+
+/* ----------- Rodapé do cartaz ----------- */
+.cartaz-rodape {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: auto;
+  padding-top: 0.7rem;
+  border-top: 2px double rgba(90, 62, 28, 0.4);
+}
+.perigo-rotulo,
+.recompensa-rotulo {
+  display: block;
+  font-family: var(--fonte-titulo);
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--tinta-fraca);
+  margin-bottom: 0.3rem;
+}
+.pips { display: inline-flex; gap: 4px; vertical-align: middle; }
+.pip {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  display: inline-block;
+  border: 1px solid rgba(60, 40, 18, 0.5);
+}
+.pip-on {
+  background: radial-gradient(circle at 35% 30%, var(--cera), #5e1812);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
+}
+.pip-off { background: rgba(90, 62, 28, 0.18); }
+.perigo-nome {
+  display: block;
+  margin-top: 0.3rem;
+  font-family: var(--fonte-titulo);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--tinta-suave);
+}
+
+.recompensa { text-align: right; }
+.recompensa-valor {
+  font-family: var(--fonte-display);
+  font-weight: 700;
+  font-size: clamp(1.15rem, 3.2vw, 1.5rem);
+  color: var(--cera);
+  text-shadow: 0 1px 0 rgba(255, 240, 210, 0.4);
+  line-height: 1.05;
+}
+
+/* ----------- Estado concluída ----------- */
+.cartaz.concluida { filter: saturate(0.6) brightness(0.96); }
+.carimbo-concluida {
+  position: absolute;
+  top: 46%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-14deg);
+  font-family: var(--fonte-display);
+  font-weight: 900;
+  font-size: clamp(1.4rem, 5vw, 2.1rem);
+  letter-spacing: 0.1em;
+  color: rgba(140, 40, 32, 0.7);
+  border: 4px solid rgba(140, 40, 32, 0.6);
+  border-radius: 8px;
+  padding: 0.2rem 0.8rem;
+  pointer-events: none;
+  z-index: 4;
+}
+
+/* ============================ RODAPÉ ============================ */
+
+.rodape {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  padding: 1rem 1.2rem 3rem;
+  color: var(--pergaminho-escuro);
+}
+.lema {
+  font-family: var(--fonte-display);
+  font-size: clamp(1rem, 3vw, 1.3rem);
+  color: var(--ouro-claro);
+  margin: 1.1rem 0 0.7rem;
+}
+.aviso {
+  max-width: 540px;
+  margin: 0 auto;
+  font-style: italic;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--pergaminho-sombra);
+  opacity: 0.8;
+}
+
+/* ============================ ANIMAÇÕES ============================ */
+
+@keyframes surgir {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pregar {
+  from {
+    opacity: 0;
+    transform: rotate(var(--tilt, -0.6deg)) translateY(-26px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(var(--tilt, -0.6deg)) translateY(0) scale(1);
+  }
+}
+@keyframes selar {
+  from { opacity: 0; transform: rotate(8deg) scale(2.4); }
+  to { opacity: 1; transform: rotate(8deg) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* ============================ MOBILE ============================ */
+
+@media (max-width: 640px) {
+  /* sem animações no celular: cartazes, selos e textos aparecem direto */
+  *, *::before, *::after {
+    animation: none !important;
+  }
+
+  .quadro {
+    grid-template-columns: 1fr;
+    gap: 1.6rem;
+    /* centraliza os cartazes e impede que estourem a largura da tela */
+    width: 100%;
+    padding: 1.5rem 1.1rem 3rem;
+  }
+  .cartaz {
+    transform: rotate(0deg);
+    padding: 1.9rem 1.3rem 1.4rem;
+    width: 100%;
+    max-width: 100%;
+  }
+  /* sem inclinação no celular: cartazes retos e centralizados */
+  .cartaz:nth-child(n) { --tilt: 0deg; }
+  .cartaz,
+  .cartaz:nth-child(even),
+  .cartaz:nth-child(3n),
+  .cartaz:nth-child(4n) { --tilt: 0deg; }
+  .cartaz-descricao { text-align: left; }
+
+  /* Trava de segurança: nenhum cartaz pode "expandir" ou escurecer os
+     outros ao tocar. Anula qualquer efeito de :hover preso no celular. */
+  .quadro:has(.cartaz:hover) .cartaz,
+  .cartaz:hover {
+    filter: none !important;
+    transform: rotate(0deg) !important;
+    z-index: auto !important;
+    box-shadow:
+      inset 0 0 36px rgba(120, 85, 40, 0.28),
+      inset 0 0 4px rgba(60, 40, 18, 0.4),
+      0 10px 22px rgba(0, 0, 0, 0.5),
+      0 2px 5px rgba(0, 0, 0, 0.4) !important;
+  }
+  /* selo um pouco menor e dentro da borda, para não estourar a tela */
+  .selo { width: 50px; height: 50px; top: -12px; right: -4px; }
+  .selo-num { font-size: 1.3rem; }
+
+  /* sem transições de transform no celular: nada de crescer/encolher */
+  .cartaz { transition: none; }
+}
+
+/* ============================ LOGIN ============================ */
+
+.login-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 1.2rem;
+  background: rgba(12, 8, 4, 0.82);
+  backdrop-filter: blur(3px);
+}
+.login-overlay[hidden] { display: none; }
+
+.login-cartaz {
+  position: relative;
+  width: min(420px, 100%);
+  max-width: 100%;
+  text-align: center;
+  padding: 2.4rem 1.6rem 2rem;
+  color: var(--tinta);
+  background-color: var(--pergaminho);
+  background-image:
+    radial-gradient(ellipse at 18% 12%, rgba(120, 85, 40, 0.16), transparent 42%),
+    radial-gradient(ellipse at 85% 88%, rgba(120, 85, 40, 0.20), transparent 45%),
+    linear-gradient(160deg, var(--pergaminho), var(--pergaminho-escuro));
+  border: 1px solid var(--pergaminho-sombra);
+  border-radius: 4px;
+  box-shadow:
+    inset 0 0 36px rgba(120, 85, 40, 0.28),
+    0 24px 50px rgba(0, 0, 0, 0.6);
+}
+.login-sobre {
+  margin: 0;
+  font-family: var(--fonte-titulo);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-size: 0.62rem;
+  color: var(--cobre);
+}
+.login-titulo {
+  margin: 0.5rem 0 0.2rem;
+  font-family: var(--fonte-display);
+  font-weight: 900;
+  font-size: clamp(1.5rem, 6vw, 2rem);
+  color: var(--tinta);
+}
+.login-sub {
+  margin: 0 0 1.4rem;
+  font-size: 0.98rem;
+  color: var(--tinta-suave);
+}
+.login-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.7rem;
+}
+.login-nome {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  width: 100%;
+  padding: 0.85rem 1rem;
+  font-family: var(--fonte-titulo);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--tinta);
+  cursor: pointer;
+  background: linear-gradient(160deg, #f3e6c6, var(--pergaminho-escuro));
+  border: 1px solid var(--pergaminho-sombra);
+  border-radius: 3px;
+  box-shadow: inset 0 0 12px rgba(120, 85, 40, 0.2),
+    0 2px 4px rgba(0, 0, 0, 0.25);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+.login-iniciais {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  font-family: var(--fonte-display);
+  font-size: 0.85rem;
+  color: #f7ecd2;
+  background: radial-gradient(circle at 34% 30%, rgba(255, 255, 255, 0.3), transparent 45%),
+    var(--cobre);
+  box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.4);
+}
+.login-iniciais svg {
+  width: 22px;
+  height: 22px;
+  display: block;
+}
+
+/* ===================== USUÁRIO LOGADO ===================== */
+
+.usuario-atual {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0.9rem auto 0;
+  padding: 0.4rem 0.5rem 0.4rem 0.9rem;
+  font-family: var(--fonte-titulo);
+  font-size: 0.8rem;
+  color: var(--pergaminho);
+  background: rgba(20, 13, 6, 0.5);
+  border: 1px solid rgba(194, 146, 47, 0.35);
+  border-radius: 999px;
+}
+.usuario-atual[hidden] { display: none; }
+.usuario-rotulo {
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ouro);
+  opacity: 0.85;
+}
+.usuario-nome { color: var(--ouro-claro); }
+.trocar-usuario {
+  font-family: var(--fonte-titulo);
+  font-size: 0.7rem;
+  color: var(--pergaminho);
+  cursor: pointer;
+  padding: 0.2rem 0.6rem;
+  background: rgba(194, 146, 47, 0.16);
+  border: 1px solid rgba(194, 146, 47, 0.4);
+  border-radius: 999px;
+  transition: background 0.15s ease;
+}
+.aviso-offline {
+  max-width: 420px;
+  margin: 0.7rem auto 0;
+  font-size: 0.72rem;
+  font-style: italic;
+  color: var(--pergaminho-sombra);
+  opacity: 0.85;
+}
+.aviso-offline[hidden] { display: none; }
+
+/* ===================== GRUPO / MARCAR MISSÃO ===================== */
+
+.cartaz-grupo {
+  margin-top: 1rem;
+  padding-top: 0.8rem;
+  border-top: 1px dashed rgba(90, 62, 28, 0.4);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.btn-marcar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  align-self: flex-start;
+  padding: 0.5rem 1rem;
+  font-family: var(--fonte-titulo);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--tinta);
+  cursor: pointer;
+  background: linear-gradient(160deg, #f0e1bf, var(--pergaminho-escuro));
+  border: 1px solid var(--cobre);
+  border-radius: 3px;
+  box-shadow: inset 0 0 10px rgba(120, 85, 40, 0.18);
+  transition: transform 0.12s ease, box-shadow 0.15s ease, background 0.15s ease,
+    color 0.15s ease;
+}
+.btn-marcar:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-marcar.ativo {
+  color: #f7ecd2;
+  background: radial-gradient(circle at 34% 20%, rgba(255, 255, 255, 0.18), transparent 50%),
+    linear-gradient(160deg, var(--cobre-claro), var(--cera));
+  border-color: var(--cera);
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.25),
+    0 2px 6px rgba(0, 0, 0, 0.3);
+}
+.btn-marcar-icone { font-size: 0.95em; }
+
+.marcadores {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  min-height: 24px;
+}
+.marcadores-vazio {
+  font-size: 0.8rem;
+  font-style: italic;
+  color: var(--tinta-fraca);
+}
+.marcadores-contagem {
+  font-family: var(--fonte-titulo);
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--cobre);
+}
+.marcadores-chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+.chip {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-family: var(--fonte-titulo);
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: var(--pergaminho);
+  background: radial-gradient(circle at 34% 30%, rgba(255, 255, 255, 0.25), transparent 45%),
+    var(--tinta-suave);
+  box-shadow: inset 0 -1px 2px rgba(0, 0, 0, 0.4);
+  cursor: default;
+}
+.chip svg {
+  width: 17px;
+  height: 17px;
+  display: block;
+}
+.chip.eu {
+  color: #1a1008;
+  background: radial-gradient(circle at 34% 30%, rgba(255, 255, 255, 0.4), transparent 45%),
+    var(--ouro-claro);
+  box-shadow: 0 0 0 2px var(--ouro);
+}
+
+/* legenda (nome) ao passar o mouse sobre o ícone */
+.chip::after {
+  content: attr(data-nome);
+  position: absolute;
+  bottom: calc(100% + 7px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  white-space: nowrap;
+  padding: 0.28rem 0.55rem;
+  font-family: var(--fonte-titulo);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--pergaminho);
+  background: rgba(20, 13, 6, 0.96);
+  border: 1px solid rgba(194, 146, 47, 0.5);
+  border-radius: 4px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  z-index: 20;
+}
+/* setinha da legenda */
+.chip::before {
+  content: "";
+  position: absolute;
+  bottom: calc(100% + 2px);
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: rgba(194, 146, 47, 0.6);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  z-index: 20;
+}
+.chip:hover::after,
+.chip:focus-visible::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.chip:hover::before,
+.chip:focus-visible::before { opacity: 1; }
+
+/* missão mais marcada pelo grupo */
+.cartaz.destaque {
+  box-shadow:
+    inset 0 0 36px rgba(120, 85, 40, 0.28),
+    inset 0 0 4px rgba(60, 40, 18, 0.4),
+    0 10px 22px rgba(0, 0, 0, 0.5),
+    0 0 0 2px var(--ouro);
+}
+
+/* ===================== MESTRE (coroa) ===================== */
+
+/* coroa no selo de quem está logado */
+.badge-coroa {
+  display: inline-grid;
+  place-items: center;
+  width: 1.05rem;
+  height: 1.05rem;
+  margin-right: 0.1rem;
+  color: var(--ouro-claro);
+  vertical-align: -0.18em;
+}
+.badge-coroa svg { width: 100%; height: 100%; display: block; }
+
+/* botão exclusivo do Mestre: só aparece quando o Mestre está logado */
+.cartaz-mestre { display: none; margin-top: 0.6rem; }
+body.modo-mestre .cartaz-mestre { display: flex; }
+
+.btn-concluir {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  align-self: flex-start;
+  padding: 0.45rem 0.95rem;
+  font-family: var(--fonte-titulo);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #f3e7c8;
+  cursor: pointer;
+  background: linear-gradient(160deg, #4a3a1c, #2c2010);
+  border: 1px solid var(--ouro);
+  border-radius: 3px;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+  transition: transform 0.12s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+.btn-concluir::before {
+  content: "♛";
+  color: var(--ouro-claro);
+  font-size: 0.95em;
+}
+.btn-concluir.reabrir {
+  color: var(--pergaminho);
+  background: linear-gradient(160deg, #3a2611, #241608);
+  border-color: var(--cobre);
+}
+
+/* ===================== MISSÃO CUMPRIDA ===================== */
+
+/* esconde a votação quando a missão já foi cumprida */
+.cartaz.concluida .cartaz-grupo { display: none; }
+
+/* selo "Cumprido / Pelos Viajantes Eternos" */
+.carimbo-cumprido {
+  display: none;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-11deg);
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  padding: 0.45rem 1.3rem 0.55rem;
+  text-align: center;
+  pointer-events: none;
+  color: rgba(140, 40, 32, 0.82);
+  border: 4px double rgba(140, 40, 32, 0.7);
+  border-radius: 8px;
+  background: rgba(236, 220, 184, 0.35);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  z-index: 4;
+}
+.cartaz.concluida .carimbo-cumprido { display: flex; }
+.carimbo-titulo {
+  font-family: var(--fonte-display);
+  font-weight: 900;
+  font-size: clamp(1.5rem, 5vw, 2.1rem);
+  letter-spacing: 0.08em;
+  line-height: 1;
+}
+.carimbo-sub {
+  font-family: var(--fonte-titulo);
+  font-style: italic;
+  font-size: clamp(0.62rem, 2vw, 0.78rem);
+  letter-spacing: 0.04em;
+}
+
+/* realce dos botões só onde há mouse de verdade */
+@media (hover: hover) and (pointer: fine) and (min-width: 700px) {
+  .login-nome:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.04);
+    box-shadow: inset 0 0 14px rgba(120, 85, 40, 0.25),
+      0 6px 14px rgba(0, 0, 0, 0.35);
+  }
+  .btn-marcar:not(:disabled):hover {
+    transform: translateY(-1px);
+    box-shadow: inset 0 0 10px rgba(120, 85, 40, 0.18),
+      0 4px 10px rgba(0, 0, 0, 0.3);
+  }
+  .btn-concluir:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.12);
+  }
+  .trocar-usuario:hover { background: rgba(194, 146, 47, 0.3); }
+}
+
+/* ajustes mobile dos novos componentes */
+@media (max-width: 640px) {
+  .login-cartaz { padding: 2rem 1.2rem 1.6rem; }
+  .btn-marcar { align-self: stretch; padding: 0.7rem 1rem; }
+  .btn-concluir { align-self: stretch; padding: 0.6rem 1rem; }
+  .usuario-atual { font-size: 0.78rem; }
+}
+
+/* ============================================================
+   EDITOR DO QUADRO (Mestre) — acrescentado pelo hub; o resto do arquivo é o original da guilda.
+   Mesmo pergaminho da tela de login; campos com tinta sobre pergaminho.
+   ============================================================ */
+.editor { position: relative; z-index: 1; padding: 0 clamp(0.8rem, 3vw, 2rem) 2rem; }
+.editor[hidden] { display: none; }
+.editor-cartaz {
+  position: relative; width: min(760px, 100%); margin: 0 auto; text-align: center;
+  padding: 2.4rem 1.6rem 2rem; color: var(--tinta);
+  background-color: var(--pergaminho);
+  background-image:
+    radial-gradient(ellipse at 18% 12%, rgba(120, 85, 40, 0.16), transparent 42%),
+    radial-gradient(ellipse at 85% 88%, rgba(120, 85, 40, 0.20), transparent 45%),
+    linear-gradient(160deg, var(--pergaminho), var(--pergaminho-escuro));
+  border: 1px solid var(--pergaminho-sombra); border-radius: 4px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+}
+.editor-bloco {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem 0.8rem; text-align: left;
+  margin: 1rem 0; padding: 0.9rem 1rem 0.6rem; border: 1px dashed var(--pergaminho-sombra); border-radius: 4px;
+}
+.editor-bloco label { display: flex; flex-direction: column; gap: 0.15rem; font-family: var(--fonte-titulo); font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--tinta-fraca); }
+.editor-bloco label:first-child, .editor-bloco label:nth-child(4) { grid-column: 1 / -1; }
+.editor-bloco input, .editor-bloco textarea, .editor-bloco select {
+  font-family: var(--fonte-corpo, "EB Garamond", serif); font-size: 1rem; color: var(--tinta);
+  background: rgba(255, 250, 235, 0.55); border: 1px solid var(--pergaminho-sombra); border-radius: 3px; padding: 0.35rem 0.5rem;
+}
+.editor-bloco textarea { min-height: 4.5rem; resize: vertical; }
+.editor-bloco .ed-tirar { grid-column: 1 / -1; justify-self: end; color: var(--tinta); background: rgba(138, 40, 32, 0.12); border-color: var(--cera); }
+.editor-acoes { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 0.7rem; margin-top: 1rem; }
+.editor-acoes .trocar-usuario { color: var(--tinta); }
+.editor-msg { font-family: var(--fonte-titulo); font-size: 0.8rem; color: var(--tinta-suave); }
+@media (max-width: 640px) { .editor-bloco { grid-template-columns: 1fr; } }
