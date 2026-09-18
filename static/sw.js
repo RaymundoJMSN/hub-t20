@@ -4,7 +4,7 @@
 //    (stale-while-revalidate) → a segunda visita a qualquer aba é instantânea; mudança de deploy chega na visita seguinte
 //  • o resto da /api/ (sessão, votos, agenda, magias da mesa): só rede
 // Subir CACHE quando quiser derrubar tudo que está guardado.
-const CACHE = "hub-t20-v2";
+const CACHE = "hub-t20-v3";
 const FIXO = /\.(css|js|mjs|png|svg|ico|ttf|otf|woff2|webmanifest)$/;
 const API_FIXA = /^\/api\/(c\/|grimorio|poderes|poder\/|texto\/)/;
 
@@ -18,7 +18,8 @@ self.addEventListener("fetch", (e) => {
   if (req.method !== "GET" || url.origin !== location.origin || url.pathname === "/login" || url.pathname === "/sw.js") return;
   if (url.pathname.startsWith("/api/") && !API_FIXA.test(url.pathname)) return;
   const guardar = (res) => { if (res && res.ok && res.type === "basic") caches.open(CACHE).then((c) => c.put(req, res.clone())); return res; };
-  if (FIXO.test(url.pathname) || API_FIXA.test(url.pathname)) {
+  const fichaSite = url.pathname.startsWith("/ficha/") && url.pathname !== "/ficha/"; // compêndio, templates e ícones do criador de ficha
+  if (FIXO.test(url.pathname) || API_FIXA.test(url.pathname) || fichaSite) {
     e.respondWith(caches.match(req).then((hit) => {
       const rede = fetch(req).then(guardar).catch(() => hit);
       return hit || rede;

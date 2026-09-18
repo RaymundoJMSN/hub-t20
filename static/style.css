@@ -376,17 +376,17 @@ footer a { color: var(--ouro); }
 .quadro-carta.q-min { resize: none; height: auto !important; min-height: 0; padding-bottom: 8px; }
 .quadro-carta.q-min .miolo, .quadro-carta.q-min .tipo-linha, .quadro-carta.q-min .to-rodape { display: none; }
 .quadro-carta.q-min h2 { font-size: 1.3rem; padding-right: 60px; text-align: left; }
-.q-botoes { position: absolute; top: 6px; right: 6px; display: flex; gap: 4px; }
+.quadro-carta > h2 { padding-right: 68px; }
+.q-botoes { position: absolute; top: 8px; right: 8px; display: flex; gap: 5px; }
 .q-botoes .q-fechar { position: static; }
 .quadro-carta .to-rodape { flex: none; }
 .quadro-carta.q-arrastando { cursor: grabbing; opacity: .92; }
 .quadro-carta.q-pulso { animation: qpulso .5s; }
 .quadro-carta .to-rodape a { color: #f0dc82; }
 @keyframes qpulso { 50% { box-shadow: 0 0 0 4px rgba(240, 220, 130, .6); } }
-.q-fechar { width: 26px; height: 26px;
-  border-radius: 999px; border: 1px solid var(--borda); background: #2a1216; color: var(--ouro-claro);
-  cursor: pointer; font-size: .9rem; box-shadow: 0 4px 10px rgba(0, 0, 0, .5); }
-.q-fechar:hover { background: var(--sangue); color: #fff; }
+.q-fechar { width: 26px; height: 26px; border-radius: 50%; border: 1px solid rgba(240, 220, 130, .35); background: rgba(0, 0, 0, .35);
+  color: var(--ouro-claro); font: 700 13px/1 "Cinzel", serif; cursor: pointer; display: grid; place-items: center; padding: 0; transition: all .15s; }
+.q-fechar:hover { background: var(--sangue); border-color: var(--sangue-vivo); color: #fff; }
 .mesa-barra[hidden] { display: none; }
 .mesa-barra { position: fixed; left: 14px; bottom: 14px; z-index: 40; display: flex; gap: 8px; align-items: center;
   padding: 6px 10px; border-radius: 999px; background: var(--painel); border: 1px solid var(--borda);
@@ -442,11 +442,11 @@ footer a { color: var(--ouro); }
 .miolo.generica { font-size: .92rem; line-height: 1.45; }
 .miolo.generica .stats { margin-bottom: 6px; }
 .miolo.generica .atrib { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 6px 0; font-size: .9rem; }
-.miolo.generica .atrib b { color: var(--ouro); }
+.miolo.generica .atrib b { color: #ffc200; }
 .miolo.generica .bloco { margin-top: 8px; }
-.miolo.generica .bloco > b { display: block; color: var(--ouro); font-variant: small-caps; letter-spacing: .06em; }
+.miolo.generica .bloco > b { display: block; color: #ffc200; font-variant: small-caps; letter-spacing: .06em; }
 .miolo.generica .bloco div { margin: 3px 0; }
-.miolo.generica .a-img { float: right; max-width: 42%; max-height: 220px; margin: 0 0 8px 10px; border-radius: 8px; border: 1px solid var(--borda); background: #000; }
+.miolo.generica .a-img { float: right; max-width: 42%; max-height: 220px; margin: 0 0 8px 10px; border-radius: 8px; background: transparent; }
 .miolo.generica .obs { margin-top: 8px; font-style: italic; color: var(--texto-2); }
 .miolo.generica .perg { border-left: 3px solid var(--sangue); padding-left: 10px; margin-bottom: 10px; color: var(--ouro-claro); }
 .miolo.generica .resp { }
@@ -467,3 +467,47 @@ footer a { color: var(--ouro); }
 .conta-linha { display: grid; grid-template-columns: 1.2fr 1.4fr 1.2fr auto auto auto; gap: 6px; align-items: center; }
 .conta-linha b { color: var(--ouro-claro); }
 @media (max-width: 700px) { .conta-linha { grid-template-columns: 1fr 1fr; } }
+
+
+/* ===================== barra de rolagem invisível (rola normal, só não aparece) ===================== */
+* { scrollbar-width: none; }
+*::-webkit-scrollbar { display: none; width: 0; height: 0; }
+
+/* ===================== filtros: cada grupo numa linha com rótulo; faixa de dois cursores; chips; select ===================== */
+.g-filtros { display: flex; flex-direction: column; gap: 4px; margin: 4px 0 8px; }
+.g-filtros .filtro { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; padding: 3px 0; border-bottom: 1px dashed rgba(201, 162, 39, .12); }
+.g-filtros .filtro:last-child { border-bottom: 0; }
+.chips-rotulo { flex: 0 0 82px; font-family: "Cinzel", serif; font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; color: var(--texto-2); }
+.g-sel { padding: 6px 10px; font-size: .9rem; min-width: 200px; }
+.faixa-trilho { position: relative; width: min(320px, 100%); height: 28px; flex: 0 1 320px; }
+.faixa-fundo { position: absolute; left: 0; right: 0; top: 12px; height: 4px; border-radius: 2px; background: #3d1d22; }
+.faixa-sel { position: absolute; top: 12px; height: 4px; border-radius: 2px; background: linear-gradient(90deg, var(--sangue), var(--ouro)); }
+.faixa-trilho input[type="range"] { position: absolute; inset: 0; width: 100%; height: 28px; margin: 0; padding: 0; background: transparent; border: 0; pointer-events: none; -webkit-appearance: none; appearance: none; }
+.faixa-trilho input[type="range"]:focus { outline: 0; }
+.faixa-trilho input[type="range"]::-webkit-slider-runnable-track { background: transparent; height: 28px; }
+.faixa-trilho input[type="range"]::-moz-range-track { background: transparent; height: 28px; }
+.faixa-trilho input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; pointer-events: auto; width: 18px; height: 18px; margin-top: 5px; border-radius: 50%;
+  background: var(--ouro-claro); border: 2px solid var(--sangue); box-shadow: 0 1px 4px rgba(0, 0, 0, .6); cursor: grab; }
+.faixa-trilho input[type="range"]::-moz-range-thumb { pointer-events: auto; width: 14px; height: 14px; border-radius: 50%; background: var(--ouro-claro); border: 2px solid var(--sangue); cursor: grab; }
+.faixa-txt { font-family: "Cinzel", serif; font-size: .8rem; color: var(--texto-2); min-width: 70px; }
+.faixa.on .faixa-txt { color: var(--ouro-claro); }
+.g-filtros .chip { padding: 3px 11px; font-size: .84rem; }
+
+/* ===================== acordeão (STR): pergunta fechada, abre pra ler a resposta ===================== */
+.lista-acordeao { display: block; }
+.acordeao { border: 1px solid var(--borda); border-radius: 8px; background: #170b0e; margin-bottom: 6px; }
+.acordeao summary { list-style: none; cursor: pointer; padding: 10px 14px; }
+.acordeao summary::-webkit-details-marker { display: none; }
+.acordeao summary:hover { background: rgba(201, 162, 39, .05); }
+.acordeao[open] summary { border-bottom: 1px solid var(--borda); }
+.acord-topo { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 4px; }
+.acord-tag { font-family: "Cinzel", serif; font-size: .64rem; letter-spacing: .08em; text-transform: uppercase; color: var(--ouro-claro); background: rgba(182, 41, 46, .25); border: 1px solid rgba(182, 41, 46, .5); border-radius: 999px; padding: 2px 8px; }
+.acord-linha { font-size: .78rem; color: var(--texto-2); font-variant: small-caps; margin-left: auto; }
+.acord-perg { font-family: "iowan", "Alegreya", serif; font-size: 1.02rem; line-height: 1.4; color: var(--texto); }
+.acord-corpo { padding: 12px 16px 14px; font-size: .96rem; line-height: 1.5; }
+.acord-corpo .perg { display: none; }
+.acord-corpo .resp b { color: #ffc200; }
+
+/* galerias (chassis, heranças…) dentro das raças */
+.miolo.generica .galeria-item { clear: both; margin: 8px 0; overflow: hidden; }
+.miolo.generica .galeria-item .a-img { max-width: 34%; max-height: 150px; }

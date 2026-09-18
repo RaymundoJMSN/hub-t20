@@ -172,8 +172,8 @@ function ameacas() {
     return ficha({ id: slug(a.nome), nome: a.nome, linha: `${tipoStr} · ND ${nd} · ${a.fonte || ""}`, grupo: a.fonte || "?",
       f: { nd, tipo, tamanho, fonte: a.fonte || "?" }, ndn: ndNum(nd), html: ameacaHtml(a) });
   }).sort((a, b) => a.ndn - b.ndn || a.nome.localeCompare(b.nome));
-  const nds = [...new Set(itens.map((i) => i.f.nd))].sort((a, b) => ndNum(a) - ndNum(b));
-  gravar("ameacas", { titulo: "Bestiário", filtros: [{ k: "nd", rotulo: "ND" }, { k: "tipo", rotulo: "tipo" }, { k: "tamanho", rotulo: "tamanho" }, { k: "fonte", rotulo: "livro" }], ordem: { nd: nds, tamanho: TAMANHOS } }, itens);
+  const nds = [...new Set(itens.map((i) => i.f.nd))].filter((v) => /^(\d+|1\/4|1\/2|S|S\+)$/.test(v)).sort((a, b) => ndNum(a) - ndNum(b)); // "-" e "?" ficam fora do slider
+  gravar("ameacas", { titulo: "Bestiário", filtros: [{ k: "nd", rotulo: "ND", tipo: "faixa" }, { k: "tipo", rotulo: "tipo" }, { k: "tamanho", rotulo: "tamanho" }, { k: "fonte", rotulo: "livro" }], ordem: { nd: nds, tamanho: TAMANHOS } }, itens);
 }
 
 // ---------------------------------------------------------------- ITENS (arsenal/itens)
@@ -204,32 +204,50 @@ function str() {
   for (const ed of db) {
     const n = Number((ed.id || "").replace(/\D/g, "")) || 0;
     (ed.artigos || []).forEach((a, i) => {
-      const perg = soTexto(a.pergunta);
-      const nome = perg.length > 110 ? perg.slice(0, 107).replace(/\s+\S*$/, "") + "…" : perg;
+      // o "nome" é a pergunta inteira: a lista é um acordeão (fechado, abre pra ler), como no arsenal
+      const nome = soTexto(a.pergunta);
       out.push(ficha({ id: `${ed.id}-${i + 1}`, nome, linha: [ed.label, a.sistema, a.conselheiro].filter(Boolean).join(" · "), grupo: ed.label,
         f: { sistema: a.sistema || "?", tags: (a.tags || []).join("|"), edicao: n <= 182 ? "pré-JdA" : "Jogo do Ano" }, n,
         html: `<div class="perg">${limpar(a.pergunta)}</div><div class="resp">${limpar(a.resposta)}</div>` }));
     });
   }
   out.sort((a, b) => b.n - a.n);
-  gravar("str", { titulo: "STR — Supremo Tribunal Regreiro", filtros: [{ k: "sistema", rotulo: "sistema" }, { k: "tags", rotulo: "tema" }, { k: "edicao", rotulo: "edição" }] }, out);
+  gravar("str", { titulo: "STR — Supremo Tribunal Regreiro", modo: "acordeao", ordemPadrao: "",
+    filtros: [{ k: "sistema", rotulo: "sistema", tipo: "chips" }, { k: "tags", rotulo: "tema", tipo: "chips" }, { k: "edicao", rotulo: "edição", tipo: "chips" }] }, out);
   if (existsSync(join(ARSENAL, "STR/breves_jornadas.js"))) {
     const bj = evalVar("STR/breves_jornadas.js", "BJ_DATABASE").map((a) => ficha({ id: slug(`${a.db}-${a.titulo}`), nome: a.titulo, linha: `${a.db} · nível ${a.nivel}`, grupo: a.db,
       f: { nivel: String(a.nivel || "?"), db: a.db }, html: `<div class="desc">${limpar(a.resumo)}</div>` }));
-    gravar("aventuras", { titulo: "Breves Jornadas", filtros: [{ k: "nivel", rotulo: "nível" }] }, bj);
+    const niveis = [...new Set(bj.map((i) => i.f.nivel))].sort((a, b) => ndNum(a) - ndNum(b));
+    gravar("aventuras", { titulo: "Breves Jornadas", filtros: [{ k: "nivel", rotulo: "nível", tipo: "faixa" }], ordem: { nivel: niveis } }, bj);
   }
 }
 
 // ---------------------------------------------------------------- PERIGOS (arsenal/perigos)
+const imgHtml = (u) => (u && /^https?:\/\//.test(u) ? `<img class="a-img" src="${esc(u)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : "");
 function perigos() {
   const out = [];
   for (const p of evalVar("perigos/perigos-diversos.js", "perigosDiversos"))
     out.push(ficha({ id: slug(`${p.categoria}-${p.nome}`), nome: p.nome, linha: [p.categoria, p.subcategoria, p.origem].filter(Boolean).join(" · "), grupo: p.categoria,
-      f: { categoria: p.categoria || "?", tipo: p.subcategoria || "", origem: p.origem || "", nd: "" }, html: `<div class="desc">${limpar(p.descricao)}</div>${limpar(p.efeito)}` }));
+      f: { categoria: p.categoria || "?", tipo: p.subcategoria || "", origem: p.origem || "", nd: "" }, html: `${imgHtml(p.imagem)}<div class="desc">${limpar(p.descricao)}</div>${limpar(p.efeito)}` }));
   for (const p of evalVar("perigos/script.js", "perigos", "\nconst buscaInput"))
     out.push(ficha({ id: slug(`complexo-${p.nome}`), nome: p.nome, linha: ["Perigo complexo", p.tipo, p.nd && `ND ${p.nd}`, p.origem].filter(Boolean).join(" · "), grupo: "Perigos complexos",
-      f: { categoria: "Perigos complexos", tipo: p.tipo || "", origem: p.origem || "", nd: String(p.nd || "") }, html: limpar(p.efeito) }));
-  gravar("perigos", { titulo: "Perigos", filtros: [{ k: "categoria", rotulo: "categoria" }, { k: "tipo", rotulo: "tipo" }, { k: "nd", rotulo: "ND" }, { k: "origem", rotulo: "origem" }] }, out);
+      f: { categoria: "Perigos complexos", tipo: p.tipo || "", origem: p.origem || "", nd: String(p.nd || "") }, html: `${imgHtml(p.imagem)}${limpar(p.efeito)}` }));
+  const nds = [...new Set(out.map((i) => i.f.nd).filter(Boolean))].sort((a, b) => ndNum(a) - ndNum(b));
+  gravar("perigos", { titulo: "Perigos", filtros: [{ k: "categoria", rotulo: "categoria" }, { k: "tipo", rotulo: "tipo" }, { k: "nd", rotulo: "ND", tipo: "faixa" }, { k: "origem", rotulo: "origem" }], ordem: { nd: nds } }, out);
+}
+// galerias do arsenal (calculadora/racas.js): chassis de golem, heranças de suraggel, bênçãos de kallyanach… — cada uma com imagem
+const GALERIAS = [["GOLEM_CHASSI", "golem", "Chassis"], ["GOLEM_FONTES", "golem", "Fontes de energia"], ["GOLEM_MARAVILHAS", "golem", "Maravilhas mecânicas"],
+  ["SURAGEL_HERANCAS", "suraggel", "Heranças"], ["KALLYANACH_BENCAOS", "kallyanach", "Bênçãos"], ["ABERRANT_MUTATIONS", "aberrante", "Mutações"], ["KOBOLD_TALENTS", "kobold", "Talentos de bando"]];
+function galeriasDeRacas(racas) {
+  let consts;
+  try { consts = evalVar("calculadora/racas.js", `({${GALERIAS.map(([c]) => c).join(",")}})`); } catch (e) { console.warn("galerias:", e.message); return; }
+  for (const [c, raca, titulo] of GALERIAS) {
+    const alvo = racas.find((r) => norm(r.nome).includes(raca));
+    const itens = Object.entries(consts[c] || {});
+    if (!alvo || !itens.length) continue;
+    alvo.html += `<div class="bloco galeria"><b>${esc(titulo)}</b>${itens.map(([k, v]) => `<div class="galeria-item">${imgHtml(v.img)}<b>${esc(v.name || v.nome || k)}</b> ${limpar(v.description || v.desc || "")}</div>`).join("")}</div>`;
+    alvo.t += " " + norm(itens.map(([k, v]) => `${v.name || v.nome || k} ${soTexto(v.description || v.desc || "")}`).join(" "));
+  }
 }
 
 // ---------------------------------------------------------------- REGRAS (livros em markdown → uma ficha por seção)
@@ -269,6 +287,7 @@ function compendio() {
   const racas = [...arquivosMd("tormenta20-core/03-racas").map((f) => ["Livro Básico", f]),
     ...arquivosMd("herois-arton/01-campeoes-arton").filter((f) => /^\d\d-/.test(basename(f)) && !/treinador/.test(f)).map((f) => ["Heróis de Arton", f]),
     ...arquivosMd("dragao-brasil/01-racas").map((f) => ["Dragão Brasil", f])].map(([l, f]) => arquivoInteiro(l, f));
+  galeriasDeRacas(racas);
   gravar("racas", { titulo: "Raças", filtros: [{ k: "livro", rotulo: "livro" }] }, racas);
   const classes = [...arquivosMd("tormenta20-core/04-classes").map((f) => ["Livro Básico", f]),
     ...arquivosMd("herois-arton/01-campeoes-arton").filter((f) => /treinador/.test(f)).map((f) => ["Heróis de Arton", f]),

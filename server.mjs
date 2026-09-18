@@ -26,7 +26,8 @@ const ARQ = join(DADOS, "estado.json");
 const TABELA = JSON.parse(readFileSync(join(RAIZ, "data", "tabela-custos.json")));
 const PORT = Number(process.env.PORT || 8100);
 
-const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css", ".json": "application/json", ".png": "image/png", ".svg": "image/svg+xml", ".webmanifest": "application/manifest+json", ".ttf": "font/ttf", ".otf": "font/otf", ".woff2": "font/woff2" };
+const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css", ".json": "application/json", ".png": "image/png", ".svg": "image/svg+xml", ".webmanifest": "application/manifest+json", ".ttf": "font/ttf", ".otf": "font/otf", ".woff2": "font/woff2",
+  ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".gif": "image/gif", ".hbs": "text/plain; charset=utf-8", ".txt": "text/plain; charset=utf-8", ".map": "application/json" };
 const MAX_MAGIAS = 200, MAX_BODY = 512 * 1024, MAX_NOME = 40;
 const CHECK = process.argv.includes("--check");
 
@@ -188,6 +189,10 @@ const LINKS_PADRAO = {
   ],
 };
 let links = CHECK ? LINKS_PADRAO : lerJson(ARQ_LINKS, LINKS_PADRAO);
+// personagens do criador de ficha: { chave da conta: { id: { nome, resumo, estado, passo, ficha, criadoEm, atualizadoEm } } }
+const ARQ_PERS = join(DADOS, "personagens.json");
+let personagens = CHECK ? {} : lerJson(ARQ_PERS, {});
+const FICHA_DIR = join(DADOS, "ficha-site"); // build do criador-ficha-foundry (site, base /ficha/), sobe por scp
 
 function validarMagia(m) {
   if (typeof m !== "object" || !m) return "magia inválida";
@@ -205,10 +210,10 @@ function json(res, code, obj, extra = {}) {
   res.end(b);
 }
 
-function corpo(req) {
+function corpo(req, limite = MAX_BODY) {
   return new Promise((ok, err) => {
     let b = "";
-    req.on("data", (c) => { b += c; if (b.length > MAX_BODY) { err(new Error("grande")); req.destroy(); } });
+    req.on("data", (c) => { b += c; if (b.length > limite) { err(new Error("grande")); req.destroy(); } });
     req.on("end", () => { try { ok(b ? JSON.parse(b) : {}); } catch { err(new Error("json")); } });
   });
 }
@@ -505,6 +510,41 @@ async function tratar(req, res) {
     return json(res, 200, { ok: true });
   }
 
+  // ---- criador de ficha (site do t20-ficha-wizard buildado em dados/ficha-site, base /ficha/): personagens salvos POR CONTA
+  // mesma API que o site já falava (/api/criador/personagens); o "jogador" do site é ignorado — a sessão manda
+  const pc = p.match(/^\/api\/criador\/personagens(?:\/([A-Za-z0-9_-]{4,40}))?$/);
+  if (pc) {
+    const meus = (personagens[eu.chave] ||= {});
+    if (!pc[1] && req.method === "GET") return json(res, 200, Object.entries(meus).map(([id, x]) => ({ id, nome: x.nome, resumo: x.resumo, passo: x.passo, temFicha: !!x.ficha, atualizadoEm: x.atualizadoEm })).sort((a, b) => b.atualizadoEm - a.atualizadoEm));
+    if (!pc[1]) return json(res, 405, { error: "método" });
+    const id = pc[1];
+    if (req.method === "GET") return meus[id] ? json(res, 200, { id, jogador: eu.nome, ...meus[id] }) : json(res, 404, { error: "não encontrado" });
+    if (req.method === "DELETE") { delete meus[id]; gravarJson(ARQ_PERS, personagens); return json(res, 200, { ok: true }); }
+    if (req.method === "PUT") {
+      let b;
+      try { b = await corpo(req, 4 * 1024 * 1024); } catch { return json(res, 400, { error: "corpo inválido ou grande demais" }); }
+      if (!b.estado) return json(res, 400, { error: "estado obrigatório" });
+      const texto = (v) => (v == null ? null : typeof v === "string" ? v : JSON.stringify(v));
+      meus[id] = { nome: String(b.nome || "Sem nome").slice(0, 80), resumo: String(b.resumo ?? "").slice(0, 200), estado: texto(b.estado),
+        passo: b.passo ? String(b.passo).slice(0, 40) : null, ficha: texto(b.ficha), criadoEm: meus[id]?.criadoEm || Date.now(), atualizadoEm: Date.now() };
+      gravarJson(ARQ_PERS, personagens);
+      return json(res, 200, { ok: true, id });
+    }
+    return json(res, 405, { error: "método" });
+  }
+  if (p === "/ficha") return redirecionar(res, "/ficha/");
+  if (p.startsWith("/ficha/")) {
+    const rel = decodeURIComponent(p.slice("/ficha/".length)).replace(/\.\./g, "");
+    if (rel === "" || rel === "index.html") {
+      // o site lê o nome do jogador do localStorage antes de subir: gravamos o da sessão e escondemos o campo
+      let html;
+      try { html = readFileSync(join(FICHA_DIR, "index.html"), "utf-8"); } catch { return responderHtml(res, "<h1>Criador de ficha ainda não instalado neste servidor</h1>", 404); }
+      html = html.replace("</head>", `<script>try{localStorage.setItem("t20w-site.jogador",${JSON.stringify(eu.nome)})}catch{}</script><style>.t20w-site-nome{display:none}</style><script type="module" src="/hub.js"></script></head>`);
+      return responderHtml(res, html);
+    }
+    return estatico(res, join(FICHA_DIR, rel));
+  }
+
   // ---- páginas
   if (p.startsWith("/m/") || p.startsWith("/o/") || p.startsWith("/d/") || p.startsWith("/c/")) {
     const og = alvoDaRota(p);
@@ -747,6 +787,18 @@ if (CHECK) {
       if (!Object.values(estado.publicadas).every((m) => m.autor === "RayNathus")) return falha("autor das publicadas não seguiu");
       const HR = { cookie: renRay.headers.get("set-cookie").split(";")[0], "content-type": "application/json" };
       if ((await (await fetch(`${base}/api/eu`, { headers: HR })).json()).nome !== "RayNathus") return falha("cookie do mestre renomeado");
+      // criador de ficha: personagens por conta (o "jogador" do site é ignorado), lista/ler/apagar
+      const HP = { cookie: cookieNovo, "content-type": "application/json" };
+      const putP = await fetch(`${base}/api/criador/personagens/abcd1234?jogador=outro`, { method: "PUT", headers: HP, body: JSON.stringify({ jogador: "outro", nome: "Zé", resumo: "humano guerreiro", estado: { nome: "Zé" }, passo: "raca" }) });
+      if (putP.status !== 200) return falha("PUT personagem: " + putP.status);
+      const lista2 = await (await fetch(`${base}/api/criador/personagens?jogador=x`, { headers: HP })).json();
+      if (lista2.length !== 1 || lista2[0].id !== "abcd1234" || lista2[0].temFicha) return falha("lista de personagens: " + JSON.stringify(lista2));
+      if ((await (await fetch(`${base}/api/criador/personagens`, { headers: HR })).json()).length !== 0) return falha("personagem vazou pra outra conta");
+      const um = await (await fetch(`${base}/api/criador/personagens/abcd1234`, { headers: HP })).json();
+      if (um.estado !== JSON.stringify({ nome: "Zé" }) || um.jogador !== "Amanda Silva") return falha("ler personagem: " + JSON.stringify(um));
+      if ((await fetch(`${base}/api/criador/personagens/abcd1234`, { method: "DELETE", headers: HP })).status !== 200) return falha("apagar personagem");
+      if ((await fetch(`${base}/api/criador/personagens/abcd1234`, { headers: HP })).status !== 404) return falha("personagem devia sumir");
+      if ((await fetch(`${base}/ficha`, { headers: HP, redirect: "manual" })).status !== 302) return falha("/ficha devia redirecionar pra /ficha/");
       // links: padrão vem, mestre troca, jogador não
       const lk = await (await fetch(`${base}/api/links`, { headers: HR })).json(); // H morreu com o rename do Ray
       if (!lk.grupos?.length) return falha("links padrão");

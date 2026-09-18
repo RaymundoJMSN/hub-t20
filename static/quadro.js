@@ -42,24 +42,24 @@ export function mesaGlobal() {
       const m = await (await fetch(`/api/magia/${id.replace(/[^a-f0-9]/g, "")}`)).json();
       if (m.erro) throw new Error("despublicada");
       return cartaHtml(m, { total: m.pontos?.gasto ?? "?", orcamento: m.pontos?.orcamento ?? 10, valido: true })
-        + `<div class="to-rodape"><a href="/m/${id}">🔗 link desta magia</a></div>`;
+       ;
     }
     // "c:<coleção>/<id>": ficha de qualquer coleção (bestiário, itens, regras, compêndio), corpo já pronto do servidor
     if (tipo === "c") {
       const [col, cid] = id.split("/");
       const t = await (await fetch(`/api/c/${col.replace(/[^\w-]/g, "")}/${(cid || "").replace(/[^\w-]/g, "")}`)).json();
       if (t.erro) throw new Error("sem texto");
-      return cartaGenericaHtml(t) + `<div class="to-rodape"><a href="/c/${col}/${cid}">🔗 link desta ficha</a></div>`;
+      return cartaGenericaHtml(t);
     }
     const slug = id.replace(/[^\w-]/g, "");
     if (tipo === "d") {
       const d = await (await fetch(`/api/poder/${slug}`)).json();
       if (d.erro) throw new Error("sem texto");
-      return cartaPoderHtml(d) + `<div class="to-rodape"><a href="/d/${slug}">🔗 link deste poder</a></div>`;
+      return cartaPoderHtml(d);
     }
     const t = await (await fetch(`/api/texto/${slug}`)).json();
     if (t.erro) throw new Error("sem texto");
-    return cartaOficialHtml(t) + `<div class="to-rodape"><a href="/o/${id}">🔗 link desta magia</a></div>`;
+    return cartaOficialHtml(t);
   }
 
   // lado a lado: distribui as cartas abertas em linhas, da esquerda pra direita

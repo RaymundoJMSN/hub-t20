@@ -1,16 +1,19 @@
-// hub.js — barra de abas do Hub em toda página + quem está logado (senha / sair).
-// O CSS da barra é o nav.css (injetado daqui), autocontido: páginas com CSS próprio (agenda, missões) não mudam.
+// hub.js — casca do Hub em toda página: barra de abas (gaveta ☰ no celular), conta, e o ROTEADOR:
+// clicar num link interno não recarrega a página — busca o HTML, troca <head>/<body> e roda o script da página.
+// O CSS da barra é o nav.css (injetado daqui), autocontido: páginas com CSS próprio (agenda, missões) ficam intactas.
 // Sem sessão a API devolve 401 → manda pra tela de login guardando o destino.
 export const el = (tag, props = {}, ...filhos) => {
   const n = Object.assign(document.createElement(tag), props);
   n.append(...filhos.filter((f) => f != null));
   return n;
 };
-document.head.append(el("link", { rel: "stylesheet", href: "/nav.css" }));
+const link = el("link", { rel: "stylesheet", href: "/nav.css" });
+link.dataset.hub = "";
+document.head.append(link);
 
-// [rota, "emoji Rótulo", externo?] — no celular a barra fica embaixo (emoji em cima, rótulo embaixo)
-export const ABAS = [["/", "📖 Grimório"], ["/criar", "✦ Criar magia"], ["/bestiario", "🐉 Bestiário"], ["/itens", "🎒 Itens"], ["/regras", "⚖️ Regras"],
-  ["/compendio", "🏛️ Compêndio"], ["/missoes", "📜 Missões"], ["/agenda", "📅 Agenda"], ["/links", "🎲 Mesa"], ["https://ficha.raynathus.com.br", "🧾 Ficha", true]];
+// [rota, "emoji Rótulo", cargaCompleta?] — /ficha/ é um app à parte (recarrega de verdade)
+export const ABAS = [["/", "📖 Grimório"], ["/criar", "✦ Criar magia"], ["/ficha/", "🧾 Criar ficha", true], ["/bestiario", "🐉 Bestiário"], ["/itens", "🎒 Itens"],
+  ["/regras", "⚖️ Regras"], ["/compendio", "🏛️ Compêndio"], ["/missoes", "📜 Missões"], ["/agenda", "📅 Agenda"], ["/links", "🎲 Mesa"]];
 // páginas de coleção: cada aba da página é uma coleção de dados/colecoes/
 export const PAGINAS_COL = {
   "/bestiario": { titulo: "Bestiário", sub: "620 ameaças com a ficha inteira · Livro Básico, Ameaças de Arton, Deuses de Arton, Guia de NPCs", abas: [["ameacas", "🐉 ameaças"]] },
@@ -22,7 +25,91 @@ export function paginaDaColecao(col) { return Object.entries(PAGINAS_COL).find((
 export const irParaLogin = () => { location.href = "/login?voltar=" + encodeURIComponent(location.pathname + location.search); return new Promise(() => {}); };
 export const eu = fetch("/api/eu").then((r) => r.ok ? r.json() : irParaLogin()).catch(irParaLogin);
 export const sair = async () => { await fetch("/api/sair", { method: "POST" }); location.href = "/login"; };
+export const capitalizar = (s) => { s = String(s ?? ""); return s.charAt(0).toUpperCase() + s.slice(1); };
 
+// ---------------------------------------------------------------- roteador ("turbo")
+// Cada página registra o que precisa desfazer ao sair (timers, listeners no document) com aoSair(fn).
+let limpezas = [];
+export const aoSair = (fn) => { limpezas.push(fn); };
+const CARGA_COMPLETA = /^\/(ficha\/|login$)/;
+const htmlCache = new Map(); // caminho → { t, html } (60 s): passar o mouse na aba já busca a página
+async function buscarHtml(caminho) {
+  const c = htmlCache.get(caminho);
+  if (c && Date.now() - c.t < 60_000) return c.html;
+  const r = await fetch(caminho, { headers: { "x-hub": "spa" } });
+  if (!r.ok) throw new Error("http " + r.status);
+  const html = await r.text();
+  htmlCache.set(caminho, { t: Date.now(), html });
+  return html;
+}
+const persistente = (n) => n.hasAttribute?.("data-hub") || n.id === "mesa" || n.classList?.contains("mesa-barra") || n.tagName === "DIALOG";
+// na primeira carga, os estilos que vieram no <head> são da página (o nav.css e as fontes são da casca)
+for (const n of document.head.querySelectorAll('link[rel="stylesheet"]:not([data-hub]), style, link[rel~="icon"], link[rel="apple-touch-icon"]'))
+  if (!/fonts\.googleapis/.test(n.href || "")) n.setAttribute("data-pagina", "");
+
+export async function visitar(url, { push = true } = {}) {
+  const u = new URL(url, location.href);
+  if (u.origin !== location.origin || CARGA_COMPLETA.test(u.pathname)) { location.href = u.href; return; }
+  const caminho = u.pathname + u.search;
+  let doc;
+  try {
+    doc = new DOMParser().parseFromString(await buscarHtml(caminho), "text/html");
+  } catch (e) { console.warn("roteador:", e); location.href = u.href; return; }
+  if (doc.querySelector("form.ficha")) { location.href = u.href; return; } // caiu no login: sessão acabou
+  for (const f of limpezas.splice(0)) { try { f(); } catch {} }
+  document.title = doc.title;
+  // estilos e ícone da página nova no lugar dos da antiga (nav.css e fontes ficam)
+  for (const n of document.head.querySelectorAll("[data-pagina]")) n.remove();
+  for (const n of doc.head.querySelectorAll('link[rel="stylesheet"], style, link[rel~="icon"], link[rel="apple-touch-icon"]')) {
+    if (/fonts\.googleapis/.test(n.getAttribute("href") || "")) continue;
+    const c = document.adoptNode(n); c.setAttribute("data-pagina", ""); document.head.append(c);
+  }
+  // corpo: sai tudo que não é da casca (barra, gaveta, mesa, diálogos); entra o corpo novo, scripts à parte
+  document.body.className = doc.body.className;
+  for (const n of [...document.body.childNodes]) if (!persistente(n)) n.remove();
+  const scripts = [];
+  const ancora = document.getElementById("mesa"); // a mesa continua no fim do body
+  for (const n of [...doc.body.childNodes]) {
+    if (n.tagName === "SCRIPT") { scripts.push(n); continue; }
+    if (ancora) document.body.insertBefore(document.adoptNode(n), ancora); else document.body.append(document.adoptNode(n));
+  }
+  if (push) history.pushState({ hub: true }, "", caminho);
+  scrollTo(0, 0);
+  marcarAtiva();
+  fecharGaveta();
+  for (const s of scripts) {
+    const src = s.getAttribute("src");
+    try {
+      if (src) {
+        const p = new URL(src, location.href);
+        if (p.pathname === "/hub.js") continue; // a casca já está rodando
+        await import(p.pathname + "?v=" + Date.now()); // sufixo novo = módulo roda de novo
+      } else if (s.type === "module") {
+        const n = el("script", { type: "module", textContent: s.textContent }); n.setAttribute("data-pagina-script", "");
+        document.body.append(n);
+      } else new Function(s.textContent)();
+    } catch (e) { console.error("script da página:", e); }
+  }
+  for (const n of document.querySelectorAll("script[data-pagina-script]")) n.remove(); // já rodaram
+}
+document.addEventListener("click", (e) => {
+  const a = e.target.closest("a[href]");
+  if (!a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  if (a.target === "_blank" || a.hasAttribute("download") || a.dataset.recarrega != null) return;
+  const u = new URL(a.href, location.href);
+  if (u.origin !== location.origin) return;
+  if (u.pathname === location.pathname && u.search === location.search && u.hash) return; // âncora na mesma página
+  e.preventDefault();
+  visitar(u.href);
+});
+addEventListener("popstate", () => visitar(location.href, { push: false }));
+// passar o mouse (ou tocar) numa aba já busca o HTML dela
+document.addEventListener("pointerover", (e) => {
+  const a = e.target.closest(".hub-abas a[href]");
+  if (a && a.href.startsWith(location.origin) && !CARGA_COMPLETA.test(new URL(a.href).pathname)) buscarHtml(new URL(a.href).pathname).catch(() => {});
+});
+
+// ---------------------------------------------------------------- barra, gaveta (celular) e conta
 function ativa() {
   const p = location.pathname;
   if (/^\/[mod](\/|$)/.test(p)) return "/";
@@ -30,10 +117,20 @@ function ativa() {
   if (c) return paginaDaColecao(c[1]) || "/";
   return ABAS.find(([h]) => h !== "/" && p.startsWith(h))?.[0] || (p === "/" ? "/" : "");
 }
+let nav, gaveta;
+function marcarAtiva() {
+  if (!nav) return;
+  const at = ativa();
+  for (const a of nav.querySelectorAll(".hub-abas a[href]")) a.classList.toggle("on", a.getAttribute("href") === at);
+  nav.querySelector(".hub-titulo").textContent = (ABAS.find(([h]) => h === at)?.[1] || "Hub T20").replace(/^\S+\s/, "");
+}
+function abrirGaveta() { nav.classList.add("aberta"); gaveta.hidden = false; }
+function fecharGaveta() { nav?.classList.remove("aberta"); if (gaveta) gaveta.hidden = true; }
 
-// diálogo da conta: nome de exibição + personagem (quem vota nas missões), trocar senha, sair (+ painel do mestre)
 const postJson = (rota, corpo) => fetch(rota, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(corpo) }).then((r) => r.json());
+// diálogo da conta: nome de exibição + personagem (quem vota nas missões), trocar senha, sair (+ painel do mestre)
 function dialogoConta(u) {
+  fecharGaveta();
   const dlg = el("dialog", { className: "hub-dialog" });
   const nome = el("input", { value: u.nome, placeholder: "seu nome", maxLength: 40, autocomplete: "username" });
   const pers = el("input", { value: u.personagem || "", placeholder: "personagem (aparece nas missões)", maxLength: 60 });
@@ -55,7 +152,7 @@ function dialogoConta(u) {
   const senha = el("form", { method: "dialog" },
     el("label", { className: "hub-rotulo-campo", textContent: "trocar senha" }), atual, nova, msg2,
     el("div", { className: "hub-acoes" },
-      u.mestre ? el("a", { className: "hub-bt", href: "/mestre", textContent: "👑 painel do mestre" }) : null,
+      u.mestre ? el("a", { className: "hub-bt", href: "/mestre", textContent: "👑 painel do mestre", onclick: () => dlg.close() }) : null,
       el("button", { className: "hub-bt", type: "button", textContent: "sair", onclick: sair }),
       el("button", { className: "hub-bt", type: "button", textContent: "fechar", onclick: () => dlg.close() }),
       el("button", { className: "hub-bt destaque", textContent: "trocar senha" })));
@@ -70,34 +167,33 @@ function dialogoConta(u) {
   dlg.addEventListener("close", () => dlg.remove());
 }
 
-// "turbo": as páginas das abas são pré-renderizadas ao passar o mouse / tocar (Speculation Rules, Chrome/Edge/Android),
-// então o clique troca de tela na hora; nos outros navegadores o sw.js já entrega css/js/dados do cache.
-if (HTMLScriptElement.supports?.("speculationrules")) {
-  const regras = el("script", { type: "speculationrules" });
-  regras.textContent = JSON.stringify({ prerender: [{ source: "document", where: { href_matches: ["/", "/criar", "/bestiario", "/itens", "/regras", "/compendio", "/missoes", "/agenda", "/links", "/mestre"] }, eagerness: "moderate" }] });
-  document.head.append(regras);
-}
-
 eu.then((u) => {
-  const at = ativa();
-  const aba = ([href, rot, externo]) => {
+  const aba = ([href, rot, completa]) => {
     const [emoji, ...resto] = rot.split(" ");
-    return el("a", { href, className: href === at ? "on" : "", target: externo ? "_blank" : "", rel: externo ? "noopener" : "", title: rot },
-      el("span", { className: "hub-emoji", textContent: emoji }), el("span", { className: "hub-rotulo", textContent: resto.join(" ") }));
+    const a = el("a", { href, title: rot }, el("span", { className: "hub-emoji", textContent: emoji }), el("span", { className: "hub-rotulo", textContent: resto.join(" ") }));
+    if (completa) a.dataset.recarrega = "";
+    return a;
   };
-  const nav = el("nav", { className: "hub-nav" },
+  nav = el("nav", { className: "hub-nav" },
+    el("button", { className: "hub-menu-bt", type: "button", title: "menu", textContent: "☰", onclick: () => nav.classList.contains("aberta") ? fecharGaveta() : abrirGaveta() }),
+    el("span", { className: "hub-titulo" }),
     el("div", { className: "hub-abas" }, ...ABAS.map(aba),
-      // só aparece no celular (nav.css): a conta como último item da barra
-      el("a", { href: "#", className: "hub-conta", title: u.nome, onclick: (e) => { e.preventDefault(); dialogoConta(u); } },
-        el("span", { className: "hub-emoji", textContent: u.mestre ? "👑" : "👤" }), el("span", { className: "hub-rotulo", textContent: u.nome.split(" ")[0] }))),
+      el("div", { className: "hub-gaveta-conta" },
+        el("button", { className: "hub-bt", type: "button", textContent: (u.mestre ? "👑 " : "👤 ") + u.nome, onclick: () => dialogoConta(u) }),
+        el("button", { className: "hub-bt", type: "button", textContent: "sair", onclick: sair }))),
     el("div", { className: "hub-eu" },
       el("span", { className: "hub-nome", title: u.personagem ? `${u.nome} · ${u.personagem}` : u.nome }, el("b", { textContent: u.nome }), u.personagem ? el("span", { className: "hub-pers", textContent: " · " + u.personagem }) : null),
-      u.mestre ? el("a", { href: "/mestre", className: "hub-bt" + (location.pathname === "/mestre" ? " on" : ""), textContent: "👑 mestre" }) : null,
-      el("button", { className: "hub-bt", textContent: "senha", onclick: () => dialogoConta(u) }),
-      el("button", { className: "hub-bt", textContent: "sair", onclick: sair })));
-  document.body.prepend(nav);
+      u.mestre ? el("a", { href: "/mestre", className: "hub-bt", textContent: "👑 mestre" }) : null,
+      el("button", { className: "hub-bt", type: "button", textContent: "conta", onclick: () => dialogoConta(u) }),
+      el("button", { className: "hub-bt", type: "button", textContent: "sair", onclick: sair }),
+      el("button", { className: "hub-bt hub-conta-bt", type: "button", title: u.nome, textContent: u.mestre ? "👑" : "👤", onclick: () => dialogoConta(u) })));
+  nav.dataset.hub = "";
+  gaveta = el("div", { className: "hub-fundo", hidden: true, onclick: fecharGaveta });
+  gaveta.dataset.hub = "";
+  document.body.prepend(nav, gaveta);
   document.documentElement.classList.add("com-nav");
-  nav.querySelector(".hub-abas a.on")?.scrollIntoView({ inline: "center", block: "nearest" });
+  marcarAtiva();
 });
-// PWA: instalável e abre offline o que já foi visto (sw.js = rede primeiro)
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") fecharGaveta(); });
+// PWA: instalável e abre offline o que já foi visto (sw.js = cache primeiro pra css/js/dados fixos)
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});

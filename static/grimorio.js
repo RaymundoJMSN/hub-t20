@@ -5,6 +5,7 @@
 // Clicar ou arrastar põe a carta na mesa (quadro.js), em qualquer página.
 import { mesaGlobal, TIPO_ARRASTO } from "/quadro.js";
 import { EXECUCOES, ALCANCES, TESTES, EFEITOS } from "/eixos.mjs";
+import { capitalizar, aoSair } from "/hub.js";
 
 const el = (tag, props = {}, ...filhos) => {
   const n = Object.assign(document.createElement(tag), props);
@@ -85,7 +86,7 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
     busca.placeholder = valor === "magias"
       ? "pesquisar por nome ou texto… (fogo, medo, cura)"
       : "pesquisar por nome ou texto… (fúria, bárbaro, +2 na Defesa)";
-    ordem.replaceChildren(...ORDENS[valor].map(([v, t]) => el("option", { value: v, textContent: t, selected: v === filtro.ord })));
+    ordem.replaceChildren(...ORDENS[valor].map(([v, t]) => el("option", { value: v, textContent: capitalizar(t), selected: v === filtro.ord })));
     montarChips();
     return buscar();
   }
@@ -98,7 +99,7 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
       const valor = Array.isArray(item) ? item[0] : item;
       const b = el("button", {
         type: "button", className: "chip",
-        textContent: Array.isArray(item) ? item[1] : rotulo(item),
+        textContent: capitalizar(Array.isArray(item) ? item[1] : rotulo(item)),
         onclick: () => {
           const sel = filtro[chave];
           if (sel.has(valor)) sel.delete(valor);
@@ -119,7 +120,7 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
   }
   // dropdown de um valor só; guardado num Set pra usar a mesma ida-e-volta de URL dos chips
   function seletor(chave, titulo, pares, grupos = []) {
-    const opcao = ([v, t]) => el("option", { value: v, textContent: t, selected: filtro[chave].has(v) });
+    const opcao = ([v, t]) => el("option", { value: v, textContent: capitalizar(t), selected: filtro[chave].has(v) });
     const sel = el("select", {
       className: "g-sel" + (filtro[chave].size ? " on" : ""), title: "filtrar por " + titulo,
       onchange: (e) => {
@@ -127,9 +128,9 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
         sel.classList.toggle("on", !!e.target.value);   // remontar o box aqui tiraria o foco do próprio select
         render();
       },
-    }, el("option", { value: "", textContent: titulo + ": tudo" }), ...pares.map(opcao));
-    for (const [rotulo, ps] of grupos) sel.append(el("optgroup", { label: rotulo }, ...ps.map(opcao)));
-    return sel;
+    }, el("option", { value: "", textContent: "Tudo" }), ...pares.map(opcao));
+    for (const [rotulo, ps] of grupos) sel.append(el("optgroup", { label: capitalizar(rotulo) }, ...ps.map(opcao)));
+    return el("div", { className: "filtro select" }, el("span", { className: "chips-rotulo", textContent: titulo }), sel);
   }
 
   function montarChips() {
@@ -257,7 +258,9 @@ if (pagina) {
     aba: rota?.[1] === "d" ? "poderes" : "magias",
   });
   if (rota) mesaGlobal().abrir(`${rota[1] === "m" ? "p" : rota[1]}:${rota[2]}`);
-  document.addEventListener("keydown", (e) => {
+  const atalho = (e) => {
     if (e.key === "/" && !e.target.closest("input, textarea, [contenteditable]")) { e.preventDefault(); g.busca.focus(); g.busca.select(); }
-  });
+  };
+  document.addEventListener("keydown", atalho);
+  aoSair(() => document.removeEventListener("keydown", atalho)); // o roteador roda este módulo de novo a cada visita
 }

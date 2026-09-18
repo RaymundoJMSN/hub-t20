@@ -1,7 +1,7 @@
 /* missoes.js — motor do quadro da guilda (guilda.raynathus.com.br), com o visual intacto.
    O que mudou: as missões e os votos vêm da API do hub (/api/missoes) em vez do Firebase,
    quem sou eu vem da sessão (personagem da conta, ou o nome), e o Mestre edita o quadro. */
-import { eu } from "/hub.js";
+import { eu, aoSair } from "/hub.js";
 
 const PERIGO_INFO = {
   1: { nome: "Trivial", classe: "perigo-1" },
@@ -69,8 +69,10 @@ function criarArmazenamentoApi() {
     assinar(cb) {
       ouvinte = cb;
       buscar();
-      setInterval(buscar, 30000);
-      addEventListener("visibilitychange", () => { if (!document.hidden) buscar(); });
+      const poll = setInterval(buscar, 30000);
+      const aoVoltar = () => { if (!document.hidden) buscar(); };
+      addEventListener("visibilitychange", aoVoltar);
+      aoSair(() => { clearInterval(poll); removeEventListener("visibilitychange", aoVoltar); ouvinte = null; });
     },
     async alternarMarcacao(id, _nome, ligar) { entregar(await post("/api/missoes/votar", { id, ligar })); },
     async concluir(id, ligar) { entregar(await post("/api/missoes/concluir", { id, ligar })); },
