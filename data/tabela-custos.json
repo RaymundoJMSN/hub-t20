@@ -1,0 +1,480 @@
+{
+ "versao": 13,
+ "comentario": "Precos em pontos de construcao. Ancorados na tarifa de PM dos aprimoramentos oficiais (1 ponto ~ 1 PM de aprimoramento) e calibrados por tools/calibrar.py contra as 101 magias de 1o circulo.",
+ "orcamento": {
+  "1": 10,
+  "2": 18,
+  "3": 25,
+  "4": 34,
+  "5": 45
+ },
+ "max_devolvido": {
+  "1": 4,
+  "2": 5,
+  "3": 6,
+  "4": 7,
+  "5": 8
+ },
+ "eixos": {
+  "execucao": {
+   "padrao": 0,
+   "movimento": 2,
+   "livre": 3,
+   "reacao": 2,
+   "completa": -2,
+   "longa": -4
+  },
+  "alcance": {
+   "pessoal": -2,
+   "toque": -1,
+   "curto": 0,
+   "medio": 1,
+   "longo": 2,
+   "ilimitado": 4
+  },
+  "duracao": {
+   "instantanea": 0,
+   "1rodada": -1,
+   "sustentada": -1,
+   "cena": 1,
+   "1dia": 2,
+   "permanente": 5
+  },
+  "resistencia": {
+   "nenhuma": 2,
+   "desacredita": 1,
+   "reduz-metade": 1,
+   "parcial": 0,
+   "anula": -1,
+   "especial": 0
+  },
+  "alvo": {
+   "pessoal": -1,
+   "1alvo": 0,
+   "alvo_extra": 2,
+   "escolhidas": 4,
+   "area_p": 2,
+   "area_m": 3,
+   "area_g": 5,
+   "restrito": -1
+  }
+ },
+ "areas": {
+  "comentario": "area_p: cone/linha/esfera ate 6m equivalente; area_m: esfera 6m+/cilindro; area_g: 9m+ de raio ou quadrado 18m",
+  "p_max_m": {
+   "cone": 6,
+   "linha": 9,
+   "esfera": 3,
+   "cilindro": 3,
+   "nuvem": 3,
+   "quadrado": 3,
+   "cubo": 3
+  },
+  "m_max_m": {
+   "cone": 9,
+   "linha": 30,
+   "esfera": 6,
+   "cilindro": 9,
+   "nuvem": 6,
+   "quadrado": 9,
+   "cubo": 9
+  },
+  "g_max_m": {
+   "esfera": 9,
+   "cone": 12,
+   "linha": 30,
+   "cilindro": 9,
+   "nuvem": 9,
+   "quadrado": 18
+  }
+ },
+ "efeitos": {
+  "dano_por_dado": {
+   "4": 2.0,
+   "6": 3.0,
+   "8": 4.0,
+   "10": 5.0,
+   "12": 6.0
+  },
+  "dano_fixo_por_ponto": 1.0,
+  "cura_por_dado": {
+   "4": 2.0,
+   "6": 3.0,
+   "8": 4.0,
+   "10": 5.0,
+   "12": 6.0
+  },
+  "cura_fixa_por_ponto": 1.0,
+  "condicoes_tier": {
+   "1": [
+    "abalado",
+    "alquebrado",
+    "caido",
+    "fraco",
+    "frustrado",
+    "ofuscado",
+    "sobrecarregado",
+    "surdo",
+    "vulneravel"
+   ],
+   "2": [
+    "agarrado",
+    "apavorado",
+    "debilitado",
+    "desprevenido",
+    "doente",
+    "em chamas",
+    "enfeiticado",
+    "enjoado",
+    "enredado",
+    "envenenado",
+    "esmorecido",
+    "fatigado",
+    "lento",
+    "sangrando"
+   ],
+   "3": [
+    "atordoado",
+    "cego",
+    "confuso",
+    "exausto",
+    "fascinado",
+    "imovel",
+    "indefeso",
+    "pasmo",
+    "surpreendido"
+   ],
+   "4": [
+    "inconsciente",
+    "paralisado",
+    "petrificado"
+   ]
+  },
+  "condicao_custo_por_tier": {
+   "1": 2,
+   "2": 5,
+   "3": 8,
+   "4": 10
+  },
+  "condicao_1rodada_delta": -1,
+  "utilitario_base": 8,
+  "comentario_utilitario": "Efeito nao-numerico (voo, invisibilidade, ilusao, comando...) entra como efeito custom precificado; 6 = mediana p/ utilitario de 1o circulo, galeria de exemplos da a regua fina.",
+  "bonus_escalonado": [
+   2,
+   5,
+   9,
+   14,
+   20
+  ],
+  "comentario_bonus": "custo cumulativo por ponto de bonus: +1=2, +2=5, +3=9... (anti-empilhamento)",
+  "condicao_rider_dano_mult": 0.5,
+  "comentario_condicao": "condicao junto com dano (rider, 'atordoado na falha') paga metade; condicao extra alem da mais cara paga metade do proprio tier",
+  "dano_repetivel_mult": 1.5,
+  "comentario_dano_repetivel": "dano com duracao que repete a cada rodada (Acoite Flamejante): x1.5. Permanente NAO entra: a unica oficial de dano permanente e a Runa de Protecao, armadilha que dispara uma vez.",
+  "bonus_escopo_mult": {
+   "especifico": 1.0,
+   "combate": 1.5,
+   "amplo": 2.0
+  },
+  "comentario_escopo": "especifico: 1 pericia/1 uso; combate: Defesa OU ataques OU resistencias; amplo: categoria inteira de testes",
+  "dano_puro_bonus_dados": {
+   "1": 0,
+   "2": 2,
+   "3": 2,
+   "4": 3,
+   "5": 4
+  },
+  "comentario_dano_puro": "blast puro (dano e o UNICO efeito, duracao instantanea) desconta os primeiros N dados do circulo, clampado a 50% do custo do dano — e o que faz Bola de Fogo (6d6, 2o) fechar em 17/18",
+  "custo_tipo_dano": {
+   "fogo": 0,
+   "frio": 0,
+   "eletricidade": 0,
+   "acido": 0,
+   "perfuracao": -1,
+   "impacto": -1,
+   "corte": -1,
+   "luz": 1,
+   "trevas": 1,
+   "psiquico": 2,
+   "essencia": 2,
+   "veneno": 0
+  },
+  "comentario_tipo_dano": "delta flat por magia (sugestao do Russo): elementais 0, mundanos -1 (mais resistidos), luz/trevas +1, psiquico/essencia +2 (quase nada resiste)",
+  "comentario_multibonus": "bonus/penalidade aceitam varios: o mais caro paga cheio, extras pagam metade (mesma regra das condicoes)",
+  "comentario_tipos_lista": "efeitos.dano.tipos com 2+ tipos = o conjurador escolhe na hora e paga o delta MAIS CARO da lista (Orbe Cromatico). Corpus: 6 oficiais fazem isso (Armadura Elemental, Conjurar Monstro, Runa de Protecao...) e as que misturam faixas ja pagariam a de cima — ver data/padroes-corpus.json, gerado por tools/minerar_padroes.py.",
+  "comentario_condicoes_tier": "Tier = severidade pela ESCADA DO PROPRIO LIVRO, nao por opiniao: (a) as condicoes que se escalam entre si dao a ordem (fraco->debilitado->inconsciente, fatigado->exausto, abalado->apavorado, frustrado->esmorecido); (b) as compostas valem pela soma (fatigado=fraco+vulneravel, enredado=lento+vulneravel, cego=desprevenido+lento, atordoado=surpreendido=desprevenido+sem acoes, exausto=debilitado+lento+vulneravel, paralisado=imovel+indefeso, inconsciente=indefeso+sem acoes, petrificado=inconsciente+RD8); (c) o corpus arbitra os empates pelo circulo em que a condicao aparece. Lista completa em condicao_categoria + as sem tipo oficial."
+ },
+ "aprimoramentos": {
+  "trilho_pm_circulo": {
+   "1": 1,
+   "2": 3,
+   "3": 6,
+   "4": 10,
+   "5": 15
+  },
+  "tarifas_fonte": "data/tarifas-pm.json"
+ },
+ "comentario_restrito": "alvo restrito a um tipo (humanoide/animal/objeto...) devolve 1 pt; aprimoramento oficial padrao expande pra qualquer criatura",
+ "travas": {
+  "1": {
+   "tier_max_area": 2,
+   "tier4_exige": {
+    "alvos_max": 1,
+    "exige_teste": true
+   },
+   "permanente_so_custom": true,
+   "comentario": "So vale para condicao SEM dano (rider de dano e livre — Detonacao Congelante e oficial). tier4_exige espelha o Sono oficial: 1 alvo e algum teste de resistencia (o Sono e \"Vontade parcial\", nao \"anula\"). permanente_so_custom nao vale para dano: a Runa de Protecao (2o) e permanente e explode em 6d6."
+  },
+  "2": {
+   "tier_max_area": 2,
+   "tier4_exige": {
+    "alvos_max": 1,
+    "exige_teste": true
+   },
+   "permanente_so_custom": true
+  },
+  "3": {
+   "tier_max_area": 3
+  },
+  "4": {
+   "tier_max_area": 4
+  },
+  "5": {
+   "tier_max_area": 4
+  },
+  "comentario": "tier_max_area = maior tier de condicao que as oficiais SEM DANO poem em area/escolhidas naquele circulo (medido em dataset.json): 1o-2o Teia (tier 2), 3o Dispersar as Trevas (cego, 3), 4o Explosao Caleidoscopica (inconsciente, 4). O teto nunca cai de um circulo para o outro. Rider de dano em area continua livre (Detonacao Congelante e oficial)."
+ },
+ "comentario_orcamento": "medianas das oficiais reconstruidas: 9/17.5/23/33.5/(p75=51, n=12 ruidoso) -> 10/18/25/34/45",
+ "aval_mestre_pct": 0.15,
+ "comentario_aval": "entre o orcamento e +15%: 'precisa do aval do mestre' (publica com confirmacao); acima disso: estourou",
+ "comentario_v8": "sustentada devolve 1 (ocupa concentracao/acao, interrompivel; corpus 2-3o: sustentada compra +1 de efeito vs cena). Execucao 'longa' devolve 4: o corpus nao tem execucao de 1 rodada — o degrau apos completa e 2+ rodadas (~2 acoes completas)",
+ "escolas": {
+  "comentario": "DERIVADO de data/perfil-escolas.json por tools/regras_escolas.py — nao editar na mao, re-rodar o pipeline.",
+  "Abjuração": {
+   "n": 39,
+   "perfil": "proteções, escudos e seladuras",
+   "dano": "aviso",
+   "dano_n": 2,
+   "tiposDano": [],
+   "cura": "bloqueio",
+   "cura_n": 0,
+   "areas": "ok",
+   "areas_n": 6,
+   "condCategorias": [
+    "movimento",
+    "mental",
+    "metabolismo"
+   ],
+   "condRaras": false,
+   "testeTipico": "Vontade"
+  },
+  "Adivinhação": {
+   "n": 28,
+   "perfil": "informação, sentidos e previsão",
+   "dano": "bloqueio",
+   "dano_n": 0,
+   "tiposDano": [],
+   "cura": "bloqueio",
+   "cura_n": 0,
+   "areas": "raro",
+   "areas_n": 2,
+   "condCategorias": [],
+   "condRaras": true,
+   "testeTipico": null
+  },
+  "Convocação": {
+   "n": 35,
+   "perfil": "criaturas e objetos conjurados",
+   "dano": "ok",
+   "dano_n": 11,
+   "tiposDano": [
+    "impacto",
+    "fogo",
+    "acido"
+   ],
+   "cura": "bloqueio",
+   "cura_n": 0,
+   "areas": "ok",
+   "areas_n": 7,
+   "condCategorias": [
+    "mental",
+    "sentidos",
+    "movimento",
+    "medo",
+    "metabolismo",
+    "cansaço"
+   ],
+   "condRaras": false,
+   "testeTipico": null
+  },
+  "Encantamento": {
+   "n": 29,
+   "perfil": "mente: sono, fascínio, comando",
+   "dano": "aviso",
+   "dano_n": 1,
+   "tiposDano": [],
+   "cura": "bloqueio",
+   "cura_n": 0,
+   "areas": "raro",
+   "areas_n": 1,
+   "condCategorias": [
+    "mental",
+    "movimento",
+    "cansaço",
+    "medo",
+    "metabolismo"
+   ],
+   "condRaras": false,
+   "testeTipico": "Vontade"
+  },
+  "Evocação": {
+   "n": 56,
+   "perfil": "energia pura: blasts e cura pela luz",
+   "dano": "ok",
+   "dano_n": 38,
+   "tiposDano": [
+    "fogo",
+    "frio",
+    "acido",
+    "luz",
+    "impacto",
+    "corte",
+    "essencia",
+    "eletricidade"
+   ],
+   "cura": "ok",
+   "cura_n": 4,
+   "areas": "ok",
+   "areas_n": 26,
+   "condCategorias": [
+    "mental",
+    "movimento",
+    "sentidos",
+    "metabolismo",
+    "medo",
+    "cansaço",
+    "veneno"
+   ],
+   "condRaras": false,
+   "testeTipico": null
+  },
+  "Ilusão": {
+   "n": 18,
+   "perfil": "enganos sensoriais",
+   "dano": "aviso",
+   "dano_n": 1,
+   "tiposDano": [],
+   "cura": "bloqueio",
+   "cura_n": 0,
+   "areas": "ok",
+   "areas_n": 3,
+   "condCategorias": [
+    "mental",
+    "sentidos"
+   ],
+   "condRaras": false,
+   "testeTipico": "Vontade"
+  },
+  "Necromancia": {
+   "n": 27,
+   "perfil": "morte, medo e drenagem (dano de trevas)",
+   "dano": "ok",
+   "dano_n": 11,
+   "tiposDano": [
+    "trevas"
+   ],
+   "cura": "aviso",
+   "cura_n": 1,
+   "areas": "ok",
+   "areas_n": 6,
+   "condCategorias": [
+    "medo",
+    "metabolismo",
+    "cansaço",
+    "sentidos",
+    "mental",
+    "movimento"
+   ],
+   "condRaras": false,
+   "testeTipico": null
+  },
+  "Transmutação": {
+   "n": 43,
+   "perfil": "transformar matéria e corpo",
+   "dano": "ok",
+   "dano_n": 10,
+   "tiposDano": [
+    "impacto",
+    "essencia"
+   ],
+   "cura": "bloqueio",
+   "cura_n": 0,
+   "areas": "raro",
+   "areas_n": 3,
+   "condCategorias": [
+    "movimento",
+    "veneno"
+   ],
+   "condRaras": false,
+   "testeTipico": null
+  }
+ },
+ "condicao_categoria": {
+  "medo": [
+   "abalado",
+   "apavorado"
+  ],
+  "mental": [
+   "alquebrado",
+   "atordoado",
+   "confuso",
+   "enfeiticado",
+   "esmorecido",
+   "fascinado",
+   "frustrado",
+   "pasmo"
+  ],
+  "movimento": [
+   "agarrado",
+   "enredado",
+   "imovel",
+   "lento",
+   "paralisado",
+   "sobrecarregado"
+  ],
+  "sentidos": [
+   "cego",
+   "ofuscado",
+   "surdo"
+  ],
+  "metabolismo": [
+   "doente",
+   "enjoado",
+   "sangrando"
+  ],
+  "veneno": [
+   "envenenado"
+  ],
+  "cansaço": [
+   "exausto",
+   "fatigado"
+  ],
+  "metamorfose": [
+   "petrificado"
+  ]
+ },
+ "cd_fixa": {
+  "neutra": 15,
+  "por_ponto": 0.5,
+  "min": 2,
+  "max": 30,
+  "comentario": "CD propria da magia, fixa: nao escala (a normal e 10 + metade do nivel + atributo, que fica em torno de 15 na maior parte da campanha). CD 15 = neutra; cada ponto abaixo devolve 0.5 (CD 2 = -6.5, o piso, porque 1 nunca falha), cada ponto acima cobra 0.5. Precedente oficial em data/padroes-corpus.json: Area Escorregadia (Acrobacia CD 10), Armadura Gelida (Reflexos CD 20), Controlar Madeira (Forca CD 25)."
+ },
+ "comentario_resistencia": "DO CORPUS (padroes-corpus.json): magia com dano+condicao usa \"parcial\" em 17 de 21 casos e reduz-metade em ZERO — \"parcial\" ja significa \"passou: metade do dano e evita a condicao\" (Adaga Mental, Detonacao Congelante). \"reduz-metade\" e o modo do dano puro (Bola de Fogo, 19 casos). Por isso nao existe um modo combinado separado.",
+ "comentario_condicao_categoria": "O \"Tipo\" oficial de cada condicao (LB, apendice de condicoes). As sem tipo (caido, debilitado, desprevenido, em chamas, fraco, inconsciente, indefeso, surpreendido, vulneravel) ficam de fora de proposito: a regra de escola so olha tipo oficial.",
+ "modificadores": {
+  "uma_vez_por_cena": -1,
+  "componente_material": -1,
+  "comentario": "Limites que as oficiais usam e que baratearam a magia. \"uma vez por cena\" no mesmo alvo: 11 oficiais (Adaga Mental, Comando, Leque Cromatico, Explosao Caleidoscopica...). \"componente material\" que se gasta: 12 oficiais (Aprisionamento, Servo Divino, Runa de Protecao...). Ver data/padroes-corpus.json."
+ }
+}

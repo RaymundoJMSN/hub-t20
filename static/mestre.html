@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mestre — Hub T20</title>
+<meta name="description" content="Painel do mestre: contas dos jogadores.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Alegreya:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👑</text></svg>">
+</head>
+<body>
+<div class="brasa" aria-hidden="true"></div>
+<header>
+  <h1>Painel do Mestre</h1>
+  <p class="sub">contas · o quadro de missões e os links se editam nas próprias páginas</p>
+</header>
+<main class="grimorio-main">
+  <section class="painel">
+    <h2 class="g-grupo">Contas</h2>
+    <p class="explica">Personagem = nome que aparece nos votos das missões. Pra trocar a senha de alguém, digite a nova senha e salve; em branco mantém.</p>
+    <div id="contas" class="contas"></div>
+    <h3 class="g-grupo">Nova conta</h3>
+    <form id="nova" class="conta-linha">
+      <input name="nome" placeholder="nome" required maxlength="40">
+      <input name="personagem" placeholder="personagem">
+      <input name="senha" type="password" placeholder="senha (mín. 4)" required minlength="4" autocomplete="new-password">
+      <select name="papel"><option value="jogador">jogador</option><option value="mestre">mestre</option></select>
+      <button class="bt destaque">criar</button>
+    </form>
+    <div id="msg" class="explica" role="status"></div>
+  </section>
+</main>
+<footer>Ferramenta de fã. Tormenta 20 pertence à Jambo Editora.</footer>
+<script type="module">
+import { el, eu } from "/hub.js";
+const box = document.querySelector("#contas"), msg = document.querySelector("#msg");
+const api = (rota, corpo) => fetch(rota, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(corpo) }).then((r) => r.json());
+async function carregar() {
+  const { usuarios = [] } = await (await fetch("/api/usuarios")).json();
+  box.replaceChildren(...usuarios.map((u) => {
+    const pers = el("input", { value: u.personagem || "", placeholder: "personagem" });
+    const senha = el("input", { type: "password", placeholder: "nova senha", autocomplete: "new-password" });
+    const papel = el("select", {}, ...["jogador", "mestre"].map((p) => el("option", { value: p, textContent: p, selected: p === u.papel })));
+    return el("div", { className: "conta-linha" }, el("b", { textContent: u.nome }), pers, senha, papel,
+      el("button", { className: "bt mini", textContent: "salvar", onclick: async () => { const r = await api("/api/usuarios", { nome: u.nome, personagem: pers.value, senha: senha.value, papel: papel.value }); msg.textContent = r.ok ? `${u.nome} salvo ✓` : r.erro; senha.value = ""; } }),
+      el("button", { className: "bt mini", textContent: "✕", title: "apagar conta", onclick: async () => { if (!confirm(`Apagar a conta de ${u.nome}?`)) return; const r = await api("/api/usuarios/apagar", { nome: u.nome }); msg.textContent = r.ok ? "apagada" : r.erro; carregar(); } }));
+  }));
+}
+document.querySelector("#nova").onsubmit = async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  const r = await api("/api/usuarios", { nome: f.nome.value, personagem: f.personagem.value, senha: f.senha.value, papel: f.papel.value });
+  msg.textContent = r.ok ? `conta ${r.usuario.nome} criada ✓` : r.erro;
+  if (r.ok) { f.reset(); carregar(); }
+};
+eu.then((u) => { if (!u.mestre) location.href = "/"; else carregar(); });
+</script>
+</body>
+</html>

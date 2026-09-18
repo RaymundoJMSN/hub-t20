@@ -1,0 +1,1023 @@
+{
+ "fonte_versao": 2,
+ "fonte_sha1": "c80ba1c2b243",
+ "tarifas": {
+  "alvo->": {
+   "n": 40,
+   "pm_mediana": 2.0,
+   "pm_moda": 2,
+   "pm_dist": {
+    "1": 12,
+    "2": 14,
+    "3": 3,
+    "4": 1,
+    "5": 7,
+    "9": 1,
+    "12": 1,
+    "14": 1
+   },
+   "por_circulo": {
+    "1": 2,
+    "2": 2,
+    "3": 2.5,
+    "4": 2,
+    "5": 5
+   },
+   "exemplos": [
+    "acalmar-animal",
+    "acalmar-animal",
+    "aliado-animal",
+    "amedrontar"
+   ]
+  },
+  "alcance->:curto": {
+   "n": 28,
+   "pm_mediana": 3.0,
+   "pm_moda": 2,
+   "pm_dist": {
+    "1": 4,
+    "2": 8,
+    "3": 3,
+    "4": 3,
+    "5": 7,
+    "7": 1,
+    "9": 1,
+    "10": 1
+   },
+   "por_circulo": {
+    "1": 2,
+    "2": 3,
+    "3": 4,
+    "4": 5,
+    "5": 3.5
+   },
+   "exemplos": [
+    "camuflagem-ilusoria",
+    "compreensao",
+    "compreensao",
+    "curar-ferimentos"
+   ]
+  },
+  "bonus+:1": {
+   "n": 21,
+   "pm_mediana": 2,
+   "pm_moda": 2,
+   "pm_dist": {
+    "2": 19,
+    "3": 1,
+    "4": 1
+   },
+   "por_circulo": {
+    "1": 2.0,
+    "2": 2,
+    "3": 2,
+    "4": 2
+   },
+   "exemplos": [
+    "anular-a-luz",
+    "arma-espiritual",
+    "arma-magica",
+    "arma-de-jade"
+   ]
+  },
+  "resistencia->:reflexos": {
+   "n": 21,
+   "pm_mediana": 1,
+   "pm_moda": 1,
+   "pm_dist": {
+    "1": 21
+   },
+   "por_circulo": {
+    "1": 1,
+    "2": 1,
+    "3": 1.0,
+    "4": 1,
+    "5": 1.0
+   },
+   "exemplos": [
+    "armadura-elemental",
+    "barragem-elemental-de-vectorius",
+    "bola-de-fogo",
+    "coluna-de-chamas"
+   ]
+  },
+  "alvos+:1": {
+   "n": 20,
+   "pm_mediana": 2.0,
+   "pm_moda": 2,
+   "pm_dist": {
+    "1": 6,
+    "2": 12,
+    "3": 1,
+    "5": 1
+   },
+   "por_circulo": {
+    "1": 2,
+    "2": 2,
+    "3": 2.0,
+    "4": 1,
+    "5": 1
+   },
+   "exemplos": [
+    "abencoar-alimentos",
+    "acalmar-animal",
+    "alterar-tamanho",
+    "amarras-etereas"
+   ]
+  },
+  "alcance->:toque": {
+   "n": 17,
+   "pm_mediana": 2,
+   "pm_moda": 2,
+   "pm_dist": {
+    "1": 4,
+    "2": 8,
+    "3": 1,
+    "4": 2,
+    "5": 2
+   },
+   "por_circulo": {
+    "1": 2.0,
+    "2": 2,
+    "3": 2.0,
+    "4": 3.0
+   },
+   "exemplos": [
+    "aparencia-perfeita",
+    "armadura-elemental",
+    "forma-eterea",
+    "maaais-klunc"
+   ]
+  },
+  "dano+:1d6": {
+   "n": 16,
+   "pm_mediana": 1.5,
+   "pm_moda": 2,
+   "pm_dist": {
+    "1": 8,
+    "2": 8
+   },
+   "por_circulo": {
+    "1": 1.0,
+    "2": 2.0,
+    "3": 1,
+    "4": 2
+   },
+   "exemplos": [
+    "adaga-mental",
+    "armadura-elemental",
+    "coluna-de-chamas",
+    "coluna-de-chamas"
+   ]
+  },
+  "area->": {
+   "n": 16,
+   "pm_mediana": 2.5,
+   "pm_moda": 2,
+   "pm_dist": {
+    "1": 3,
+    "2": 5,
+    "3": 1,
+    "4": 1,
+    "5": 3,
+    "6": 1,
+    "9": 1,
+    "14": 1
+   },
+   "por_circulo": {
+    "1": 2.0,
+    "2": 5,
+    "3": 3.0,
+    "4": 2,
+    "5": 4.0
+   },
+   "exemplos": [
+    "area-escorregadia",
+    "colera-de-azgher",
+    "conjurar-monstro",
+    "conjurar-monstro"
+   ]
+  },
+  "alcance->:pessoal": {
+   "n": 11,
+   "pm_mediana": 2,
+   "pm_moda": 2,
+   "pm_dist": {
+    "1": 3,
+    "2": 5,
+    "5": 1,
+    "7": 2
+   },
+   "por_circulo": {
+    "1": 2,
+    "2": 7,
+    "3": 1,
+    "4": 2.0
+   },
+   "exemplos": [
+    "alarme",
+    "alterar-memoria",
+    "controlar-madeira",
+    "controlar-terra"
+   ]
+  },
+  "dano+:2d6": {
+   "n": 11,
+   "pm_mediana": 2,
+   "pm_moda": 2,
+   "pm_dist": {
+    "1": 1,
+    "2": 6,
+    "3": 4
+   },
+   "por_circulo": {
+    "2": 2.0,
+    "3": 3,
+    "4": 2,
+    "5": 2
+   },
+   "exemplos": [
+    "bola-de-fogo",
+    "chuva-de-meteoros",
+    "colera-de-azgher",
+    "erupcao-glacial"
+   ]
+  },
+  "dano+:1d8": {
+   "n": 11,
+   "pm_mediana": 2,
+   "pm_moda": 2,
+   "pm_dist": {
+    "1": 4,
+    "2": 7
+   },
+   "por_circulo": {
+    "1": 1,
+    "2": 2,
+    "3": 2
+   },
+   "exemplos": [
+    "cranio-voador-de-vladislav",
+    "despedacar",
+    "disparo-gelido",
+    "ferver-sangue"
+   ]
+  },
+  "duracao->:permanente": {
+   "n": 9,
+   "pm_mediana": 5,
+   "pm_moda": 5,
+   "pm_dist": {
+    "2": 1,
+    "3": 1,
+    "4": 1,
+    "5": 3,
+    "7": 2,
+    "9": 1
+   },
+   "por_circulo": {
+    "1": 2,
+    "2": 7,
+    "3": 6.5,
+    "4": 5,
+    "5": 5.0
+   },
+   "exemplos": [
+    "animar-objetos",
+    "circulo-da-justica",
+    "despertar-consciencia",
+    "luz"
+   ]
+  },
+  "dano+:2d8": {
+   "n": 8,
+   "pm_mediana": 2.0,
+   "pm_moda": 2,
+   "pm_dist": {
+    "2": 6,
+    "3": 2
+   },
+   "por_circulo": {
+    "2": 2,
+    "3": 2.0,
+    "4": 2.0,
+    "5": 3
+   },
+   "exemplos": [
+    "controlar-agua",
+    "katana-celestial",
+    "punicao-do-profano",
+    "raio-polar"
+   ]
+  },
+  "alcance->:medio": {
+   "n": 6,
+   "pm_mediana": 3.5,
+   "pm_moda": 1,
+   "pm_dist": {
+    "1": 2,
+    "2": 1,
+    "5": 1,
+    "7": 1,
+    "9": 1
+   },
+   "por_circulo": {
+    "1": 3.0,
+    "2": 4.0,
+    "3": 5.5
+   },
+   "exemplos": [
+    "acalmar-animal",
+    "ancora-dimensional",
+    "ancora-dimensional",
+    "oracao"
+   ]
+  },
+  "tipo-dano->": {
+   "n": 6,
+   "pm_mediana": 2.5,
+   "pm_moda": 5,
+   "pm_dist": {
+    "1": 2,
+    "2": 1,
+    "3": 1,
+    "5": 2
+   },
+   "por_circulo": {
+    "1": 1,
+    "2": 4.0,
+    "5": 5
+   },
+   "exemplos": [
+    "arma-espiritual",
+    "barragem-elemental-de-vectorius",
+    "conjurar-monstro",
+    "miasma-mefitico"
+   ]
+  },
+  "duracao->:cena": {
+   "n": 5,
+   "pm_mediana": 3,
+   "pm_moda": 2,
+   "pm_dist": {
+    "0": 1,
+    "2": 1,
+    "3": 1,
+    "4": 1,
+    "12": 1
+   },
+   "por_circulo": {
+    "1": 3.0,
+    "2": 3
+   },
+   "exemplos": [
+    "aviso",
+    "invisibilidade",
+    "oracao",
+    "orbe-do-oceano"
+   ]
+  },
+  "alvos+:todos": {
+   "n": 4,
+   "pm_mediana": 5.0,
+   "pm_moda": 5,
+   "pm_dist": {
+    "2": 1,
+    "5": 3
+   },
+   "por_circulo": {
+    "1": 5.0
+   },
+   "exemplos": [
+    "amedrontar",
+    "distracao-fugaz",
+    "enfeiticar",
+    "sono"
+   ]
+  },
+  "duracao->:sustentada": {
+   "n": 4,
+   "pm_mediana": 2.5,
+   "pm_moda": 3,
+   "pm_dist": {
+    "1": 1,
+    "2": 1,
+    "3": 1,
+    "4": 1
+   },
+   "por_circulo": {
+    "1": 1.5,
+    "2": 3,
+    "3": 4
+   },
+   "exemplos": [
+    "camuflagem-ilusoria",
+    "criar-ilusao",
+    "detonacao-congelante",
+    "muralha-elemental"
+   ]
+  },
+  "execucao->:acao padrao": {
+   "n": 4,
+   "pm_mediana": 1.5,
+   "pm_moda": 1,
+   "pm_dist": {
+    "1": 2,
+    "2": 1,
+    "7": 1
+   },
+   "por_circulo": {
+    "1": 1.5,
+    "2": 4.0
+   },
+   "exemplos": [
+    "escudo-da-fe",
+    "escudo-da-fe",
+    "invisibilidade",
+    "invisibilidade"
+   ]
+  },
+  "duracao->:um dia": {
+   "n": 4,
+   "pm_mediana": 3.0,
+   "pm_moda": 3,
+   "pm_dist": {
+    "2": 1,
+    "3": 2,
+    "4": 1
+   },
+   "por_circulo": {
+    "1": 2.5,
+    "2": 3,
+    "3": 4
+   },
+   "exemplos": [
+    "escudo-da-fe",
+    "marca-da-obediencia",
+    "resistencia-a-energia",
+    "voo"
+   ]
+  },
+  "bonus+:10": {
+   "n": 3,
+   "pm_mediana": 3,
+   "pm_moda": 3,
+   "pm_dist": {
+    "2": 1,
+    "3": 1,
+    "4": 1
+   },
+   "por_circulo": {
+    "1": 2,
+    "2": 3,
+    "3": 4
+   },
+   "exemplos": [
+    "circulo-da-justica",
+    "protecao-contra-magia",
+    "voz-da-razao"
+   ]
+  },
+  "execucao->:padrao": {
+   "n": 3,
+   "pm_mediana": 5,
+   "pm_moda": 2,
+   "pm_dist": {
+    "2": 1,
+    "5": 1,
+    "9": 1
+   },
+   "por_circulo": {
+    "1": 5.5,
+    "2": 5
+   },
+   "exemplos": [
+    "concentracao-de-combate",
+    "concentracao-de-combate",
+    "conjurar-armadilha"
+   ]
+  },
+  "dano+:1d12": {
+   "n": 3,
+   "pm_mediana": 2,
+   "pm_moda": 2,
+   "pm_dist": {
+    "1": 1,
+    "2": 2
+   },
+   "por_circulo": {
+    "2": 2,
+    "3": 2,
+    "5": 1
+   },
+   "exemplos": [
+    "enxame-rubro-de-ichabod",
+    "enxame-de-pestes",
+    "mata-dragao"
+   ]
+  },
+  "bonus+:15": {
+   "n": 2,
+   "pm_mediana": 2.0,
+   "pm_moda": 2,
+   "pm_dist": {
+    "2": 2
+   },
+   "por_circulo": {
+    "1": 2.0
+   },
+   "exemplos": [
+    "area-escorregadia",
+    "discricao"
+   ]
+  },
+  "bonus+:20": {
+   "n": 2,
+   "pm_mediana": 5.0,
+   "pm_moda": 5,
+   "pm_dist": {
+    "5": 2
+   },
+   "por_circulo": {
+    "1": 5,
+    "4": 5
+   },
+   "exemplos": [
+    "area-escorregadia",
+    "mao-poderosa-de-talude"
+   ]
+  },
+  "execucao->:1 hora": {
+   "n": 2,
+   "pm_mediana": 9.0,
+   "pm_moda": 9,
+   "pm_dist": {
+    "9": 2
+   },
+   "por_circulo": {
+    "1": 9.0
+   },
+   "exemplos": [
+    "consagrar",
+    "profanar"
+   ]
+  },
+  "cura+:1d8": {
+   "n": 2,
+   "pm_mediana": 1.5,
+   "pm_moda": 1,
+   "pm_dist": {
+    "1": 1,
+    "2": 1
+   },
+   "por_circulo": {
+    "1": 1,
+    "3": 2
+   },
+   "exemplos": [
+    "curar-ferimentos",
+    "sopro-da-salvacao"
+   ]
+  },
+  "bonus+:5": {
+   "n": 2,
+   "pm_mediana": 3.0,
+   "pm_moda": 1,
+   "pm_dist": {
+    "1": 1,
+    "5": 1
+   },
+   "por_circulo": {
+    "1": 3.0
+   },
+   "exemplos": [
+    "descobrir-fraqueza",
+    "tranca-arcana"
+   ]
+  },
+  "resistencia->:reflexos reduz": {
+   "n": 2,
+   "pm_mediana": 5.0,
+   "pm_moda": 3,
+   "pm_dist": {
+    "3": 1,
+    "7": 1
+   },
+   "por_circulo": {
+    "2": 5.0
+   },
+   "exemplos": [
+    "enxame-de-pestes",
+    "enxame-de-pestes"
+   ]
+  },
+  "resistencia->:reflexos parcial": {
+   "n": 2,
+   "pm_mediana": 1.0,
+   "pm_moda": 1,
+   "pm_dist": {
+    "1": 2
+   },
+   "por_circulo": {
+    "1": 1.0
+   },
+   "exemplos": [
+    "explosao-de-chamas",
+    "jato-corrosivo"
+   ]
+  },
+  "alcance->:longo": {
+   "n": 2,
+   "pm_mediana": 3.5,
+   "pm_moda": 4,
+   "pm_dist": {
+    "3": 1,
+    "4": 1
+   },
+   "por_circulo": {
+    "2": 3.5
+   },
+   "exemplos": [
+    "globo-da-verdade-de-gwen",
+    "salto-dimensional"
+   ]
+  },
+  "execucao->:um dia": {
+   "n": 2,
+   "pm_mediana": 4.5,
+   "pm_moda": 5,
+   "pm_dist": {
+    "4": 1,
+    "5": 1
+   },
+   "por_circulo": {
+    "3": 4,
+    "5": 5
+   },
+   "exemplos": [
+    "lagrimas-de-wynna",
+    "lendas-historias"
+   ]
+  },
+  "dano+:4d6": {
+   "n": 1,
+   "pm_mediana": 2,
+   "pm_moda": 2,
+   "pm_dist": {
+    "2": 1
+   },
+   "por_circulo": {
+    "1": 2
+   },
+   "exemplos": [
+    "acoite-flamejante"
+   ]
+  },
+  "dano+:6d6": {
+   "n": 1,
+   "pm_mediana": 5,
+   "pm_moda": 5,
+   "pm_dist": {
+    "5": 1
+   },
+   "por_circulo": {
+    "1": 5
+   },
+   "exemplos": [
+    "acoite-flamejante"
+   ]
+  },
+  "bonus+:3": {
+   "n": 1,
+   "pm_mediana": 2,
+   "pm_moda": 2,
+   "pm_dist": {
+    "2": 1
+   },
+   "por_circulo": {
+    "1": 2
+   },
+   "exemplos": [
+    "caminhos-da-natureza"
+   ]
+  },
+  "bonus+:50": {
+   "n": 1,
+   "pm_mediana": 3,
+   "pm_moda": 3,
+   "pm_dist": {
+    "3": 1
+   },
+   "por_circulo": {
+    "2": 3
+   },
+   "exemplos": [
+    "campo-de-forca"
+   ]
+  },
+  "bonus+:70": {
+   "n": 1,
+   "pm_mediana": 7,
+   "pm_moda": 7,
+   "pm_dist": {
+    "7": 1
+   },
+   "por_circulo": {
+    "2": 7
+   },
+   "exemplos": [
+    "campo-de-forca"
+   ]
+  },
+  "dano+:10": {
+   "n": 1,
+   "pm_mediana": 1,
+   "pm_moda": 1,
+   "pm_dist": {
+    "1": 1
+   },
+   "por_circulo": {
+    "5": 1
+   },
+   "exemplos": [
+    "deflagracao-de-mana"
+   ]
+  },
+  "resistencia->:fortitude parcial": {
+   "n": 1,
+   "pm_mediana": 1,
+   "pm_moda": 1,
+   "pm_dist": {
+    "1": 1
+   },
+   "por_circulo": {
+    "1": 1
+   },
+   "exemplos": [
+    "disparo-gelido"
+   ]
+  },
+  "bonus+:6": {
+   "n": 1,
+   "pm_mediana": 2,
+   "pm_moda": 2,
+   "pm_dist": {
+    "2": 1
+   },
+   "por_circulo": {
+    "3": 2
+   },
+   "exemplos": [
+    "heroismo"
+   ]
+  },
+  "resistencia->:nenhum": {
+   "n": 1,
+   "pm_mediana": 2,
+   "pm_moda": 2,
+   "pm_dist": {
+    "2": 1
+   },
+   "por_circulo": {
+    "1": 2
+   },
+   "exemplos": [
+    "infligir-ferimentos"
+   ]
+  },
+  "duracao->:cena ou ate ser descarregada": {
+   "n": 1,
+   "pm_mediana": 4,
+   "pm_moda": 4,
+   "pm_dist": {
+    "4": 1
+   },
+   "por_circulo": {
+    "3": 4
+   },
+   "exemplos": [
+    "lanca-ignea-de-aleph"
+   ]
+  },
+  "dano+:1": {
+   "n": 1,
+   "pm_mediana": 3,
+   "pm_moda": 3,
+   "pm_dist": {
+    "3": 1
+   },
+   "por_circulo": {
+    "2": 3
+   },
+   "exemplos": [
+    "momento-de-tormenta"
+   ]
+  },
+  "dano+:2d4": {
+   "n": 1,
+   "pm_mediana": 3,
+   "pm_moda": 3,
+   "pm_dist": {
+    "3": 1
+   },
+   "por_circulo": {
+    "1": 3
+   },
+   "exemplos": [
+    "nevoa"
+   ]
+  },
+  "execucao->:reacao": {
+   "n": 1,
+   "pm_mediana": 3,
+   "pm_moda": 3,
+   "pm_dist": {
+    "3": 1
+   },
+   "por_circulo": {
+    "4": 3
+   },
+   "exemplos": [
+    "premonicao"
+   ]
+  },
+  "execucao->:acao de movimento": {
+   "n": 1,
+   "pm_mediana": 1,
+   "pm_moda": 1,
+   "pm_dist": {
+    "1": 1
+   },
+   "por_circulo": {
+    "1": 1
+   },
+   "exemplos": [
+    "primor-atletico"
+   ]
+  },
+  "bonus+:2": {
+   "n": 1,
+   "pm_mediana": 2,
+   "pm_moda": 2,
+   "pm_dist": {
+    "2": 1
+   },
+   "por_circulo": {
+    "1": 2
+   },
+   "exemplos": [
+    "protecao-de-tauron"
+   ]
+  },
+  "cura+:20": {
+   "n": 1,
+   "pm_mediana": 1,
+   "pm_moda": 1,
+   "pm_dist": {
+    "1": 1
+   },
+   "por_circulo": {
+    "5": 1
+   },
+   "exemplos": [
+    "segunda-chance"
+   ]
+  },
+  "duracao->:um dia ou ate ser descarregada": {
+   "n": 1,
+   "pm_mediana": 4,
+   "pm_moda": 4,
+   "pm_dist": {
+    "4": 1
+   },
+   "por_circulo": {
+    "3": 4
+   },
+   "exemplos": [
+    "servo-divino"
+   ]
+  },
+  "duracao->:1 semana ou ate ser descarregada": {
+   "n": 1,
+   "pm_mediana": 9,
+   "pm_moda": 9,
+   "pm_dist": {
+    "9": 1
+   },
+   "por_circulo": {
+    "3": 9
+   },
+   "exemplos": [
+    "servo-divino"
+   ]
+  },
+  "alvos+:5": {
+   "n": 1,
+   "pm_mediana": 2,
+   "pm_moda": 2,
+   "pm_dist": {
+    "2": 1
+   },
+   "por_circulo": {
+    "3": 2
+   },
+   "exemplos": [
+    "teletransporte"
+   ]
+  },
+  "resistencia->:nenhuma": {
+   "n": 1,
+   "pm_mediana": 3,
+   "pm_moda": 3,
+   "pm_dist": {
+    "3": 1
+   },
+   "por_circulo": {
+    "2": 3
+   },
+   "exemplos": [
+    "traicao-magica"
+   ]
+  },
+  "alvos+:2": {
+   "n": 1,
+   "pm_mediana": 2,
+   "pm_moda": 2,
+   "pm_dist": {
+    "2": 1
+   },
+   "por_circulo": {
+    "2": 2
+   },
+   "exemplos": [
+    "transposicao"
+   ]
+  }
+ },
+ "efeito_novo_por_circulo": {
+  "1": {
+   "n": 134,
+   "pm_mediana": 2.0,
+   "pm_dist": {
+    "1": 40,
+    "2": 62,
+    "3": 9,
+    "4": 3,
+    "5": 14,
+    "9": 6
+   }
+  },
+  "2": {
+   "n": 92,
+   "pm_mediana": 3.0,
+   "pm_dist": {
+    "1": 17,
+    "2": 25,
+    "3": 27,
+    "4": 1,
+    "5": 6,
+    "7": 8,
+    "9": 3,
+    "12": 5
+   }
+  },
+  "3": {
+   "n": 47,
+   "pm_mediana": 4,
+   "pm_dist": {
+    "1": 4,
+    "2": 11,
+    "3": 6,
+    "4": 15,
+    "5": 2,
+    "7": 1,
+    "8": 2,
+    "9": 6
+   }
+  },
+  "4": {
+   "n": 30,
+   "pm_mediana": 3.5,
+   "pm_dist": {
+    "1": 1,
+    "2": 10,
+    "3": 4,
+    "4": 3,
+    "5": 10,
+    "6": 1,
+    "10": 1
+   }
+  },
+  "5": {
+   "n": 12,
+   "pm_mediana": 5.0,
+   "pm_dist": {
+    "1": 1,
+    "2": 2,
+    "4": 1,
+    "5": 6,
+    "10": 2
+   }
+  }
+ }
+}

@@ -1,0 +1,14 @@
+[Unit]
+Description=Hub T20 (mesa de Tormenta 20: grimório, bestiário, regras, missões, agenda)
+After=network.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/home/ubuntu/hub-t20
+Environment=PORT=8100
+ExecStart=/usr/bin/node /home/ubuntu/hub-t20/server.mjs
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

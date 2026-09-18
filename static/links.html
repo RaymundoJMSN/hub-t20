@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mesa — Hub T20</title>
+<meta name="description" content="Foundry, call, cenas, arena e downloads: tudo da mesa num lugar só.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Alegreya:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎲</text></svg>">
+</head>
+<body>
+<div class="brasa" aria-hidden="true"></div>
+<header>
+  <h1>Mesa</h1>
+  <p class="sub">onde o jogo acontece, ferramentas e downloads</p>
+</header>
+<main class="grimorio-main">
+  <section id="links" class="painel"></section>
+  <section id="editor" class="painel" hidden>
+    <h2 class="g-grupo">Editar links (JSON)</h2>
+    <p class="explica">{ "grupos": [ { "titulo": "…", "links": [ { "nome", "url", "desc", "icone" } ] } ] } — links que começam com / abrem dentro do hub.</p>
+    <textarea id="json" rows="24" style="width:100%;font-family:monospace;font-size:.85rem"></textarea>
+    <div class="acoes"><button class="bt destaque" id="salvar">salvar</button><button class="bt" id="cancelar">cancelar</button><span class="explica" id="msg"></span></div>
+  </section>
+</main>
+<footer>Ferramenta de fã. Tormenta 20 pertence à Jambo Editora.</footer>
+<script type="module">
+import { el, eu } from "/hub.js";
+const raiz = document.querySelector("#links"), editor = document.querySelector("#editor"), area = document.querySelector("#json"), msg = document.querySelector("#msg");
+let dados = { grupos: [] };
+function render(mestre) {
+  raiz.replaceChildren();
+  if (mestre) raiz.append(el("div", { className: "acoes" }, el("button", { className: "bt", textContent: "✎ editar links", onclick: () => { area.value = JSON.stringify(dados, null, 2); editor.hidden = false; } })));
+  for (const g of dados.grupos) {
+    raiz.append(el("h2", { className: "g-grupo", textContent: g.titulo }));
+    raiz.append(el("div", { className: "grimorio-lista links-lista" }, ...g.links.map((l) => el("a", { className: "card link-card", href: l.url, target: l.url.startsWith("/") ? "" : "_blank", rel: "noopener" },
+      el("span", { className: "circ", textContent: l.icone || "🔗" }), el("h3", { textContent: l.nome }), el("div", { className: "meta", textContent: l.desc || l.url })))));
+  }
+}
+document.querySelector("#salvar").onclick = async () => {
+  let j;
+  try { j = JSON.parse(area.value); } catch { msg.textContent = "JSON inválido"; return; }
+  const r = await (await fetch("/api/links", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(j) })).json();
+  msg.textContent = r.ok ? "salvo ✓" : r.erro;
+  if (r.ok) { editor.hidden = true; carregar(); }
+};
+document.querySelector("#cancelar").onclick = () => (editor.hidden = true);
+let mestre = false;
+async function carregar() { dados = await (await fetch("/api/links")).json(); render(mestre); }
+eu.then((u) => { mestre = !!u.mestre; carregar(); });
+</script>
+</body>
+</html>

@@ -1,0 +1,205 @@
+{
+ "comentario": "DERIVADO de dataset.json por tools/minerar_padroes.py — nao editar na mao.",
+ "n_magias": 275,
+ "tipos_escolhiveis": {
+  "n": 6,
+  "misturam_faixas": 2,
+  "regra": "lista de tipos paga o delta mais caro da lista (custo_tipo_dano) — a maioria das oficiais agrupa tipos da mesma faixa, e as que misturam (Runa de Protecao) cobrariam a faixa de cima de qualquer jeito",
+  "magias": [
+   {
+    "nome": "Armadura Elemental",
+    "circulo": 1,
+    "tipos": [
+     "acido",
+     "eletricidade",
+     "fogo",
+     "frio"
+    ],
+    "faixas": [
+     0
+    ],
+    "com_dano": true
+   },
+   {
+    "nome": "Armamento da Natureza",
+    "circulo": 1,
+    "tipos": [
+     "corte",
+     "impacto",
+     "perfuracao"
+    ],
+    "faixas": [
+     -1
+    ],
+    "com_dano": false
+   },
+   {
+    "nome": "Barragem Elemental de Vectorius",
+    "circulo": 5,
+    "tipos": [
+     "acido",
+     "eletricidade",
+     "fogo",
+     "frio"
+    ],
+    "faixas": [
+     0
+    ],
+    "com_dano": true
+   },
+   {
+    "nome": "Conjurar Monstro",
+    "circulo": 1,
+    "tipos": [
+     "corte",
+     "impacto",
+     "perfuracao"
+    ],
+    "faixas": [
+     -1
+    ],
+    "com_dano": true
+   },
+   {
+    "nome": "Resistência a Energia",
+    "circulo": 1,
+    "tipos": [
+     "acido",
+     "eletricidade",
+     "fogo",
+     "frio",
+     "luz",
+     "trevas"
+    ],
+    "faixas": [
+     0,
+     1
+    ],
+    "com_dano": false
+   },
+   {
+    "nome": "Runa de Proteção",
+    "circulo": 2,
+    "tipos": [
+     "acido",
+     "eletricidade",
+     "fogo",
+     "frio",
+     "luz",
+     "trevas"
+    ],
+    "faixas": [
+     0,
+     1
+    ],
+    "com_dano": true
+   }
+  ]
+ },
+ "cd_fixa": {
+  "n": 7,
+  "comentario": "CD normal = 10 + metade do nivel + atributo (LB, cap. Magia); CD fixa nao escala.",
+  "valores": [
+   10,
+   20,
+   25,
+   30,
+   40
+  ],
+  "casos": [
+   {
+    "nome": "Área  Escorregadia",
+    "circulo": 1,
+    "teste": "Acrobacia",
+    "cd": 10
+   },
+   {
+    "nome": "Armadura Gélida",
+    "circulo": 1,
+    "teste": "Reflexos",
+    "cd": 20
+   },
+   {
+    "nome": "Controlar Madeira",
+    "circulo": 2,
+    "teste": "Força",
+    "cd": 25
+   },
+   {
+    "nome": "Poção Explosiva",
+    "circulo": 2,
+    "teste": "Ofício",
+    "cd": 25
+   },
+   {
+    "nome": "Teletransporte",
+    "circulo": 3,
+    "teste": null,
+    "cd": 20
+   },
+   {
+    "nome": "Teletransporte",
+    "circulo": 3,
+    "teste": null,
+    "cd": 30
+   },
+   {
+    "nome": "Teletransporte",
+    "circulo": 3,
+    "teste": null,
+    "cd": 40
+   }
+  ]
+ },
+ "resistencia_por_efeito": {
+  "comentario": "dano+condicao nas oficiais e sempre 'parcial': passar reduz o dano a metade E evita a condicao (Adaga Mental, Detonacao Congelante). 'reduz-metade' e o modo de dano puro (Bola de Fogo).",
+  "por_categoria": {
+   "dano+condicao": {
+    "parcial": 17,
+    "especial": 3,
+    "nenhuma": 3,
+    "anula": 1
+   },
+   "outros": {
+    "nenhuma": 129,
+    "anula": 17,
+    "parcial": 8,
+    "especial": 4,
+    "desacredita": 3,
+    "reduz-metade": 1
+   },
+   "so_condicao": {
+    "nenhuma": 14,
+    "parcial": 13,
+    "anula": 9,
+    "especial": 2,
+    "reduz-metade": 1
+   },
+   "so_dano": {
+    "reduz-metade": 19,
+    "nenhuma": 14,
+    "parcial": 8,
+    "especial": 8,
+    "anula": 1
+   }
+  }
+ },
+ "condicoes_alternativas": {
+  "n": 1,
+  "comentario": "so uma das condicoes se aplica por conjuracao. Rogar Maldicao (2o, 6 alternativas) fecha em 18.5/18 com a regra normal (a mais cara cheia, extras pela metade) -> alternativa NAO ganha desconto proprio.",
+  "magias": [
+   {
+    "nome": "Rogar Maldição",
+    "circulo": 2,
+    "condicoes": [
+     "caido",
+     "cego",
+     "debilitado",
+     "esmorecido",
+     "lento",
+     "surdo"
+    ]
+   }
+  ]
+ }
+}

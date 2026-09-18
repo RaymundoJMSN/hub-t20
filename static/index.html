@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Criador de Magias — Tormenta 20</title>
+<meta name="description" content="Crie magias próprias de Tormenta 20 passo a passo, com balanceamento calibrado nas magias oficiais.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Alegreya:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🕯️</text></svg>">
+</head>
+<body>
+<div class="brasa" aria-hidden="true"></div>
+
+<header>
+  <h1>Criador de Magias</h1>
+  <p class="sub">Tormenta 20 · <span id="sub-circ">1º círculo</span> · <b id="sub-orc">10 pontos</b> · <a class="link-ouro" href="/">📖 grimório</a></p>
+  <div id="login">
+    <input id="nome-user" maxlength="40" placeholder="seu nome" autocomplete="off" hidden>
+    <button id="bt-entrar" class="bt" hidden>entrar</button>
+    <span id="quem" hidden><b id="quem-nome"></b> <button id="bt-sair" class="bt mini" hidden>sair</button></span>
+    <button id="bt-salvar-topo" class="bt" title="salvar no servidor (Ctrl+S)" hidden>💾 salvar</button>
+    <button id="bt-nova-topo" class="bt destaque">✦ nova magia</button>
+  </div>
+</header>
+
+<div class="medidor-sticky">
+  <div class="medidor"><div id="medidor-fill"></div><span id="medidor-txt">0 / 10</span></div>
+</div>
+
+<main>
+  <nav id="progresso" aria-label="passos"></nav>
+
+  <section id="passo" class="painel"></section>
+
+  <div class="nav-passos">
+    <button class="bt" id="bt-voltar">← voltar</button>
+    <span id="msg" role="status"></span>
+    <button class="bt destaque" id="bt-avancar">continuar →</button>
+  </div>
+
+  <aside id="lateral">
+    <article class="carta" id="carta"></article>
+    <div id="avisos"></div>
+    <details class="partes"><summary>de onde vem o custo</summary><ul id="partes"></ul></details>
+  </aside>
+</main>
+
+<nav id="abas">
+  <button data-aba="minhas" class="aba ativa">minhas magias</button>
+  <button data-aba="publicadas" class="aba">publicadas</button>
+  <button data-aba="exemplos" class="aba">referências oficiais</button>
+</nav>
+<section id="galeria" class="painel"></section>
+
+<footer>Ferramenta de fã. Tormenta 20 pertence à Jambo Editora — nenhum texto oficial é reproduzido aqui.
+  <a href="https://github.com/RaymundoJMSN/criador-magias-t20">código</a></footer>
+
+<script type="module" src="/hub.js"></script>
+<script type="module" src="/app.js"></script>
+</body>
+</html>

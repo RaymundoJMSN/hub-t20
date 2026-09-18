@@ -1,0 +1,2049 @@
+{
+ "orcamento": 10,
+ "utilitarias": [
+  {
+   "slug": "consagrar",
+   "nome": "Consagrar",
+   "grupo": "Divina",
+   "escola": "Evocação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "longo",
+    "duracao": "1dia",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "area",
+     "forma": "esfera",
+     "tamanho_m": 9
+    }
+   },
+   "custo_eixos": 9,
+   "preco_efeito": 1
+  },
+  {
+   "slug": "profanar",
+   "nome": "Profanar",
+   "grupo": "Divina",
+   "escola": "Necromancia",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "longo",
+    "duracao": "1dia",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "area",
+     "forma": "esfera",
+     "tamanho_m": 9
+    }
+   },
+   "custo_eixos": 9,
+   "preco_efeito": 1
+  },
+  {
+   "slug": "alarme",
+   "nome": "Alarme",
+   "grupo": "Arcana",
+   "escola": "Abjuração",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "curto",
+    "duracao": "1dia",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "area",
+     "forma": "esfera",
+     "tamanho_m": 9
+    }
+   },
+   "custo_eixos": 7,
+   "preco_efeito": 3
+  },
+  {
+   "slug": "abencoar-alimentos",
+   "nome": "Abençoar Alimentos",
+   "grupo": "Divina",
+   "escola": "Transmutação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "curto",
+    "duracao": "cena",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1
+    }
+   },
+   "custo_eixos": 6,
+   "preco_efeito": 4
+  },
+  {
+   "slug": "caminhos-da-natureza",
+   "nome": "Caminhos da Natureza",
+   "grupo": "Divina",
+   "escola": "Convocação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "curto",
+    "duracao": "1dia",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": "escolhidas"
+    }
+   },
+   "custo_eixos": 6,
+   "preco_efeito": 4
+  },
+  {
+   "slug": "bencao",
+   "nome": "Bênção",
+   "grupo": "Divina",
+   "escola": "Encantamento",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "curto",
+    "duracao": "cena",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": "escolhidas"
+    }
+   },
+   "custo_eixos": 5,
+   "preco_efeito": 5
+  },
+  {
+   "slug": "perdicao",
+   "nome": "Perdição",
+   "grupo": "Divina",
+   "escola": "Necromancia",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "curto",
+    "duracao": "cena",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": "escolhidas"
+    }
+   },
+   "custo_eixos": 5,
+   "preco_efeito": 5
+  },
+  {
+   "slug": "protecao-de-tauron",
+   "nome": "Proteção de Tauron",
+   "grupo": "Divina",
+   "escola": "Abjuração",
+   "eixos": {
+    "execucao": "movimento",
+    "alcance": "curto",
+    "duracao": "cena",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1
+    }
+   },
+   "custo_eixos": 5,
+   "preco_efeito": 5
+  },
+  {
+   "slug": "aviso",
+   "nome": "Aviso",
+   "grupo": "Universal",
+   "escola": "Adivinhação",
+   "eixos": {
+    "execucao": "movimento",
+    "alcance": "longo",
+    "duracao": "instantanea",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1
+    }
+   },
+   "custo_eixos": 4,
+   "preco_efeito": 6
+  },
+  {
+   "slug": "chuva",
+   "nome": "Chuva",
+   "grupo": "Divina",
+   "escola": "Evocação",
+   "eixos": {
+    "execucao": "movimento",
+    "alcance": "curto",
+    "duracao": "sustentada",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "area",
+     "forma": "cilindro",
+     "tamanho_m": 9
+    }
+   },
+   "custo_eixos": 4,
+   "preco_efeito": 6
+  },
+  {
+   "slug": "detectar-ameacas",
+   "nome": "Detectar Ameaças",
+   "grupo": "Divina",
+   "escola": "Adivinhação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "pessoal",
+    "duracao": "cena",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "area",
+     "forma": "esfera",
+     "tamanho_m": 18
+    }
+   },
+   "custo_eixos": 4,
+   "preco_efeito": 6
+  },
+  {
+   "slug": "distracao-fugaz",
+   "nome": "Distração Fugaz",
+   "grupo": "Arcana",
+   "escola": "Ilusão",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "curto",
+    "duracao": "instantanea",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1,
+     "restrito": "humanoide"
+    }
+   },
+   "custo_eixos": 4,
+   "preco_efeito": 6
+  },
+  {
+   "slug": "nevoa",
+   "nome": "Névoa",
+   "grupo": "Universal",
+   "escola": "Convocação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "curto",
+    "duracao": "cena",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "area",
+     "forma": "nuvem",
+     "tamanho_m": 6
+    }
+   },
+   "custo_eixos": 4,
+   "preco_efeito": 6
+  },
+  {
+   "slug": "area-escorregadia",
+   "nome": "Área  Escorregadia",
+   "grupo": "Arcana",
+   "escola": "Convocação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "curto",
+    "duracao": "cena",
+    "resistencia": "especial",
+    "alvo": {
+     "tipo": "area",
+     "forma": "quadrado",
+     "tamanho_m": 3
+    }
+   },
+   "custo_eixos": 3,
+   "preco_efeito": 7
+  },
+  {
+   "slug": "armadura-gelida",
+   "nome": "Armadura Gélida",
+   "grupo": "Universal",
+   "escola": "Abjuração",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "pessoal",
+    "duracao": "cena",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "pessoal"
+    }
+   },
+   "custo_eixos": 3,
+   "preco_efeito": 7
+  },
+  {
+   "slug": "controlar-plantas",
+   "nome": "Controlar Plantas",
+   "grupo": "Divina",
+   "escola": "Transmutação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "curto",
+    "duracao": "cena",
+    "resistencia": "anula",
+    "alvo": {
+     "tipo": "area",
+     "forma": "quadrado",
+     "tamanho_m": 9
+    }
+   },
+   "custo_eixos": 3,
+   "preco_efeito": 7
+  },
+  {
+   "slug": "criar-ilusao",
+   "nome": "Criar Ilusão",
+   "grupo": "Arcana",
+   "escola": "Ilusão",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "medio",
+    "duracao": "cena",
+    "resistencia": "desacredita",
+    "alvo": {
+     "tipo": "outro"
+    }
+   },
+   "custo_eixos": 3,
+   "preco_efeito": 7
+  },
+  {
+   "slug": "ossos-de-adamante",
+   "nome": "Ossos de Adamante",
+   "grupo": "Arcana",
+   "escola": "Transmutação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "pessoal",
+    "duracao": "cena",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "pessoal"
+    }
+   },
+   "custo_eixos": 3,
+   "preco_efeito": 7
+  },
+  {
+   "slug": "tranca-arcana",
+   "nome": "Tranca Arcana",
+   "grupo": "Arcana",
+   "escola": "Abjuração",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "toque",
+    "duracao": "permanente",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1,
+     "restrito": "objeto"
+    }
+   },
+   "custo_eixos": 3,
+   "preco_efeito": 7
+  },
+  {
+   "slug": "queda-suave",
+   "nome": "Queda Suave",
+   "grupo": "Arcana",
+   "escola": "Transmutação",
+   "eixos": {
+    "execucao": "reacao",
+    "alcance": "curto",
+    "duracao": "outro",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1
+    }
+   },
+   "custo_eixos": 2,
+   "preco_efeito": 8
+  },
+  {
+   "slug": "escudo-da-fe",
+   "nome": "Escudo da Fé",
+   "grupo": "Divina",
+   "escola": "Abjuração",
+   "eixos": {
+    "execucao": "reacao",
+    "alcance": "curto",
+    "duracao": "1rodada",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1
+    }
+   },
+   "custo_eixos": 1,
+   "preco_efeito": 9
+  },
+  {
+   "slug": "siroco-de-azgher",
+   "nome": "Siroco de Azgher",
+   "grupo": "Divina",
+   "escola": "Evocação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "curto",
+    "duracao": "instantanea",
+    "resistencia": "reduz-metade",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1
+    }
+   },
+   "custo_eixos": 1,
+   "preco_efeito": 9
+  },
+  {
+   "slug": "suporte-ambiental",
+   "nome": "Suporte Ambiental",
+   "grupo": "Divina",
+   "escola": "Abjuração",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "toque",
+    "duracao": "1dia",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1
+    }
+   },
+   "custo_eixos": 1,
+   "preco_efeito": 9
+  },
+  {
+   "slug": "ventania-mistica",
+   "nome": "Ventania Mística",
+   "grupo": "Universal",
+   "escola": "Abjuração",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "pessoal",
+    "duracao": "instantanea",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "area",
+     "forma": "cilindro",
+     "tamanho_m": 9
+    }
+   },
+   "custo_eixos": 1,
+   "preco_efeito": 9
+  },
+  {
+   "slug": "infortunio-de-sszzaas",
+   "nome": "Infortúnio de Sszzaas",
+   "grupo": "Divina",
+   "escola": "Necromancia",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "curto",
+    "duracao": "cena",
+    "resistencia": "anula",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1
+    }
+   },
+   "custo_eixos": 0,
+   "preco_efeito": 10
+  },
+  {
+   "slug": "magia-dadivosa",
+   "nome": "Magia Dadivosa",
+   "grupo": "Divina",
+   "escola": "Transmutação",
+   "eixos": {
+    "execucao": "movimento",
+    "alcance": "pessoal",
+    "duracao": "cena",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "pessoal"
+    }
+   },
+   "custo_eixos": 0,
+   "preco_efeito": 10
+  },
+  {
+   "slug": "posse-de-arsenal",
+   "nome": "Posse de Arsenal",
+   "grupo": "Divina",
+   "escola": "Convocação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "pessoal",
+    "duracao": "1dia",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1
+    }
+   },
+   "custo_eixos": 0,
+   "preco_efeito": 10
+  },
+  {
+   "slug": "primor-atletico",
+   "nome": "Primor Atlético",
+   "grupo": "Arcana",
+   "escola": "Transmutação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "toque",
+    "duracao": "cena",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1
+    }
+   },
+   "custo_eixos": 0,
+   "preco_efeito": 10
+  },
+  {
+   "slug": "protecao-divina",
+   "nome": "Proteção Divina",
+   "grupo": "Divina",
+   "escola": "Abjuração",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "toque",
+    "duracao": "cena",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1
+    }
+   },
+   "custo_eixos": 0,
+   "preco_efeito": 10
+  },
+  {
+   "slug": "resistencia-a-energia",
+   "nome": "Resistência a Energia",
+   "grupo": "Universal",
+   "escola": "Abjuração",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "toque",
+    "duracao": "cena",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1
+    }
+   },
+   "custo_eixos": 0,
+   "preco_efeito": 10
+  },
+  {
+   "slug": "tranquilidade",
+   "nome": "Tranquilidade",
+   "grupo": "Divina",
+   "escola": "Encantamento",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "curto",
+    "duracao": "cena",
+    "resistencia": "parcial",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1,
+     "restrito": "humanoide ou animal"
+    }
+   },
+   "custo_eixos": 0,
+   "preco_efeito": 10
+  },
+  {
+   "slug": "transmutar-objetos",
+   "nome": "Transmutar Objetos",
+   "grupo": "Arcana",
+   "escola": "Transmutação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "toque",
+    "duracao": "cena",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "outro"
+    }
+   },
+   "custo_eixos": 0,
+   "preco_efeito": 10
+  },
+  {
+   "slug": "acalmar-animal",
+   "nome": "Acalmar Animal",
+   "grupo": "Divina",
+   "escola": "Encantamento",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "curto",
+    "duracao": "cena",
+    "resistencia": "anula",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1,
+     "restrito": "animal"
+    }
+   },
+   "custo_eixos": -1,
+   "preco_efeito": 11
+  },
+  {
+   "slug": "arma-magica",
+   "nome": "Arma Mágica",
+   "grupo": "Universal",
+   "escola": "Transmutação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "toque",
+    "duracao": "cena",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1,
+     "restrito": "arma"
+    }
+   },
+   "custo_eixos": -1,
+   "preco_efeito": 11
+  },
+  {
+   "slug": "arma-de-jade",
+   "nome": "Arma de Jade",
+   "grupo": "Divina",
+   "escola": "Transmutação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "toque",
+    "duracao": "cena",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1,
+     "restrito": "arma"
+    }
+   },
+   "custo_eixos": -1,
+   "preco_efeito": 11
+  },
+  {
+   "slug": "armamento-da-natureza",
+   "nome": "Armamento da Natureza",
+   "grupo": "Divina",
+   "escola": "Transmutação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "toque",
+    "duracao": "cena",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1,
+     "restrito": "arma"
+    }
+   },
+   "custo_eixos": -1,
+   "preco_efeito": 11
+  },
+  {
+   "slug": "compreensao",
+   "nome": "Compreensão",
+   "grupo": "Universal",
+   "escola": "Adivinhação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "toque",
+    "duracao": "cena",
+    "resistencia": "anula",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1
+    }
+   },
+   "custo_eixos": -1,
+   "preco_efeito": 11
+  },
+  {
+   "slug": "concentracao-de-combate",
+   "nome": "Concentração de Combate",
+   "grupo": "Arcana",
+   "escola": "Adivinhação",
+   "eixos": {
+    "execucao": "livre",
+    "alcance": "pessoal",
+    "duracao": "1rodada",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "pessoal"
+    }
+   },
+   "custo_eixos": -1,
+   "preco_efeito": 11
+  },
+  {
+   "slug": "discricao",
+   "nome": "Discrição",
+   "grupo": "Universal",
+   "escola": "Encantamento",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "pessoal",
+    "duracao": "cena",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "outro"
+    }
+   },
+   "custo_eixos": -1,
+   "preco_efeito": 11
+  },
+  {
+   "slug": "disfarce-ilusorio",
+   "nome": "Disfarce Ilusório",
+   "grupo": "Arcana",
+   "escola": "Ilusão",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "pessoal",
+    "duracao": "cena",
+    "resistencia": "desacredita",
+    "alvo": {
+     "tipo": "pessoal"
+    }
+   },
+   "custo_eixos": -1,
+   "preco_efeito": 11
+  },
+  {
+   "slug": "escapatoria-de-hyninn",
+   "nome": "Escapatória de Hyninn",
+   "grupo": "Divina",
+   "escola": "Abjuração",
+   "eixos": {
+    "execucao": "reacao",
+    "alcance": "pessoal",
+    "duracao": "instantanea",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "pessoal"
+    }
+   },
+   "custo_eixos": -1,
+   "preco_efeito": 11
+  },
+  {
+   "slug": "escuridao",
+   "nome": "Escuridão",
+   "grupo": "Universal",
+   "escola": "Necromancia",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "curto",
+    "duracao": "cena",
+    "resistencia": "anula",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1,
+     "restrito": "objeto"
+    }
+   },
+   "custo_eixos": -1,
+   "preco_efeito": 11
+  },
+  {
+   "slug": "execucao-de-thwor",
+   "nome": "Execução de Thwor",
+   "grupo": "Divina",
+   "escola": "Necromancia",
+   "eixos": {
+    "execucao": "movimento",
+    "alcance": "curto",
+    "duracao": "1rodada",
+    "resistencia": "anula",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1,
+     "restrito": "humanoide"
+    }
+   },
+   "custo_eixos": -1,
+   "preco_efeito": 11
+  },
+  {
+   "slug": "futuro-melhor",
+   "nome": "Futuro Melhor",
+   "grupo": "Divina",
+   "escola": "Adivinhação",
+   "eixos": {
+    "execucao": "reacao",
+    "alcance": "pessoal",
+    "duracao": "instantanea",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "pessoal"
+    }
+   },
+   "custo_eixos": -1,
+   "preco_efeito": 11
+  },
+  {
+   "slug": "instante-estoico",
+   "nome": "Instante Estoico",
+   "grupo": "Divina",
+   "escola": "Abjuração",
+   "eixos": {
+    "execucao": "reacao",
+    "alcance": "pessoal",
+    "duracao": "instantanea",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "pessoal"
+    }
+   },
+   "custo_eixos": -1,
+   "preco_efeito": 11
+  },
+  {
+   "slug": "luz",
+   "nome": "Luz",
+   "grupo": "Universal",
+   "escola": "Evocação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "curto",
+    "duracao": "cena",
+    "resistencia": "anula",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1,
+     "restrito": "objeto"
+    }
+   },
+   "custo_eixos": -1,
+   "preco_efeito": 11
+  },
+  {
+   "slug": "orientacao",
+   "nome": "Orientação",
+   "grupo": "Divina",
+   "escola": "Adivinhação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "curto",
+    "duracao": "1rodada",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1
+    }
+   },
+   "custo_eixos": -1,
+   "preco_efeito": 11
+  },
+  {
+   "slug": "santuario",
+   "nome": "Santuário",
+   "grupo": "Divina",
+   "escola": "Abjuração",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "toque",
+    "duracao": "cena",
+    "resistencia": "anula",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1
+    }
+   },
+   "custo_eixos": -1,
+   "preco_efeito": 11
+  },
+  {
+   "slug": "sigilo-de-sszzaas",
+   "nome": "Sigilo de Sszzaas",
+   "grupo": "Divina",
+   "escola": "Abjuração",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "pessoal",
+    "duracao": "1dia",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "pessoal"
+    }
+   },
+   "custo_eixos": -1,
+   "preco_efeito": 11
+  },
+  {
+   "slug": "sorriso-da-fortuna",
+   "nome": "Sorriso da Fortuna",
+   "grupo": "Divina",
+   "escola": "Evocação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "pessoal",
+    "duracao": "1dia",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "pessoal"
+    }
+   },
+   "custo_eixos": -1,
+   "preco_efeito": 11
+  },
+  {
+   "slug": "toque-do-horizonte",
+   "nome": "Toque do Horizonte",
+   "grupo": "Arcana",
+   "escola": "Transmutação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "toque",
+    "duracao": "cena",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1,
+     "restrito": "arma"
+    }
+   },
+   "custo_eixos": -1,
+   "preco_efeito": 11
+  },
+  {
+   "slug": "arma-espiritual",
+   "nome": "Arma Espiritual",
+   "grupo": "Divina",
+   "escola": "Convocação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "pessoal",
+    "duracao": "cena",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "pessoal"
+    }
+   },
+   "custo_eixos": -2,
+   "preco_efeito": 12
+  },
+  {
+   "slug": "armadura-arcana",
+   "nome": "Armadura Arcana",
+   "grupo": "Arcana",
+   "escola": "Abjuração",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "pessoal",
+    "duracao": "cena",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "pessoal"
+    }
+   },
+   "custo_eixos": -2,
+   "preco_efeito": 12
+  },
+  {
+   "slug": "arsenal-de-allihanna",
+   "nome": "Arsenal de Allihanna",
+   "grupo": "Divina",
+   "escola": "Transmutação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "pessoal",
+    "duracao": "cena",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1,
+     "restrito": "arma"
+    }
+   },
+   "custo_eixos": -2,
+   "preco_efeito": 12
+  },
+  {
+   "slug": "assobio-perigoso",
+   "nome": "Assobio Perigoso",
+   "grupo": "Arcana",
+   "escola": "Convocação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "pessoal",
+    "duracao": "outro",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "outro"
+    }
+   },
+   "custo_eixos": -2,
+   "preco_efeito": 12
+  },
+  {
+   "slug": "euforia-de-valkaria",
+   "nome": "Euforia de Valkaria",
+   "grupo": "Divina",
+   "escola": "Encantamento",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "pessoal",
+    "duracao": "cena",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "pessoal"
+    }
+   },
+   "custo_eixos": -2,
+   "preco_efeito": 12
+  },
+  {
+   "slug": "farejar-fortuna",
+   "nome": "Farejar Fortuna",
+   "grupo": "Arcana",
+   "escola": "Adivinhação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "pessoal",
+    "duracao": "cena",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "pessoal"
+    }
+   },
+   "custo_eixos": -2,
+   "preco_efeito": 12
+  },
+  {
+   "slug": "frescor-de-lena",
+   "nome": "Frescor de Lena",
+   "grupo": "Divina",
+   "escola": "Abjuração",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "pessoal",
+    "duracao": "instantanea",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "outro"
+    }
+   },
+   "custo_eixos": -2,
+   "preco_efeito": 12
+  },
+  {
+   "slug": "imagem-espelhada",
+   "nome": "Imagem Espelhada",
+   "grupo": "Arcana",
+   "escola": "Ilusão",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "pessoal",
+    "duracao": "cena",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "pessoal"
+    }
+   },
+   "custo_eixos": -2,
+   "preco_efeito": 12
+  },
+  {
+   "slug": "maaais-klunc",
+   "nome": "Maaais Klunc",
+   "grupo": "Arcana",
+   "escola": "Transmutação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "pessoal",
+    "duracao": "cena",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "pessoal"
+    }
+   },
+   "custo_eixos": -2,
+   "preco_efeito": 12
+  },
+  {
+   "slug": "paixao-de-marah",
+   "nome": "Paixão de Marah",
+   "grupo": "Divina",
+   "escola": "Encantamento",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "pessoal",
+    "duracao": "cena",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "pessoal"
+    }
+   },
+   "custo_eixos": -2,
+   "preco_efeito": 12
+  },
+  {
+   "slug": "percepcao-rubra",
+   "nome": "Percepção Rubra",
+   "grupo": "Universal",
+   "escola": "Adivinhação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "pessoal",
+    "duracao": "cena",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "pessoal"
+    }
+   },
+   "custo_eixos": -2,
+   "preco_efeito": 12
+  },
+  {
+   "slug": "perturbacao-sombria",
+   "nome": "Perturbação Sombria",
+   "grupo": "Divina",
+   "escola": "Ilusão",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "pessoal",
+    "duracao": "cena",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "pessoal"
+    }
+   },
+   "custo_eixos": -2,
+   "preco_efeito": 12
+  },
+  {
+   "slug": "poder-de-kallyadranoch",
+   "nome": "Poder de Kallyadranoch",
+   "grupo": "Divina",
+   "escola": "Evocação",
+   "eixos": {
+    "execucao": "movimento",
+    "alcance": "pessoal",
+    "duracao": "1rodada",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "pessoal"
+    }
+   },
+   "custo_eixos": -2,
+   "preco_efeito": 12
+  },
+  {
+   "slug": "punho-de-mitral",
+   "nome": "Punho de Mitral",
+   "grupo": "Arcana",
+   "escola": "Transmutação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "pessoal",
+    "duracao": "cena",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "pessoal"
+    }
+   },
+   "custo_eixos": -2,
+   "preco_efeito": 12
+  },
+  {
+   "slug": "toque-de-megalokk",
+   "nome": "Toque de Megalokk",
+   "grupo": "Divina",
+   "escola": "Transmutação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "pessoal",
+    "duracao": "cena",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "pessoal"
+    }
+   },
+   "custo_eixos": -2,
+   "preco_efeito": 12
+  },
+  {
+   "slug": "visao-mistica",
+   "nome": "Visão Mística",
+   "grupo": "Universal",
+   "escola": "Adivinhação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "pessoal",
+    "duracao": "cena",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "pessoal"
+    }
+   },
+   "custo_eixos": -2,
+   "preco_efeito": 12
+  },
+  {
+   "slug": "voz-da-razao",
+   "nome": "Voz da Razão",
+   "grupo": "Divina",
+   "escola": "Encantamento",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "pessoal",
+    "duracao": "cena",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "pessoal"
+    }
+   },
+   "custo_eixos": -2,
+   "preco_efeito": 12
+  },
+  {
+   "slug": "vitalidade-fantasma",
+   "nome": "Vitalidade Fantasma",
+   "grupo": "Arcana",
+   "escola": "Necromancia",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "pessoal",
+    "duracao": "instantanea",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "pessoal"
+    }
+   },
+   "custo_eixos": -3,
+   "preco_efeito": 13
+  },
+  {
+   "slug": "orbe-do-oceano",
+   "nome": "Orbe do Oceano",
+   "grupo": "Divina",
+   "escola": "Abjuração",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "pessoal",
+    "duracao": "sustentada",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "pessoal"
+    }
+   },
+   "custo_eixos": -4,
+   "preco_efeito": 14
+  }
+ ],
+ "numericas": [
+  {
+   "slug": "descobrir-fraqueza",
+   "nome": "Descobrir Fraqueza",
+   "grupo": "Arcana",
+   "escola": "Adivinhação",
+   "eixos": {
+    "execucao": "movimento",
+    "alcance": "curto",
+    "duracao": "instantanea",
+    "resistencia": "especial",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1
+    }
+   },
+   "partes": {
+    "execucao": 2,
+    "alcance": 0,
+    "duracao": 0,
+    "alvo": 0,
+    "resistencia": 0,
+    "condicao": 2
+   },
+   "total": 4
+  },
+  {
+   "slug": "enfeiticar",
+   "nome": "Enfeitiçar",
+   "grupo": "Arcana",
+   "escola": "Encantamento",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "curto",
+    "duracao": "cena",
+    "resistencia": "anula",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1,
+     "restrito": "humanoide"
+    }
+   },
+   "partes": {
+    "execucao": 0,
+    "alcance": 0,
+    "duracao": 1,
+    "alvo": -1,
+    "resistencia": -1,
+    "condicao": 5
+   },
+   "total": 4
+  },
+  {
+   "slug": "bofetada-de-nimb",
+   "nome": "Bofetada de Nimb",
+   "grupo": "Divina",
+   "escola": "Evocação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "curto",
+    "duracao": "instantanea",
+    "resistencia": "parcial",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1,
+     "restrito": "humanoide"
+    }
+   },
+   "partes": {
+    "execucao": 0,
+    "alcance": 0,
+    "duracao": 0,
+    "alvo": -1,
+    "resistencia": 0,
+    "condicao": 6.0
+   },
+   "total": 5.0
+  },
+  {
+   "slug": "comando",
+   "nome": "Comando",
+   "grupo": "Divina",
+   "escola": "Encantamento",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "curto",
+    "duracao": "1rodada",
+    "resistencia": "anula",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1,
+     "restrito": "humanoide"
+    }
+   },
+   "partes": {
+    "execucao": 0,
+    "alcance": 0,
+    "duracao": -1,
+    "alvo": -1,
+    "resistencia": -1,
+    "condicao": 8
+   },
+   "total": 5
+  },
+  {
+   "slug": "amedrontar",
+   "nome": "Amedrontar",
+   "grupo": "Arcana",
+   "escola": "Necromancia",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "curto",
+    "duracao": "cena",
+    "resistencia": "parcial",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1,
+     "restrito": "humanoide ou animal"
+    }
+   },
+   "partes": {
+    "execucao": 0,
+    "alcance": 0,
+    "duracao": 1,
+    "alvo": -1,
+    "resistencia": 0,
+    "condicao": 6.0
+   },
+   "total": 6.0
+  },
+  {
+   "slug": "espirito-balistico",
+   "nome": "Espírito Balístico",
+   "grupo": "Arcana",
+   "escola": "Convocação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "curto",
+    "duracao": "sustentada",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1
+    }
+   },
+   "partes": {
+    "execucao": 0,
+    "alcance": 0,
+    "duracao": -1,
+    "alvo": 0,
+    "resistencia": 2,
+    "dano": 5.0
+   },
+   "total": 6.0
+  },
+  {
+   "slug": "furia-dos-antepassados",
+   "nome": "Fúria dos Antepassados",
+   "grupo": "Divina",
+   "escola": "Evocação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "curto",
+    "duracao": "instantanea",
+    "resistencia": "parcial",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1,
+     "restrito": "humanoide"
+    }
+   },
+   "partes": {
+    "execucao": 0,
+    "alcance": 0,
+    "duracao": 0,
+    "alvo": -1,
+    "resistencia": 0,
+    "dano": 3.0,
+    "condicao": 4.0
+   },
+   "total": 6.0
+  },
+  {
+   "slug": "hipnotismo",
+   "nome": "Hipnotismo",
+   "grupo": "Arcana",
+   "escola": "Encantamento",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "curto",
+    "duracao": "outro",
+    "resistencia": "anula",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1,
+     "restrito": "humanoide ou animal"
+    }
+   },
+   "partes": {
+    "execucao": 0,
+    "alcance": 0,
+    "duracao": 0,
+    "alvo": -1,
+    "resistencia": -1,
+    "condicao": 8
+   },
+   "total": 6
+  },
+  {
+   "slug": "explosao-de-chamas",
+   "nome": "Explosão de Chamas",
+   "grupo": "Arcana",
+   "escola": "Evocação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "pessoal",
+    "duracao": "instantanea",
+    "resistencia": "reduz-metade",
+    "alvo": {
+     "tipo": "area",
+     "forma": "cone",
+     "tamanho_m": 6
+    }
+   },
+   "partes": {
+    "execucao": 0,
+    "alcance": -2,
+    "duracao": 0,
+    "alvo": 2,
+    "resistencia": 1,
+    "dano": 6.0
+   },
+   "total": 7.0
+  },
+  {
+   "slug": "jato-corrosivo",
+   "nome": "Jato Corrosivo",
+   "grupo": "Arcana",
+   "escola": "Evocação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "pessoal",
+    "duracao": "instantanea",
+    "resistencia": "reduz-metade",
+    "alvo": {
+     "tipo": "area",
+     "forma": "linha",
+     "tamanho_m": 9
+    }
+   },
+   "partes": {
+    "execucao": 0,
+    "alcance": -2,
+    "duracao": 0,
+    "alvo": 2,
+    "resistencia": 1,
+    "dano": 6.0
+   },
+   "total": 7.0
+  },
+  {
+   "slug": "leque-cromatico",
+   "nome": "Leque Cromático",
+   "grupo": "Arcana",
+   "escola": "Ilusão",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "pessoal",
+    "duracao": "instantanea",
+    "resistencia": "parcial",
+    "alvo": {
+     "tipo": "outro"
+    }
+   },
+   "partes": {
+    "execucao": 0,
+    "alcance": -2,
+    "duracao": 0,
+    "alvo": 0,
+    "resistencia": 0,
+    "condicao": 9.0
+   },
+   "total": 7.0
+  },
+  {
+   "slug": "conjurar-monstro",
+   "nome": "Conjurar Monstro",
+   "grupo": "Arcana",
+   "escola": "Convocação",
+   "eixos": {
+    "execucao": "completa",
+    "alcance": "curto",
+    "duracao": "sustentada",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1
+    }
+   },
+   "partes": {
+    "execucao": -2,
+    "alcance": 0,
+    "duracao": -1,
+    "alvo": 0,
+    "resistencia": 2,
+    "dano": 9.0
+   },
+   "total": 8.0
+  },
+  {
+   "slug": "criar-elementos",
+   "nome": "Criar Elementos",
+   "grupo": "Divina",
+   "escola": "Convocação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "curto",
+    "duracao": "instantanea",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "outro"
+    }
+   },
+   "partes": {
+    "execucao": 0,
+    "alcance": 0,
+    "duracao": 0,
+    "alvo": 0,
+    "resistencia": 2,
+    "dano": 3.0,
+    "condicao": 3.0
+   },
+   "total": 8.0
+  },
+  {
+   "slug": "teia",
+   "nome": "Teia",
+   "grupo": "Arcana",
+   "escola": "Convocação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "curto",
+    "duracao": "cena",
+    "resistencia": "anula",
+    "alvo": {
+     "tipo": "area",
+     "forma": "cubo",
+     "tamanho_m": 6
+    }
+   },
+   "partes": {
+    "execucao": 0,
+    "alcance": 0,
+    "duracao": 1,
+    "alvo": 3,
+    "resistencia": -1,
+    "condicao": 5
+   },
+   "total": 8
+  },
+  {
+   "slug": "acoite-flamejante",
+   "nome": "Açoite Flamejante",
+   "grupo": "Arcana",
+   "escola": "Convocação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "pessoal",
+    "duracao": "sustentada",
+    "resistencia": "parcial",
+    "alvo": {
+     "tipo": "outro"
+    }
+   },
+   "partes": {
+    "execucao": 0,
+    "alcance": -2,
+    "duracao": -1,
+    "alvo": 0,
+    "resistencia": 0,
+    "dano": 9.0,
+    "condicao": 2.5
+   },
+   "total": 8.5
+  },
+  {
+   "slug": "dardo-gelido",
+   "nome": "Dardo Gélido",
+   "grupo": "Arcana",
+   "escola": "Evocação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "curto",
+    "duracao": "instantanea",
+    "resistencia": "parcial",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1
+    }
+   },
+   "partes": {
+    "execucao": 0,
+    "alcance": 0,
+    "duracao": 0,
+    "alvo": 0,
+    "resistencia": 0,
+    "dano": 6.0,
+    "condicao": 2.5
+   },
+   "total": 8.5
+  },
+  {
+   "slug": "armadura-elemental",
+   "nome": "Armadura Elemental",
+   "grupo": "Arcana",
+   "escola": "Evocação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "pessoal",
+    "duracao": "cena",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "pessoal"
+    }
+   },
+   "partes": {
+    "execucao": 0,
+    "alcance": -2,
+    "duracao": 1,
+    "alvo": -1,
+    "resistencia": 2,
+    "dano": 9.0
+   },
+   "total": 9.0
+  },
+  {
+   "slug": "curar-ferimentos",
+   "nome": "Curar Ferimentos",
+   "grupo": "Divina",
+   "escola": "Evocação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "toque",
+    "duracao": "instantanea",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1
+    }
+   },
+   "partes": {
+    "execucao": 0,
+    "alcance": -1,
+    "duracao": 0,
+    "alvo": 0,
+    "resistencia": 0,
+    "cura": 10.0
+   },
+   "total": 9.0
+  },
+  {
+   "slug": "despedacar",
+   "nome": "Despedaçar",
+   "grupo": "Divina",
+   "escola": "Evocação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "curto",
+    "duracao": "instantanea",
+    "resistencia": "parcial",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1
+    }
+   },
+   "partes": {
+    "execucao": 0,
+    "alcance": 0,
+    "duracao": 0,
+    "alvo": 0,
+    "resistencia": 0,
+    "dano": 5.0,
+    "condicao": 4.0
+   },
+   "total": 9.0
+  },
+  {
+   "slug": "toque-congelante",
+   "nome": "Toque Congelante",
+   "grupo": "Arcana",
+   "escola": "Evocação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "toque",
+    "duracao": "instantanea",
+    "resistencia": "parcial",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1
+    }
+   },
+   "partes": {
+    "execucao": 0,
+    "alcance": -1,
+    "duracao": 0,
+    "alvo": 0,
+    "resistencia": 0,
+    "dano": 10.0
+   },
+   "total": 9.0
+  },
+  {
+   "slug": "adaga-mental",
+   "nome": "Adaga Mental",
+   "grupo": "Arcana",
+   "escola": "Encantamento",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "curto",
+    "duracao": "instantanea",
+    "resistencia": "parcial",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1
+    }
+   },
+   "partes": {
+    "execucao": 0,
+    "alcance": 0,
+    "duracao": 0,
+    "alvo": 0,
+    "resistencia": 0,
+    "dano": 6.0,
+    "condicao": 4.0
+   },
+   "total": 10.0
+  },
+  {
+   "slug": "geiser-caustico",
+   "nome": "Geiser Cáustico",
+   "grupo": "Arcana",
+   "escola": "Evocação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "medio",
+    "duracao": "instantanea",
+    "resistencia": "reduz-metade",
+    "alvo": {
+     "tipo": "area",
+     "forma": "cilindro",
+     "tamanho_m": 3
+    }
+   },
+   "partes": {
+    "execucao": 0,
+    "alcance": 1,
+    "duracao": 0,
+    "alvo": 2,
+    "resistencia": 1,
+    "dano": 6.0
+   },
+   "total": 10.0
+  },
+  {
+   "slug": "toque-chocante",
+   "nome": "Toque Chocante",
+   "grupo": "Arcana",
+   "escola": "Evocação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "toque",
+    "duracao": "instantanea",
+    "resistencia": "reduz-metade",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1
+    }
+   },
+   "partes": {
+    "execucao": 0,
+    "alcance": -1,
+    "duracao": 0,
+    "alvo": 0,
+    "resistencia": 1,
+    "dano": 10.0
+   },
+   "total": 10.0
+  },
+  {
+   "slug": "detonacao-congelante",
+   "nome": "Detonação Congelante",
+   "grupo": "Arcana",
+   "escola": "Evocação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "pessoal",
+    "duracao": "instantanea",
+    "resistencia": "parcial",
+    "alvo": {
+     "tipo": "area",
+     "forma": "esfera",
+     "tamanho_m": 6
+    }
+   },
+   "partes": {
+    "execucao": 0,
+    "alcance": -2,
+    "duracao": 0,
+    "alvo": 3,
+    "resistencia": 0,
+    "dano": 6.0,
+    "condicao": 4.0
+   },
+   "total": 11.0
+  },
+  {
+   "slug": "infligir-ferimentos",
+   "nome": "Infligir Ferimentos",
+   "grupo": "Divina",
+   "escola": "Necromancia",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "toque",
+    "duracao": "instantanea",
+    "resistencia": "reduz-metade",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1
+    }
+   },
+   "partes": {
+    "execucao": 0,
+    "alcance": -1,
+    "duracao": 0,
+    "alvo": 0,
+    "resistencia": 1,
+    "dano": 11.0
+   },
+   "total": 11.0
+  },
+  {
+   "slug": "disparo-gelido",
+   "nome": "Disparo Gélido",
+   "grupo": "Arcana",
+   "escola": "Evocação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "medio",
+    "duracao": "instantanea",
+    "resistencia": "reduz-metade",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1
+    }
+   },
+   "partes": {
+    "execucao": 0,
+    "alcance": 1,
+    "duracao": 0,
+    "alvo": 0,
+    "resistencia": 1,
+    "dano": 10.0
+   },
+   "total": 12.0
+  },
+  {
+   "slug": "seta-infalivel-de-talude",
+   "nome": "Seta Infalível de Talude",
+   "grupo": "Arcana",
+   "escola": "Evocação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "medio",
+    "duracao": "instantanea",
+    "resistencia": "nenhuma",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": "escolhidas"
+    }
+   },
+   "partes": {
+    "execucao": 0,
+    "alcance": 1,
+    "duracao": 0,
+    "alvo": 4,
+    "resistencia": 2,
+    "dano": 5.0
+   },
+   "total": 12.0
+  },
+  {
+   "slug": "raio-do-enfraquecimento",
+   "nome": "Raio do Enfraquecimento",
+   "grupo": "Arcana",
+   "escola": "Necromancia",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "curto",
+    "duracao": "cena",
+    "resistencia": "parcial",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1
+    }
+   },
+   "partes": {
+    "execucao": 0,
+    "alcance": 0,
+    "duracao": 1,
+    "alvo": 0,
+    "resistencia": 0,
+    "condicao": 11.5
+   },
+   "total": 12.5
+  },
+  {
+   "slug": "flecha-de-luz",
+   "nome": "Flecha de Luz",
+   "grupo": "Universal",
+   "escola": "Evocação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "medio",
+    "duracao": "instantanea",
+    "resistencia": "parcial",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1
+    }
+   },
+   "partes": {
+    "execucao": 0,
+    "alcance": 1,
+    "duracao": 0,
+    "alvo": 0,
+    "resistencia": 0,
+    "dano": 11.0,
+    "condicao": 1.0
+   },
+   "total": 13.0
+  },
+  {
+   "slug": "nuvem-tempestuosa",
+   "nome": "Nuvem Tempestuosa",
+   "grupo": "Arcana",
+   "escola": "Convocação",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "curto",
+    "duracao": "sustentada",
+    "resistencia": "reduz-metade",
+    "alvo": {
+     "tipo": "area",
+     "forma": "nuvem",
+     "tamanho_m": 3
+    }
+   },
+   "partes": {
+    "execucao": 0,
+    "alcance": 0,
+    "duracao": -1,
+    "alvo": 2,
+    "resistencia": 1,
+    "dano": 12.0
+   },
+   "total": 14.0
+  },
+  {
+   "slug": "sono",
+   "nome": "Sono",
+   "grupo": "Arcana",
+   "escola": "Encantamento",
+   "eixos": {
+    "execucao": "padrao",
+    "alcance": "curto",
+    "duracao": "cena",
+    "resistencia": "parcial",
+    "alvo": {
+     "tipo": "alvos",
+     "qtd": 1,
+     "restrito": "humanoide"
+    }
+   },
+   "partes": {
+    "execucao": 0,
+    "alcance": 0,
+    "duracao": 1,
+    "alvo": -1,
+    "resistencia": 0,
+    "condicao": 17.5
+   },
+   "total": 17.5
+  }
+ ]
+}

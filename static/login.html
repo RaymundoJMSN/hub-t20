@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Entrar — Hub T20</title>
+<meta name="description" content="A mesa de Tormenta 20 num lugar só: grimório, bestiário, itens, regras, missões e agenda. Só pra quem joga.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Alegreya:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🕯️</text></svg>">
+</head>
+<body class="login-body">
+<div class="brasa" aria-hidden="true"></div>
+<header>
+  <h1>Hub T20</h1>
+  <p class="sub">a mesa inteira num lugar só · só pra quem joga</p>
+</header>
+<main class="login-main">
+  <form class="painel login-form" id="f">
+    <label>quem é você<input name="nome" autocomplete="username" required maxlength="40" autofocus></label>
+    <label>senha<input name="senha" type="password" autocomplete="current-password" required></label>
+    <div id="msg" class="explica" role="status"></div>
+    <button class="bt destaque" type="submit">entrar</button>
+    <p class="explica">Sem conta ou esqueceu a senha? Fale com o mestre.</p>
+  </form>
+</main>
+<footer>Ferramenta de fã. Tormenta 20 pertence à Jambo Editora.</footer>
+<script>
+  const f = document.getElementById("f"), msg = document.getElementById("msg");
+  const voltar = window.VOLTAR || new URLSearchParams(location.search).get("voltar") || "/";
+  f.onsubmit = async (e) => {
+    e.preventDefault();
+    msg.textContent = "…";
+    const r = await fetch("/api/login", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ nome: f.nome.value, senha: f.senha.value }) });
+    const j = await r.json().catch(() => ({}));
+    if (r.ok) location.href = /^\/[^/]/.test(voltar) ? voltar : "/";
+    else msg.textContent = j.erro || "não deu";
+  };
+</script>
+</body>
+</html>

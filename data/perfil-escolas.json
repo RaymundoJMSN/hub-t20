@@ -1,0 +1,980 @@
+{
+ "fonte_versao": 2,
+ "fonte_sha1": "c80ba1c2b243",
+ "taxonomia_condicoes": {
+  "medo": [
+   "abalado",
+   "apavorado"
+  ],
+  "mental": [
+   "alquebrado",
+   "atordoado",
+   "confuso",
+   "enfeiticado",
+   "esmorecido",
+   "fascinado",
+   "frustrado",
+   "pasmo"
+  ],
+  "movimento": [
+   "agarrado",
+   "enredado",
+   "imovel",
+   "lento",
+   "paralisado",
+   "sobrecarregado"
+  ],
+  "sentidos": [
+   "cego",
+   "ofuscado",
+   "surdo"
+  ],
+  "metabolismo": [
+   "doente",
+   "enjoado",
+   "sangrando"
+  ],
+  "veneno": [
+   "envenenado"
+  ],
+  "cansaço": [
+   "exausto",
+   "fatigado"
+  ],
+  "metamorfose": [
+   "petrificado"
+  ]
+ },
+ "escolas": {
+  "Abjuração": {
+   "n": 39,
+   "por_circulo": {
+    "1": 16,
+    "2": 10,
+    "3": 5,
+    "5": 5,
+    "4": 3
+   },
+   "grupos": {
+    "Divina": 19,
+    "Arcana": 11,
+    "Universal": 9
+   },
+   "dano": {
+    "n": 2,
+    "tipos": {
+     "essencia": 1
+    },
+    "com_area": 0,
+    "com_condicao": 0
+   },
+   "cura": {
+    "n": 0
+   },
+   "modificador": {
+    "n": 0
+   },
+   "condicoes": {
+    "n_magias": 7,
+    "quais": {
+     "imovel": 2,
+     "paralisado": 1,
+     "em chamas": 1,
+     "debilitado": 1,
+     "esmorecido": 1,
+     "lento": 1,
+     "enjoado": 1,
+     "fraco": 1
+    },
+    "categorias": {
+     "movimento": 4,
+     "outra": 3,
+     "mental": 1,
+     "metabolismo": 1
+    }
+   },
+   "alvo": {
+    "alvos": 18,
+    "pessoal": 11,
+    "area": 6,
+    "outro": 4
+   },
+   "formas_area": {
+    "esfera": 5,
+    "cilindro": 1
+   },
+   "restritos": {
+    "arma": 2,
+    "objeto": 1
+   },
+   "execucao": {
+    "padrao": 30,
+    "completa": 3,
+    "reacao": 3,
+    "longa": 2,
+    "movimento": 1
+   },
+   "alcance": {
+    "pessoal": 14,
+    "curto": 12,
+    "toque": 10,
+    "medio": 3
+   },
+   "duracao": {
+    "cena": 14,
+    "instantanea": 9,
+    "1dia": 7,
+    "sustentada": 5,
+    "permanente": 3,
+    "1rodada": 1
+   },
+   "resistencia_teste": {
+    "vontade": 9,
+    "especial": 1
+   },
+   "resistencia_modo": {
+    "nenhuma": 29,
+    "parcial": 4,
+    "anula": 3,
+    "especial": 2,
+    "reduz-metade": 1
+   },
+   "aprimoramentos": {
+    "n": 109,
+    "deltas": {
+     "efeito-novo": 48,
+     "substitui": 22,
+     "alcance->": 15,
+     "bonus+": 11,
+     "execucao->": 10,
+     "alvo->": 7,
+     "duracao->": 5,
+     "area->": 3,
+     "resistencia->": 2,
+     "alvos+": 2,
+     "dano+": 1
+    }
+   }
+  },
+  "Adivinhação": {
+   "n": 28,
+   "por_circulo": {
+    "1": 10,
+    "2": 9,
+    "3": 4,
+    "4": 3,
+    "5": 2
+   },
+   "grupos": {
+    "Arcana": 10,
+    "Divina": 10,
+    "Universal": 8
+   },
+   "dano": {
+    "n": 0,
+    "tipos": {},
+    "com_area": 0,
+    "com_condicao": 0
+   },
+   "cura": {
+    "n": 0
+   },
+   "modificador": {
+    "n": 1
+   },
+   "condicoes": {
+    "n_magias": 2,
+    "quais": {
+     "fraco": 1,
+     "indefeso": 1
+    },
+    "categorias": {
+     "outra": 2
+    }
+   },
+   "alvo": {
+    "pessoal": 13,
+    "alvos": 11,
+    "area": 2,
+    "outro": 2
+   },
+   "formas_area": {
+    "esfera": 2
+   },
+   "restritos": {},
+   "execucao": {
+    "padrao": 17,
+    "completa": 4,
+    "movimento": 3,
+    "reacao": 2,
+    "livre": 1,
+    "longa": 1
+   },
+   "alcance": {
+    "pessoal": 15,
+    "toque": 5,
+    "curto": 4,
+    "ilimitado": 3,
+    "longo": 1
+   },
+   "duracao": {
+    "cena": 14,
+    "instantanea": 5,
+    "1dia": 3,
+    "sustentada": 3,
+    "1rodada": 2,
+    "outro": 1
+   },
+   "resistencia_teste": {
+    "vontade": 3
+   },
+   "resistencia_modo": {
+    "nenhuma": 25,
+    "anula": 2,
+    "especial": 1
+   },
+   "aprimoramentos": {
+    "n": 69,
+    "deltas": {
+     "efeito-novo": 34,
+     "substitui": 14,
+     "alcance->": 9,
+     "execucao->": 8,
+     "alvos+": 5,
+     "alvo->": 4,
+     "bonus+": 3,
+     "duracao->": 2,
+     "area->": 2
+    }
+   }
+  },
+  "Convocação": {
+   "n": 35,
+   "por_circulo": {
+    "1": 12,
+    "2": 10,
+    "3": 5,
+    "5": 4,
+    "4": 4
+   },
+   "grupos": {
+    "Arcana": 20,
+    "Divina": 10,
+    "Universal": 5
+   },
+   "dano": {
+    "n": 11,
+    "tipos": {
+     "impacto": 3,
+     "fogo": 2,
+     "acido": 2,
+     "corte": 1,
+     "perfuracao": 1
+    },
+    "com_area": 4,
+    "com_condicao": 3
+   },
+   "cura": {
+    "n": 0
+   },
+   "modificador": {
+    "n": 0
+   },
+   "condicoes": {
+    "n_magias": 7,
+    "quais": {
+     "em chamas": 3,
+     "agarrado": 2,
+     "fraco": 2,
+     "atordoado": 2,
+     "abalado": 1,
+     "apavorado": 1,
+     "cego": 1,
+     "confuso": 1,
+     "debilitado": 1,
+     "enjoado": 1,
+     "esmorecido": 1,
+     "exausto": 1,
+     "fascinado": 1,
+     "fatigado": 1,
+     "frustrado": 1,
+     "ofuscado": 1,
+     "pasmo": 1,
+     "sangrando": 1,
+     "surdo": 1,
+     "vulneravel": 1,
+     "alquebrado": 1
+    },
+    "categorias": {
+     "mental": 8,
+     "outra": 7,
+     "sentidos": 3,
+     "movimento": 2,
+     "medo": 2,
+     "metabolismo": 2,
+     "cansaço": 2
+    }
+   },
+   "alvo": {
+    "outro": 15,
+    "alvos": 10,
+    "area": 7,
+    "pessoal": 3
+   },
+   "formas_area": {
+    "quadrado": 3,
+    "cubo": 2,
+    "nuvem": 2
+   },
+   "restritos": {
+    "objeto": 1
+   },
+   "execucao": {
+    "padrao": 24,
+    "completa": 11
+   },
+   "alcance": {
+    "curto": 15,
+    "pessoal": 6,
+    "medio": 6,
+    "longo": 3,
+    "toque": 3,
+    "ilimitado": 1,
+    "outro": 1
+   },
+   "duracao": {
+    "sustentada": 10,
+    "cena": 8,
+    "instantanea": 8,
+    "outro": 4,
+    "1dia": 4,
+    "permanente": 1
+   },
+   "resistencia_teste": {
+    "reflexos": 6,
+    "fortitude": 4,
+    "especial": 2
+   },
+   "resistencia_modo": {
+    "nenhuma": 23,
+    "parcial": 4,
+    "especial": 3,
+    "reduz-metade": 3,
+    "anula": 2
+   },
+   "aprimoramentos": {
+    "n": 103,
+    "deltas": {
+     "efeito-novo": 52,
+     "dano+": 10,
+     "substitui": 8,
+     "area->": 8,
+     "alvos+": 5,
+     "bonus+": 5,
+     "duracao->": 5,
+     "alcance->": 5,
+     "alvo->": 5,
+     "tipo-dano->": 3,
+     "resistencia->": 2,
+     "execucao->": 2
+    }
+   }
+  },
+  "Encantamento": {
+   "n": 29,
+   "por_circulo": {
+    "1": 12,
+    "2": 6,
+    "3": 5,
+    "4": 3,
+    "5": 3
+   },
+   "grupos": {
+    "Divina": 13,
+    "Arcana": 11,
+    "Universal": 5
+   },
+   "dano": {
+    "n": 1,
+    "tipos": {},
+    "com_area": 0,
+    "com_condicao": 1
+   },
+   "cura": {
+    "n": 0
+   },
+   "modificador": {
+    "n": 0
+   },
+   "condicoes": {
+    "n_magias": 11,
+    "quais": {
+     "inconsciente": 2,
+     "atordoado": 1,
+     "pasmo": 1,
+     "fraco": 1,
+     "frustrado": 1,
+     "enfeiticado": 1,
+     "fascinado": 1,
+     "lento": 1,
+     "paralisado": 1,
+     "abalado": 1,
+     "sangrando": 1,
+     "caido": 1,
+     "exausto": 1,
+     "fatigado": 1,
+     "confuso": 1
+    },
+    "categorias": {
+     "mental": 6,
+     "outra": 4,
+     "movimento": 2,
+     "cansaço": 2,
+     "medo": 1,
+     "metabolismo": 1
+    }
+   },
+   "alvo": {
+    "alvos": 23,
+    "pessoal": 3,
+    "outro": 2,
+    "area": 1
+   },
+   "formas_area": {
+    "cone": 1
+   },
+   "restritos": {
+    "humanoide": 4,
+    "humanoide ou animal": 3,
+    "animal": 2,
+    "animal ou planta": 1
+   },
+   "execucao": {
+    "padrao": 28,
+    "completa": 1
+   },
+   "alcance": {
+    "curto": 15,
+    "toque": 6,
+    "pessoal": 5,
+    "medio": 2,
+    "longo": 1
+   },
+   "duracao": {
+    "cena": 15,
+    "sustentada": 4,
+    "instantanea": 3,
+    "1dia": 3,
+    "outro": 2,
+    "1rodada": 1,
+    "permanente": 1
+   },
+   "resistencia_teste": {
+    "vontade": 17,
+    "fortitude": 1
+   },
+   "resistencia_modo": {
+    "nenhuma": 11,
+    "anula": 10,
+    "parcial": 8
+   },
+   "aprimoramentos": {
+    "n": 71,
+    "deltas": {
+     "efeito-novo": 22,
+     "alvo->": 18,
+     "alcance->": 8,
+     "alvos+": 8,
+     "duracao->": 7,
+     "substitui": 6,
+     "bonus+": 6,
+     "dano+": 1,
+     "execucao->": 1
+    }
+   }
+  },
+  "Evocação": {
+   "n": 56,
+   "por_circulo": {
+    "1": 21,
+    "2": 11,
+    "3": 10,
+    "4": 8,
+    "5": 6
+   },
+   "grupos": {
+    "Arcana": 26,
+    "Divina": 25,
+    "Universal": 5
+   },
+   "dano": {
+    "n": 38,
+    "tipos": {
+     "fogo": 9,
+     "frio": 8,
+     "acido": 4,
+     "luz": 4,
+     "impacto": 3,
+     "corte": 2,
+     "essencia": 2,
+     "eletricidade": 2
+    },
+    "com_area": 18,
+    "com_condicao": 16
+   },
+   "cura": {
+    "n": 4
+   },
+   "modificador": {
+    "n": 0
+   },
+   "condicoes": {
+    "n_magias": 20,
+    "quais": {
+     "em chamas": 6,
+     "atordoado": 4,
+     "lento": 4,
+     "vulneravel": 3,
+     "sangrando": 3,
+     "paralisado": 3,
+     "desprevenido": 2,
+     "cego": 2,
+     "ofuscado": 2,
+     "pasmo": 2,
+     "imovel": 1,
+     "caido": 1,
+     "abalado": 1,
+     "apavorado": 1,
+     "confuso": 1,
+     "debilitado": 1,
+     "enjoado": 1,
+     "esmorecido": 1,
+     "exausto": 1,
+     "fascinado": 1,
+     "fatigado": 1,
+     "fraco": 1,
+     "frustrado": 1,
+     "surdo": 1,
+     "alquebrado": 1,
+     "envenenado": 1,
+     "agarrado": 1,
+     "enredado": 1
+    },
+    "categorias": {
+     "outra": 14,
+     "mental": 11,
+     "movimento": 10,
+     "sentidos": 5,
+     "metabolismo": 4,
+     "medo": 2,
+     "cansaço": 2,
+     "veneno": 1
+    }
+   },
+   "alvo": {
+    "area": 26,
+    "alvos": 20,
+    "pessoal": 5,
+    "outro": 5
+   },
+   "formas_area": {
+    "esfera": 9,
+    "cone": 6,
+    "linha": 5,
+    "cilindro": 4,
+    "quadrado": 1,
+    "cubo": 1
+   },
+   "restritos": {
+    "humanoide": 3,
+    "objeto": 1
+   },
+   "execucao": {
+    "padrao": 48,
+    "movimento": 3,
+    "completa": 3,
+    "longa": 2
+   },
+   "alcance": {
+    "pessoal": 20,
+    "medio": 13,
+    "curto": 11,
+    "longo": 6,
+    "toque": 6
+   },
+   "duracao": {
+    "instantanea": 39,
+    "sustentada": 6,
+    "cena": 5,
+    "outro": 2,
+    "1dia": 2,
+    "1rodada": 2
+   },
+   "resistencia_teste": {
+    "reflexos": 18,
+    "fortitude": 14,
+    "vontade": 4,
+    "especial": 3
+   },
+   "resistencia_modo": {
+    "parcial": 21,
+    "nenhuma": 17,
+    "reduz-metade": 13,
+    "especial": 4,
+    "anula": 1
+   },
+   "aprimoramentos": {
+    "n": 169,
+    "deltas": {
+     "efeito-novo": 51,
+     "dano+": 33,
+     "resistencia->": 24,
+     "alvo->": 18,
+     "substitui": 15,
+     "alcance->": 14,
+     "area->": 7,
+     "duracao->": 7,
+     "alvos+": 5,
+     "execucao->": 3,
+     "cura+": 3,
+     "tipo-dano->": 2,
+     "bonus+": 2
+    }
+   }
+  },
+  "Ilusão": {
+   "n": 18,
+   "por_circulo": {
+    "1": 6,
+    "2": 5,
+    "3": 3,
+    "4": 2,
+    "5": 2
+   },
+   "grupos": {
+    "Arcana": 15,
+    "Divina": 2,
+    "Universal": 1
+   },
+   "dano": {
+    "n": 1,
+    "tipos": {},
+    "com_area": 1,
+    "com_condicao": 0
+   },
+   "cura": {
+    "n": 0
+   },
+   "modificador": {
+    "n": 0
+   },
+   "condicoes": {
+    "n_magias": 4,
+    "quais": {
+     "desprevenido": 1,
+     "inconsciente": 1,
+     "atordoado": 1,
+     "ofuscado": 1,
+     "vulneravel": 1
+    },
+    "categorias": {
+     "outra": 3,
+     "mental": 1,
+     "sentidos": 1
+    }
+   },
+   "alvo": {
+    "pessoal": 6,
+    "alvos": 5,
+    "outro": 4,
+    "area": 3
+   },
+   "formas_area": {
+    "esfera": 2,
+    "cubo": 1
+   },
+   "restritos": {
+    "humanoide": 1
+   },
+   "execucao": {
+    "padrao": 16,
+    "livre": 1,
+    "completa": 1
+   },
+   "alcance": {
+    "pessoal": 7,
+    "medio": 5,
+    "curto": 4,
+    "toque": 1,
+    "longo": 1
+   },
+   "duracao": {
+    "cena": 9,
+    "sustentada": 4,
+    "instantanea": 3,
+    "1rodada": 1,
+    "1dia": 1
+   },
+   "resistencia_teste": {
+    "vontade": 8,
+    "fortitude": 1
+   },
+   "resistencia_modo": {
+    "nenhuma": 9,
+    "desacredita": 3,
+    "anula": 3,
+    "parcial": 3
+   },
+   "aprimoramentos": {
+    "n": 44,
+    "deltas": {
+     "efeito-novo": 17,
+     "alcance->": 10,
+     "duracao->": 7,
+     "substitui": 6,
+     "alvos+": 4,
+     "alvo->": 2,
+     "area->": 2,
+     "execucao->": 2,
+     "dano+": 1
+    }
+   }
+  },
+  "Necromancia": {
+   "n": 27,
+   "por_circulo": {
+    "1": 9,
+    "3": 6,
+    "2": 6,
+    "4": 3,
+    "5": 3
+   },
+   "grupos": {
+    "Divina": 11,
+    "Arcana": 9,
+    "Universal": 7
+   },
+   "dano": {
+    "n": 11,
+    "tipos": {
+     "trevas": 8,
+     "fogo": 1,
+     "acido": 1,
+     "corte": 1
+    },
+    "com_area": 3,
+    "com_condicao": 3
+   },
+   "cura": {
+    "n": 1
+   },
+   "modificador": {
+    "n": 0
+   },
+   "condicoes": {
+    "n_magias": 8,
+    "quais": {
+     "abalado": 3,
+     "enjoado": 2,
+     "inconsciente": 2,
+     "caido": 2,
+     "apavorado": 1,
+     "sangrando": 1,
+     "exausto": 1,
+     "fatigado": 1,
+     "vulneravel": 1,
+     "cego": 1,
+     "debilitado": 1,
+     "esmorecido": 1,
+     "lento": 1,
+     "surdo": 1
+    },
+    "categorias": {
+     "outra": 6,
+     "medo": 4,
+     "metabolismo": 3,
+     "cansaço": 2,
+     "sentidos": 2,
+     "mental": 1,
+     "movimento": 1
+    }
+   },
+   "alvo": {
+    "alvos": 18,
+    "area": 6,
+    "pessoal": 2,
+    "outro": 1
+   },
+   "formas_area": {
+    "esfera": 4,
+    "nuvem": 2
+   },
+   "restritos": {
+    "humanoide ou animal": 1,
+    "objeto": 1,
+    "humanoide": 1
+   },
+   "execucao": {
+    "padrao": 23,
+    "completa": 3,
+    "movimento": 1
+   },
+   "alcance": {
+    "curto": 10,
+    "medio": 5,
+    "toque": 5,
+    "pessoal": 4,
+    "longo": 3
+   },
+   "duracao": {
+    "cena": 12,
+    "instantanea": 7,
+    "sustentada": 3,
+    "1dia": 2,
+    "outro": 1,
+    "1rodada": 1,
+    "permanente": 1
+   },
+   "resistencia_teste": {
+    "fortitude": 10,
+    "vontade": 5,
+    "especial": 1
+   },
+   "resistencia_modo": {
+    "nenhuma": 11,
+    "anula": 6,
+    "parcial": 5,
+    "especial": 3,
+    "reduz-metade": 2
+   },
+   "aprimoramentos": {
+    "n": 67,
+    "deltas": {
+     "efeito-novo": 33,
+     "substitui": 10,
+     "alcance->": 7,
+     "dano+": 6,
+     "alvo->": 5,
+     "alvos+": 3,
+     "bonus+": 3,
+     "area->": 2,
+     "resistencia->": 1,
+     "tipo-dano->": 1,
+     "execucao->": 1,
+     "duracao->": 1
+    }
+   }
+  },
+  "Transmutação": {
+   "n": 43,
+   "por_circulo": {
+    "1": 15,
+    "2": 10,
+    "4": 9,
+    "3": 7,
+    "5": 2
+   },
+   "grupos": {
+    "Arcana": 26,
+    "Divina": 14,
+    "Universal": 3
+   },
+   "dano": {
+    "n": 10,
+    "tipos": {
+     "impacto": 4,
+     "essencia": 2,
+     "fogo": 1,
+     "acido": 1,
+     "eletricidade": 1
+    },
+    "com_area": 2,
+    "com_condicao": 1
+   },
+   "cura": {
+    "n": 0
+   },
+   "modificador": {
+    "n": 0
+   },
+   "condicoes": {
+    "n_magias": 4,
+    "quais": {
+     "lento": 2,
+     "envenenado": 1,
+     "vulneravel": 1
+    },
+    "categorias": {
+     "movimento": 2,
+     "veneno": 1,
+     "outra": 1
+    }
+   },
+   "alvo": {
+    "alvos": 18,
+    "pessoal": 15,
+    "outro": 7,
+    "area": 3
+   },
+   "formas_area": {
+    "esfera": 1,
+    "quadrado": 1,
+    "cubo": 1
+   },
+   "restritos": {
+    "arma": 6,
+    "objeto": 3,
+    "construto": 1
+   },
+   "execucao": {
+    "padrao": 35,
+    "completa": 6,
+    "movimento": 1,
+    "reacao": 1
+   },
+   "alcance": {
+    "pessoal": 16,
+    "curto": 8,
+    "toque": 8,
+    "medio": 7,
+    "longo": 2,
+    "outro": 2
+   },
+   "duracao": {
+    "cena": 26,
+    "sustentada": 9,
+    "outro": 4,
+    "instantanea": 2,
+    "1dia": 1,
+    "permanente": 1
+   },
+   "resistencia_teste": {
+    "especial": 4,
+    "reflexos": 3,
+    "fortitude": 1
+   },
+   "resistencia_modo": {
+    "nenhuma": 35,
+    "especial": 4,
+    "reduz-metade": 2,
+    "anula": 1,
+    "parcial": 1
+   },
+   "aprimoramentos": {
+    "n": 116,
+    "deltas": {
+     "efeito-novo": 59,
+     "alcance->": 24,
+     "substitui": 18,
+     "bonus+": 8,
+     "alvo->": 8,
+     "duracao->": 5,
+     "alvos+": 3,
+     "execucao->": 3,
+     "dano+": 2,
+     "area->": 1
+    }
+   }
+  }
+ }
+}
