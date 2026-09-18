@@ -23,17 +23,37 @@
   <p class="sub">a mesa inteira num lugar só · só pra quem joga</p>
 </header>
 <main class="login-main">
-  <form class="painel login-form" id="f">
-    <label>quem é você<input name="nome" autocomplete="username" required maxlength="40" autofocus></label>
-    <label>senha<input name="senha" type="password" autocomplete="current-password" required></label>
-    <div id="msg" class="explica" role="status"></div>
-    <button class="bt destaque" type="submit">entrar</button>
-    <p class="explica">Sem conta ou esqueceu a senha? Fale com o mestre.</p>
+  <form class="ficha" id="f" autocomplete="on">
+    <div class="ficha-carimbo" aria-hidden="true">Hub T20</div>
+    <div class="ficha-canto tl"></div><div class="ficha-canto tr"></div><div class="ficha-canto bl"></div><div class="ficha-canto br"></div>
+    <p class="ficha-sobre">Guilda de Mineradores · Registro de Aventureiros</p>
+    <h2 class="ficha-titulo">Ficha de Entrada</h2>
+    <div class="ficha-filete"><span></span>✠<span></span></div>
+
+    <label class="ficha-campo">
+      <span>Nome</span>
+      <input name="nome" autocomplete="username" required maxlength="40" autofocus placeholder="quem é você">
+    </label>
+    <label class="ficha-campo">
+      <span>Palavra de passe</span>
+      <input name="senha" type="password" autocomplete="current-password" required placeholder="••••••">
+    </label>
+
+    <div class="ficha-caixas" aria-hidden="true">
+      <div><small>Mesa</small><b>Tormenta 20</b></div>
+      <div><small>Sede</small><b>Arton</b></div>
+      <div><small>Registro</small><b id="ano">—</b></div>
+    </div>
+
+    <div id="msg" class="ficha-msg" role="status"></div>
+    <button class="ficha-bt" type="submit">⛏ Entrar na guilda</button>
+    <p class="ficha-nota">Sem conta ou esqueceu a palavra de passe? Fale com o mestre.</p>
   </form>
 </main>
 <footer>Ferramenta de fã. Tormenta 20 pertence à Jambo Editora.</footer>
 <script>
   const f = document.getElementById("f"), msg = document.getElementById("msg");
+  document.getElementById("ano").textContent = "nº " + String(new Date().getFullYear()).slice(-2) + String(new Date().getMonth() + 1).padStart(2, "0");
   const voltar = window.VOLTAR || new URLSearchParams(location.search).get("voltar") || "/";
   f.onsubmit = async (e) => {
     e.preventDefault();

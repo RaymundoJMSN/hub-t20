@@ -31,30 +31,51 @@ function ativa() {
   return ABAS.find(([h]) => h !== "/" && p.startsWith(h))?.[0] || (p === "/" ? "/" : "");
 }
 
-// diálogo da conta: trocar senha + sair (+ painel do mestre); no celular é o único acesso a isso
+// diálogo da conta: nome de exibição + personagem (quem vota nas missões), trocar senha, sair (+ painel do mestre)
+const postJson = (rota, corpo) => fetch(rota, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(corpo) }).then((r) => r.json());
 function dialogoConta(u) {
   const dlg = el("dialog", { className: "hub-dialog" });
+  const nome = el("input", { value: u.nome, placeholder: "seu nome", maxLength: 40, autocomplete: "username" });
+  const pers = el("input", { value: u.personagem || "", placeholder: "personagem (aparece nas missões)", maxLength: 60 });
+  const msg1 = el("div", { className: "hub-msg" });
   const atual = el("input", { type: "password", placeholder: "senha atual", required: true, autocomplete: "current-password" });
   const nova = el("input", { type: "password", placeholder: "senha nova (mín. 4)", required: true, minLength: 4, autocomplete: "new-password" });
-  const msg = el("div", { className: "hub-msg" });
-  const form = el("form", { method: "dialog" },
+  const msg2 = el("div", { className: "hub-msg" });
+  const conta = el("form", { method: "dialog" },
     el("h3", { textContent: "Sua conta" }),
     el("div", { className: "hub-quem" }, el("b", { textContent: u.nome }), u.personagem ? ` · ${u.personagem}` : "", u.mestre ? " · mestre" : ""),
-    atual, nova, msg,
+    el("label", { className: "hub-rotulo-campo", textContent: "nome" }), nome,
+    el("label", { className: "hub-rotulo-campo", textContent: "personagem" }), pers, msg1,
+    el("div", { className: "hub-acoes" }, el("button", { className: "hub-bt destaque", textContent: "salvar nome e personagem" })));
+  conta.onsubmit = async (e) => {
+    e.preventDefault();
+    const r = await postJson("/api/conta", { nome: nome.value, personagem: pers.value });
+    if (r.ok) { msg1.textContent = "salvo ✓"; setTimeout(() => location.reload(), 500); } else msg1.textContent = r.erro || "erro";
+  };
+  const senha = el("form", { method: "dialog" },
+    el("label", { className: "hub-rotulo-campo", textContent: "trocar senha" }), atual, nova, msg2,
     el("div", { className: "hub-acoes" },
       u.mestre ? el("a", { className: "hub-bt", href: "/mestre", textContent: "👑 painel do mestre" }) : null,
       el("button", { className: "hub-bt", type: "button", textContent: "sair", onclick: sair }),
       el("button", { className: "hub-bt", type: "button", textContent: "fechar", onclick: () => dlg.close() }),
       el("button", { className: "hub-bt destaque", textContent: "trocar senha" })));
-  form.onsubmit = async (e) => {
+  senha.onsubmit = async (e) => {
     e.preventDefault();
-    const r = await (await fetch("/api/senha", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ atual: atual.value, nova: nova.value }) })).json();
-    if (r.ok) { msg.textContent = "senha trocada ✓"; setTimeout(() => dlg.close(), 700); } else msg.textContent = r.erro || "erro";
+    const r = await postJson("/api/senha", { atual: atual.value, nova: nova.value });
+    if (r.ok) { msg2.textContent = "senha trocada ✓"; setTimeout(() => dlg.close(), 700); } else msg2.textContent = r.erro || "erro";
   };
-  dlg.append(form);
+  dlg.append(conta, senha);
   document.body.append(dlg);
   dlg.showModal();
   dlg.addEventListener("close", () => dlg.remove());
+}
+
+// "turbo": as páginas das abas são pré-renderizadas ao passar o mouse / tocar (Speculation Rules, Chrome/Edge/Android),
+// então o clique troca de tela na hora; nos outros navegadores o sw.js já entrega css/js/dados do cache.
+if (HTMLScriptElement.supports?.("speculationrules")) {
+  const regras = el("script", { type: "speculationrules" });
+  regras.textContent = JSON.stringify({ prerender: [{ source: "document", where: { href_matches: ["/", "/criar", "/bestiario", "/itens", "/regras", "/compendio", "/missoes", "/agenda", "/links", "/mestre"] }, eagerness: "moderate" }] });
+  document.head.append(regras);
 }
 
 eu.then((u) => {

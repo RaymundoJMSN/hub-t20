@@ -53,3 +53,10 @@
   .hub-eu { display: none; }
   #mesa .mesa-barra { bottom: calc(80px + env(safe-area-inset-bottom)); }
 }
+
+/* rótulos dos campos do diálogo da conta */
+.hub-dialog .hub-rotulo-campo { font-family: "Cinzel", serif; font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; color: var(--hn-texto-2); margin-top: 6px; }
+.hub-dialog form + form { border-top: 1px solid var(--hn-borda); margin-top: 12px; padding-top: 10px; }
+
+/* troca de página sem piscar (view transition entre documentos; Chrome/Edge — os outros ignoram) */
+@view-transition { navigation: auto; }

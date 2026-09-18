@@ -25,7 +25,7 @@
 <main class="grimorio-main">
   <section class="painel">
     <h2 class="g-grupo">Contas</h2>
-    <p class="explica">Personagem = nome que aparece nos votos das missões. Pra trocar a senha de alguém, digite a nova senha e salve; em branco mantém.</p>
+    <p class="explica">Nome = como aparece no hub (maiúsculas contam); personagem = quem vota nas missões. Senha em branco mantém a atual. Renomear arrasta magias, agenda e votos junto.</p>
     <div id="contas" class="contas"></div>
     <h3 class="g-grupo">Nova conta</h3>
     <form id="nova" class="conta-linha">
@@ -46,11 +46,16 @@ const api = (rota, corpo) => fetch(rota, { method: "POST", headers: { "content-t
 async function carregar() {
   const { usuarios = [] } = await (await fetch("/api/usuarios")).json();
   box.replaceChildren(...usuarios.map((u) => {
+    const nome = el("input", { value: u.nome, placeholder: "nome", maxLength: 40, title: "nome de exibição (renomear arrasta magias, agenda e votos)" });
     const pers = el("input", { value: u.personagem || "", placeholder: "personagem" });
     const senha = el("input", { type: "password", placeholder: "nova senha", autocomplete: "new-password" });
     const papel = el("select", {}, ...["jogador", "mestre"].map((p) => el("option", { value: p, textContent: p, selected: p === u.papel })));
-    return el("div", { className: "conta-linha" }, el("b", { textContent: u.nome }), pers, senha, papel,
-      el("button", { className: "bt mini", textContent: "salvar", onclick: async () => { const r = await api("/api/usuarios", { nome: u.nome, personagem: pers.value, senha: senha.value, papel: papel.value }); msg.textContent = r.ok ? `${u.nome} salvo ✓` : r.erro; senha.value = ""; } }),
+    return el("div", { className: "conta-linha" }, nome, pers, senha, papel,
+      el("button", { className: "bt mini", textContent: "salvar", onclick: async () => {
+        const r = await api("/api/usuarios", { nome: u.nome, novoNome: nome.value, personagem: pers.value, senha: senha.value, papel: papel.value });
+        msg.textContent = r.ok ? `${r.usuario.nome} salvo ✓` : r.erro; senha.value = "";
+        if (r.ok) carregar();
+      } }),
       el("button", { className: "bt mini", textContent: "✕", title: "apagar conta", onclick: async () => { if (!confirm(`Apagar a conta de ${u.nome}?`)) return; const r = await api("/api/usuarios/apagar", { nome: u.nome }); msg.textContent = r.ok ? "apagada" : r.erro; carregar(); } }));
   }));
 }

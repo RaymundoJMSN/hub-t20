@@ -98,6 +98,32 @@ function definirUsuario({ nome, senha, papel, personagem }) {
   gravarJson(ARQ_USU, usuarios);
   return u;
 }
+// muda o nome de exibição (e a chave) e/ou o personagem de uma conta, arrastando tudo que aponta pra ela:
+// magias (estado.usuarios), autor das publicadas, dias da agenda e votos das missões (votante = personagem || nome).
+// Devolve { chave } nova ou uma string de erro. Maiúsculas: a chave é minúscula, o `nome` guarda como foi escrito.
+function renomearConta(chave, { novoNome, personagem }) {
+  const u = usuarios[chave];
+  if (!u) return "conta não existe";
+  const votanteAntigo = u.personagem || u.nome;
+  if (novoNome != null && String(novoNome).trim() && String(novoNome).trim() !== u.nome) {
+    if (!nomeOk(novoNome)) return "nome inválido";
+    const nova = normNome(novoNome), antigoNome = u.nome;
+    if (nova !== chave && usuarios[nova]) return "já existe conta com esse nome";
+    u.nome = String(novoNome).trim();
+    if (nova !== chave) {
+      delete usuarios[chave]; usuarios[nova] = u;
+      if (estado.usuarios[chave]) { estado.usuarios[nova] = estado.usuarios[chave]; delete estado.usuarios[chave]; }
+      chave = nova;
+    }
+    for (const m of Object.values(estado.publicadas)) if (mesmoDono(m.autor, antigoNome)) m.autor = u.nome;
+    if (antigoNome !== u.nome && agenda.users[antigoNome]) { agenda.users[u.nome] = agenda.users[antigoNome]; delete agenda.users[antigoNome]; }
+  }
+  if (personagem != null) u.personagem = String(personagem).trim().slice(0, 60);
+  const votanteNovo = u.personagem || u.nome;
+  if (votanteNovo !== votanteAntigo) for (const v of Object.values(missoes.votos)) if (v[votanteAntigo]) { v[votanteNovo] = true; delete v[votanteAntigo]; }
+  gravarJson(ARQ_USU, usuarios); salvar(); gravarJson(ARQ_AGE, agenda); gravarJson(ARQ_MIS, missoes);
+  return { chave };
+}
 function conferirSenha(u, senha) {
   if (!u?.hash) return false;
   const a = Buffer.from(hashSenha(senha, u.sal), "hex"), b = Buffer.from(u.hash, "hex");
@@ -260,7 +286,16 @@ async function tratar(req, res) {
     definirUsuario({ nome: eu.nome, senha: String(b.nova) });
     return json(res, 200, { ok: true });
   }
-  // ---- painel do mestre: contas
+  // ---- minha conta: nome de exibição e personagem (a senha é /api/senha)
+  if (p === "/api/conta" && req.method === "POST") {
+    let b;
+    try { b = await corpo(req); } catch { return json(res, 400, { erro: "corpo inválido" }); }
+    const r = renomearConta(eu.chave, { novoNome: b.nome, personagem: b.personagem });
+    if (typeof r === "string") return json(res, 400, { erro: r });
+    // a chave mudou → cookie novo (o antigo aponta pra uma conta que não existe mais)
+    return json(res, 200, { ok: true, eu: publico(usuarios[r.chave]) }, r.chave !== eu.chave ? { "set-cookie": cookieSessao(req, tokenDe(r.chave), 365 * 86400) } : {});
+  }
+  // ---- painel do mestre: contas (criar, senha, papel, personagem, renomear, apagar)
   if (p.startsWith("/api/usuarios")) {
     if (eu.papel !== "mestre") return json(res, 403, { erro: "só o mestre" });
     if (req.method === "GET") return json(res, 200, { usuarios: Object.values(usuarios).map(publico) });
@@ -273,9 +308,20 @@ async function tratar(req, res) {
       return json(res, 200, { ok: true });
     }
     if (!nomeOk(b.nome)) return json(res, 400, { erro: "nome inválido" });
-    if (!usuarios[normNome(b.nome)] && String(b.senha || "").length < 4) return json(res, 400, { erro: "conta nova precisa de senha (mínimo 4)" });
-    if (normNome(b.nome) === eu.chave && b.papel && b.papel !== "mestre") return json(res, 400, { erro: "você não pode se rebaixar" });
-    return json(res, 200, { ok: true, usuario: publico(definirUsuario({ nome: b.nome, senha: b.senha || "", papel: b.papel, personagem: b.personagem })) });
+    let chave = normNome(b.nome);
+    const eraEu = chave === eu.chave;
+    if (!usuarios[chave] && String(b.senha || "").length < 4) return json(res, 400, { erro: "conta nova precisa de senha (mínimo 4)" });
+    if (chave === eu.chave && b.papel && b.papel !== "mestre") return json(res, 400, { erro: "você não pode se rebaixar" });
+    if (!usuarios[chave]) definirUsuario({ nome: b.nome, senha: b.senha, papel: b.papel, personagem: b.personagem });
+    else {
+      const r = renomearConta(chave, { novoNome: b.novoNome, personagem: b.personagem });
+      if (typeof r === "string") return json(res, 400, { erro: r });
+      chave = r.chave;
+      definirUsuario({ nome: usuarios[chave].nome, senha: b.senha || "", papel: b.papel });
+    }
+    // o mestre renomeou a própria conta → a chave do cookie dele mudou, manda um novo
+    const extra = eraEu && chave !== eu.chave ? { "set-cookie": cookieSessao(req, tokenDe(chave), 365 * 86400) } : {};
+    return json(res, 200, { ok: true, usuario: publico(usuarios[chave]) }, extra);
   }
 
   // ---- grimório / criador (dono = quem está logado; o nome no caminho/corpo é ignorado)
@@ -565,6 +611,14 @@ function sugerirAprimoramentos(f, aprs) {
 }
 
 // ---------------------------------------------------------------- CLI: --usuario Nome senha [papel] [personagem]
+const iRen = process.argv.indexOf("--renomear"); // node server.mjs --renomear "Nome atual" "Nome novo" ["Personagem"]
+if (iRen > 0) {
+  const [atual, novo, personagem] = process.argv.slice(iRen + 1);
+  const r = renomearConta(normNome(atual), { novoNome: novo, personagem });
+  if (typeof r === "string") { console.error(r); process.exit(1); }
+  console.log(`conta "${atual}" agora é "${usuarios[r.chave].nome}"${usuarios[r.chave].personagem ? " (" + usuarios[r.chave].personagem + ")" : ""}`);
+  process.exit(0);
+}
 const iUsu = process.argv.indexOf("--usuario");
 if (iUsu > 0) {
   const [nome, senha, papel, personagem] = process.argv.slice(iUsu + 1);
@@ -674,11 +728,30 @@ if (CHECK) {
       if ((await fetch(`${base}/api/senha`, { method: "POST", headers: HA, body: JSON.stringify({ atual: "abcd", nova: "nova1" }) })).status !== 200) return falha("trocar senha");
       if ((await fetch(`${base}/api/login`, { method: "POST", body: JSON.stringify({ nome: "amanda", senha: "abcd" }) })).status !== 401) return falha("senha antiga ainda vale");
       if ((await fetch(`${base}/api/login`, { method: "POST", body: JSON.stringify({ nome: "amanda", senha: "nova1" }) })).status !== 200) return falha("senha nova não vale");
+      // renomear: personagem muda o votante; nome muda a chave, a agenda, o autor das publicadas e o cookie
+      const HA2 = { cookie: (await fetch(`${base}/api/login`, { method: "POST", body: JSON.stringify({ nome: "amanda", senha: "nova1" }) })).headers.get("set-cookie").split(";")[0], "content-type": "application/json" };
+      await fetch(`${base}/api/missoes/votar`, { method: "POST", headers: HA2, body: JSON.stringify({ id: "x-1", ligar: true }) });
+      const ren = await fetch(`${base}/api/conta`, { method: "POST", headers: HA2, body: JSON.stringify({ nome: "Amanda Silva", personagem: "Lydia" }) });
+      if (ren.status !== 200) return falha("renomear: " + (await ren.json()).erro);
+      if (!usuarios["amanda silva"] || usuarios.amanda) return falha("chave não mudou");
+      if (!missoes.votos["x-1"]?.Lydia || missoes.votos["x-1"]["Lydia Alnari"]) return falha("voto não seguiu o personagem: " + JSON.stringify(missoes.votos));
+      if (!agenda.users["Amanda Silva"] || agenda.users.Amanda) return falha("agenda não seguiu o nome");
+      if ((await fetch(`${base}/api/eu`, { headers: { cookie: HA2.cookie } })).status !== 401) return falha("cookie antigo devia morrer");
+      const cookieNovo = ren.headers.get("set-cookie").split(";")[0];
+      if ((await (await fetch(`${base}/api/eu`, { headers: { cookie: cookieNovo } })).json()).nome !== "Amanda Silva") return falha("cookie novo não veio");
+      if ((await fetch(`${base}/api/conta`, { method: "POST", headers: { cookie: cookieNovo, "content-type": "application/json" }, body: JSON.stringify({ nome: "Davi" }) })).status !== 400) return falha("não podia tomar o nome do Davi");
+      // mestre renomeia a si mesmo mantendo as publicadas e o papel
+      await fetch(`${base}/api/publicar`, { method: "POST", headers: HJ, body: JSON.stringify({ magia }) });
+      const renRay = await fetch(`${base}/api/usuarios`, { method: "POST", headers: HJ, body: JSON.stringify({ nome: "Ray", novoNome: "RayNathus", papel: "mestre" }) });
+      if (renRay.status !== 200 || !usuarios.raynathus || usuarios.raynathus.papel !== "mestre") return falha("mestre renomeado errado");
+      if (!Object.values(estado.publicadas).every((m) => m.autor === "RayNathus")) return falha("autor das publicadas não seguiu");
+      const HR = { cookie: renRay.headers.get("set-cookie").split(";")[0], "content-type": "application/json" };
+      if ((await (await fetch(`${base}/api/eu`, { headers: HR })).json()).nome !== "RayNathus") return falha("cookie do mestre renomeado");
       // links: padrão vem, mestre troca, jogador não
-      const lk = await (await fetch(`${base}/api/links`, { headers: H })).json();
+      const lk = await (await fetch(`${base}/api/links`, { headers: HR })).json(); // H morreu com o rename do Ray
       if (!lk.grupos?.length) return falha("links padrão");
-      if ((await fetch(`${base}/api/links`, { method: "PUT", headers: HA, body: JSON.stringify({ grupos: [] }) })).status !== 403) return falha("jogadora não edita links");
-      if ((await fetch(`${base}/api/sair`, { method: "POST", headers: H })).headers.get("set-cookie") !== cookieSessao({ headers: { host: "127.0.0.1" } }, "x", 0)) return falha("sair devia apagar o cookie");
+      if ((await fetch(`${base}/api/links`, { method: "PUT", headers: { cookie: cookieNovo, "content-type": "application/json" }, body: JSON.stringify({ grupos: [] }) })).status !== 403) return falha("jogadora não edita links");
+      if ((await fetch(`${base}/api/sair`, { method: "POST", headers: HR })).headers.get("set-cookie") !== cookieSessao({ headers: { host: "127.0.0.1" } }, "x", 0)) return falha("sair devia apagar o cookie");
       console.log("server.mjs --check OK");
       server.close();
     } catch (e) { falha(e.stack || e.message); }
