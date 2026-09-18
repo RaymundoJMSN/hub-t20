@@ -40,8 +40,8 @@ function gravarJson(arq, obj) {
   renameSync(tmp, arq);
 }
 
-function carregar() {
-  const d = lerJson(ARQ, { usuarios: {}, publicadas: {} });
+function carregar() { return normalizarEstado(lerJson(ARQ, { usuarios: {}, publicadas: {} })); }
+function normalizarEstado(d) {
   // migração: "Amanda" e "amanda" eram contas separadas -> mesclar por nome normalizado
   const u = {};
   for (const [k, magias] of Object.entries(d.usuarios || {})) {
@@ -72,8 +72,9 @@ function nomeOk(n) {
   return typeof n === "string" && n.trim().length >= 1 && n.length <= MAX_NOME && !/[\\/<>"]/.test(n);
 }
 // identidade: uma conta só, independente de maiúsculas ("Amanda" = "amanda" = "AMANDA")
-const normNome = (n) => (n || "").trim().normalize("NFC").toLowerCase();
-const mesmoDono = (a, b) => normNome(a) === normNome(b);
+// (function, não const: carregar() roda no topo do módulo antes desta linha)
+function normNome(n) { return (n || "").trim().normalize("NFC").toLowerCase(); }
+function mesmoDono(a, b) { return normNome(a) === normNome(b); }
 
 // ---------------------------------------------------------------- contas e sessão
 // dados/usuarios.json = { chave: { nome, papel: "jogador"|"mestre", personagem, sal, hash } }
@@ -582,6 +583,8 @@ if (CHECK) {
     const base = `http://127.0.0.1:${server.address().port}`;
     const falha = (msg) => { console.error("FALHOU:", msg); server.close(); process.exitCode = 1; };
     try {
+      const mesclado = normalizarEstado({ usuarios: { Amanda: [{ id: "1" }], amanda: [{ id: "2" }, { id: "1" }] } });
+      if (Object.keys(mesclado.usuarios).length !== 1 || mesclado.usuarios.amanda.length !== 2) return falha("normalizarEstado não mesclou: " + JSON.stringify(mesclado));
       definirUsuario({ nome: "Ray", senha: "1234", papel: "mestre", personagem: "" });
       definirUsuario({ nome: "Amanda", senha: "abcd", papel: "jogador", personagem: "Lydia Alnari" });
       // coleção falsa injetada no cache (o self-test não lê dados/)
