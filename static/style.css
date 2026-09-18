@@ -376,7 +376,8 @@ footer a { color: var(--ouro); }
 .quadro-carta.q-min { resize: none; height: auto !important; min-height: 0; padding-bottom: 8px; }
 .quadro-carta.q-min .miolo, .quadro-carta.q-min .tipo-linha, .quadro-carta.q-min .to-rodape { display: none; }
 .quadro-carta.q-min h2 { font-size: 1.3rem; padding-right: 60px; text-align: left; }
-.quadro-carta > h2 { padding-right: 68px; }
+.quadro-carta > h2 { padding: 0 64px; text-align: center; } /* folga igual dos dois lados: o título continua centrado */
+.quadro-carta > .tipo-linha { text-align: center; padding: 0 40px; }
 .q-botoes { position: absolute; top: 8px; right: 8px; display: flex; gap: 5px; }
 .q-botoes .q-fechar { position: static; }
 .quadro-carta .to-rodape { flex: none; }

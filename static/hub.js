@@ -25,7 +25,8 @@ export function paginaDaColecao(col) { return Object.entries(PAGINAS_COL).find((
 export const irParaLogin = () => { location.href = "/login?voltar=" + encodeURIComponent(location.pathname + location.search); return new Promise(() => {}); };
 export const eu = fetch("/api/eu").then((r) => r.ok ? r.json() : irParaLogin()).catch(irParaLogin);
 export const sair = async () => { await fetch("/api/sair", { method: "POST" }); location.href = "/login"; };
-export const capitalizar = (s) => { s = String(s ?? ""); return s.charAt(0).toUpperCase() + s.slice(1); };
+// primeira LETRA maiúscula (pula emoji/símbolo na frente: "🧝 raças" → "🧝 Raças")
+export const capitalizar = (s) => String(s ?? "").replace(/\p{L}/u, (c) => c.toUpperCase());
 
 // ---------------------------------------------------------------- roteador ("turbo")
 // Cada página registra o que precisa desfazer ao sair (timers, listeners no document) com aoSair(fn).
@@ -42,7 +43,7 @@ async function buscarHtml(caminho) {
   htmlCache.set(caminho, { t: Date.now(), html });
   return html;
 }
-const persistente = (n) => n.hasAttribute?.("data-hub") || n.id === "mesa" || n.classList?.contains("mesa-barra") || n.tagName === "DIALOG";
+const persistente = (n) => n.hasAttribute?.("data-hub") || n.id === "mesa" || n.classList?.contains("mesa-barra") || n.classList?.contains("hub-dialog");
 // na primeira carga, os estilos que vieram no <head> são da página (o nav.css e as fontes são da casca)
 for (const n of document.head.querySelectorAll('link[rel="stylesheet"]:not([data-hub]), style, link[rel~="icon"], link[rel="apple-touch-icon"]'))
   if (!/fonts\.googleapis/.test(n.href || "")) n.setAttribute("data-pagina", "");
@@ -58,12 +59,22 @@ export async function visitar(url, { push = true } = {}) {
   if (doc.querySelector("form.ficha")) { location.href = u.href; return; } // caiu no login: sessão acabou
   for (const f of limpezas.splice(0)) { try { f(); } catch {} }
   document.title = doc.title;
-  // estilos e ícone da página nova no lugar dos da antiga (nav.css e fontes ficam)
-  for (const n of document.head.querySelectorAll("[data-pagina]")) n.remove();
+  // estilos da página nova ENTRAM e carregam antes de a antiga sair (senão a tela pisca sem CSS);
+  // folha que as duas páginas usam (style.css) fica onde está, sem recarregar
+  const antigos = [...document.head.querySelectorAll("[data-pagina]")];
+  const hrefDe = (n) => n.tagName === "LINK" ? new URL(n.getAttribute("href"), location.href).href : null;
+  const carregando = [];
   for (const n of doc.head.querySelectorAll('link[rel="stylesheet"], style, link[rel~="icon"], link[rel="apple-touch-icon"]')) {
     if (/fonts\.googleapis/.test(n.getAttribute("href") || "")) continue;
-    const c = document.adoptNode(n); c.setAttribute("data-pagina", ""); document.head.append(c);
+    const h = hrefDe(n);
+    const igual = h && antigos.find((a) => a.tagName === "LINK" && a.rel === n.rel && hrefDe(a) === h);
+    if (igual) { antigos.splice(antigos.indexOf(igual), 1); continue; } // já está na página
+    const c = document.adoptNode(n); c.setAttribute("data-pagina", "");
+    if (c.tagName === "LINK" && c.rel === "stylesheet") carregando.push(new Promise((ok) => { c.onload = c.onerror = ok; setTimeout(ok, 1500); }));
+    document.head.append(c);
   }
+  await Promise.all(carregando);
+  for (const n of antigos) n.remove();
   // corpo: sai tudo que não é da casca (barra, gaveta, mesa, diálogos); entra o corpo novo, scripts à parte
   document.body.className = doc.body.className;
   for (const n of [...document.body.childNodes]) if (!persistente(n)) n.remove();

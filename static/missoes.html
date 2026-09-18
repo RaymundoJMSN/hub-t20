@@ -66,7 +66,7 @@
     <div class="usuario-atual" id="usuarioAtual" hidden>
       <span class="usuario-rotulo">Aventureiro(a):</span>
       <strong class="usuario-nome" id="usuarioNome"></strong>
-      <button type="button" class="trocar-usuario" id="editarQuadro" hidden>editar quadro</button>
+      <button type="button" class="trocar-usuario" id="novoCartaz" hidden title="pregar um cartaz novo">✚ novo cartaz</button>
     </div>
   </header>
 
@@ -74,23 +74,28 @@
     <!-- Os cartazes de missão são injetados por missoes.js -->
   </main>
 
-  <!-- Editor do quadro (só o Mestre vê) -->
-  <section class="editor" id="editor" hidden>
-    <div class="editor-cartaz">
+  <!-- Popup do Mestre: criar/editar um cartaz (o mesmo pergaminho da tela de login) -->
+  <dialog class="editor-dialogo" id="editorDialogo">
+    <form class="editor-cartaz" id="editorForm" method="dialog">
       <div class="furo furo-esq"></div>
       <div class="furo furo-dir"></div>
       <p class="login-sobre">⛏ Livro de contratos ⛏</p>
-      <h2 class="login-titulo">Editar o quadro</h2>
-      <p class="login-sub">Um bloco por missão. Salvar regrava o quadro inteiro; os votos das missões mantidas ficam.</p>
-      <div id="editorBlocos"></div>
+      <h2 class="login-titulo" id="editorTitulo">Novo cartaz</h2>
+      <div class="editor-bloco">
+        <label><span>Título</span><input class="ed-titulo" required maxlength="120"></label>
+        <label><span>Solicitante</span><input class="ed-solicitante" maxlength="120"></label>
+        <label><span>Local</span><input class="ed-local" maxlength="120"></label>
+        <label><span>Descrição</span><textarea class="ed-descricao" maxlength="2000"></textarea></label>
+        <label><span>Recompensa</span><input class="ed-recompensa" maxlength="120"></label>
+        <label><span>Perigo</span><select class="ed-perigo"><option value="1">1 — Trivial</option><option value="2">2 — Moderado</option><option value="3">3 — Perigoso</option><option value="4">4 — Mortal</option><option value="5">5 — Lendário</option></select></label>
+      </div>
       <div class="editor-acoes">
-        <button type="button" class="btn-marcar" id="editorNova"><span class="btn-marcar-icone">✚</span><span class="btn-marcar-txt">Nova missão</span></button>
-        <button type="button" class="btn-concluir" id="editorSalvar"><span class="btn-concluir-txt">Salvar quadro</span></button>
+        <button type="submit" class="btn-concluir"><span class="btn-concluir-txt">Pregar no quadro</span></button>
         <button type="button" class="trocar-usuario" id="editorCancelar">cancelar</button>
         <span class="editor-msg" id="editorMsg"></span>
       </div>
-    </div>
-  </section>
+    </form>
+  </dialog>
 
   <footer class="rodape">
     <div class="filete" aria-hidden="true">

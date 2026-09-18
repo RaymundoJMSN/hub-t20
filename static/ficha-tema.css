@@ -1,0 +1,42 @@
+/* ficha-tema.css — o criador de ficha (site do t20-ficha-wizard) com a cara do hub: sangue, ouro e pergaminho.
+   Carregado DEPOIS do site.css/wizard.css deles (o servidor injeta no index.html), só sobrepõe cor, fonte e fundo. */
+html, body {
+  background:
+    radial-gradient(1200px 500px at 70% -10%, rgba(182, 41, 46, .16), transparent 60%),
+    radial-gradient(900px 400px at 0% 100%, rgba(201, 162, 39, .07), transparent 60%),
+    #120809 !important;
+  color: #e8dcc3 !important;
+  font-family: "Alegreya", Georgia, serif !important;
+  font-size: 16px !important;
+}
+.t20w-wizard, .t20w-config {
+  --t20w-accent: #c9a227; --t20w-accent-soft: rgba(201, 162, 39, .18); --t20w-line: #3d1d22;
+  --t20w-card: #1d0f12; --t20w-card-hover: #241317; --t20w-bad: #e2383e; --t20w-ok: #7ba05b;
+  font-family: "Alegreya", Georgia, serif; font-size: 16px;
+}
+#t20w-wizard .window-content, #t20w-config .window-content, .t20w-wizard, #t20w-site-app > * {
+  background: linear-gradient(180deg, #241317, #1d0f12) !important; color: #e8dcc3;
+}
+.t20w-site-topo { border-bottom: 1px solid #3d1d22; }
+.t20w-site-nome { display: none !important; } /* o nome vem da sessão do hub */
+.t20w-site-topo h1 { font-family: "Cinzel", serif; font-weight: 900; color: #e2383e; text-shadow: 0 0 22px rgba(182, 41, 46, .5), 0 2px 0 #000; letter-spacing: .04em; }
+.t20w-site-topo h1 small { color: #a8977c; font-family: "Alegreya", serif; font-weight: 400; }
+.t20w-hint { color: #a8977c; }
+.t20w-titulo, .t20w-header h2, .t20w-wizard h2, .t20w-wizard h3, .t20w-painel h2 { font-family: "Cinzel", serif; color: #f0dc82; letter-spacing: .03em; }
+.t20w-wizard button, .t20w-site-btn, .t20w-btn {
+  background: #1d0f12 !important; border: 1px solid #3d1d22 !important; color: #e8dcc3 !important; border-radius: 999px !important;
+  font-family: "Cinzel", serif !important; font-weight: 700; font-size: 12px !important; letter-spacing: .04em; padding: 6px 14px !important;
+}
+.t20w-wizard button:hover, .t20w-site-btn:hover, .t20w-btn:hover { border-color: #c9a227 !important; color: #f0dc82 !important; }
+.t20w-site-btn.principal, .t20w-wizard .t20w-btn-principal, .t20w-btn.principal {
+  background: #b6292e !important; border-color: #e2383e !important; color: #fff !important; box-shadow: 0 0 14px rgba(226, 56, 62, .35);
+}
+.t20w-wizard input:not([type="checkbox"]):not([type="radio"]), .t20w-wizard select, .t20w-wizard textarea, .t20w-site-nome input {
+  background: #150a0d !important; border: 1px solid #3d1d22 !important; color: #e8dcc3 !important; border-radius: 6px !important; font: inherit;
+}
+.t20w-wizard input:focus, .t20w-wizard select:focus, .t20w-wizard textarea:focus { outline: 2px solid #b6292e; outline-offset: 1px; }
+.t20w-wizard select option { background: #1d0f12; }
+.t20w-painel, .t20w-dialogo { background: linear-gradient(180deg, #241317, #1d0f12) !important; color: #e8dcc3; border: 1px solid #3d1d22 !important; border-radius: 12px; }
+.t20w-dialogo::backdrop { background: rgba(0, 0, 0, .6); }
+.t20w-wizard a, .t20w-painel a { color: #c9a227; }
+.t20w-wizard ::selection { background: rgba(182, 41, 46, .5); }

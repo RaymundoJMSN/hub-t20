@@ -223,7 +223,7 @@ function str() {
 }
 
 // ---------------------------------------------------------------- PERIGOS (arsenal/perigos)
-const imgHtml = (u) => (u && /^https?:\/\//.test(u) ? `<img class="a-img" src="${esc(u)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : "");
+const imgHtml = (u) => (u && /^(https?:\/\/|\/)/.test(u) ? `<img class="a-img" src="${esc(u)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : "");
 function perigos() {
   const out = [];
   for (const p of evalVar("perigos/perigos-diversos.js", "perigosDiversos"))
@@ -283,15 +283,35 @@ function arquivoInteiro(livro, rel) {
   const nome = limparTitulo(meta.title || basename(rel, ".md"));
   return ficha({ id: slug(`${livro}-${nome}`), nome, linha: livro, grupo: livro, f: { livro }, html: md(corpo) });
 }
+// ícones do sistema Tormenta20 (via despejo do compêndio do criador de ficha, dados/ficha-site): raça/classe → imagem
+function iconesDoCompendio(tipo) {
+  const mapa = new Map();
+  try {
+    const d = JSON.parse(readFileSync(join(RAIZ, "dados", "ficha-site", "data", "compendio.json"), "utf-8"));
+    for (const p of d.packs) for (const it of p.items) if (it.type === tipo && it.img && !/mystery-man/.test(it.img)) mapa.set(norm(it.name), "/ficha/" + it.img.replace(/^\//, ""));
+  } catch { /* sem site de ficha: sem ícones */ }
+  return mapa;
+}
+function porIcone(itens, tipo) {
+  const mapa = iconesDoCompendio(tipo);
+  let n = 0;
+  for (const it of itens) {
+    const chave = [norm(it.nome), norm(it.nome.split("/")[0]), norm(it.nome.split(" ")[0])].find((k) => mapa.has(k));
+    if (chave) { it.html = imgHtml(mapa.get(chave)) + it.html; n++; }
+  }
+  if (itens.length) console.log(`  ícones (${tipo}): ${n}/${itens.length}`);
+}
 function compendio() {
   const racas = [...arquivosMd("tormenta20-core/03-racas").map((f) => ["Livro Básico", f]),
     ...arquivosMd("herois-arton/01-campeoes-arton").filter((f) => /^\d\d-/.test(basename(f)) && !/treinador/.test(f)).map((f) => ["Heróis de Arton", f]),
     ...arquivosMd("dragao-brasil/01-racas").map((f) => ["Dragão Brasil", f])].map(([l, f]) => arquivoInteiro(l, f));
   galeriasDeRacas(racas);
+  porIcone(racas, "race");
   gravar("racas", { titulo: "Raças", filtros: [{ k: "livro", rotulo: "livro" }] }, racas);
   const classes = [...arquivosMd("tormenta20-core/04-classes").map((f) => ["Livro Básico", f]),
     ...arquivosMd("herois-arton/01-campeoes-arton").filter((f) => /treinador/.test(f)).map((f) => ["Heróis de Arton", f]),
     ...arquivosMd("dragao-brasil/02-classes").map((f) => ["Dragão Brasil", f])].map(([l, f]) => arquivoInteiro(l, f));
+  porIcone(classes, "classe");
   gravar("classes", { titulo: "Classes", filtros: [{ k: "livro", rotulo: "livro" }] }, classes);
   const origens = [];
   const [, corpoOr] = frontmatter(lerMd("tormenta20-core/02-criacao-personagens/05-origens.md"));

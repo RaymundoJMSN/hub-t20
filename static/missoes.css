@@ -1031,3 +1031,13 @@ body.modo-mestre .cartaz-mestre { display: flex; }
 .editor-acoes .trocar-usuario { color: var(--tinta); }
 .editor-msg { font-family: var(--fonte-titulo); font-size: 0.8rem; color: var(--tinta-suave); }
 @media (max-width: 640px) { .editor-bloco { grid-template-columns: 1fr; } }
+
+/* popup do mestre (criar/editar cartaz) e as ferramentas ✎ ✕ de cada cartaz */
+.editor-dialogo { background: transparent; border: 0; padding: 0; max-width: min(760px, 94vw); width: 100%; }
+.editor-dialogo::backdrop { background: rgba(10, 6, 2, 0.72); }
+.editor-dialogo .editor-cartaz { margin: 0; }
+.cartaz-ferramentas { display: inline-flex; gap: 0.35rem; margin-left: 0.5rem; vertical-align: middle; }
+.btn-ferramenta { width: 2rem; height: 2rem; border-radius: 50%; border: 1px solid var(--pergaminho-sombra); background: rgba(255, 250, 235, 0.5);
+  color: var(--tinta); font-size: 0.95rem; line-height: 1; cursor: pointer; padding: 0; }
+.btn-ferramenta:hover { background: var(--ouro-claro); }
+.btn-tirar:hover { background: var(--cera); color: var(--pergaminho); }

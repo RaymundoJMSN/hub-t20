@@ -21,7 +21,7 @@ export function mesaGlobal() {
     el("button", { className: "bt mini", textContent: "⊞ alinhar", title: "pôr as cartas lado a lado pra comparar", onclick: () => alinhar() }),
     el("button", { className: "bt mini", textContent: "✕ limpar", onclick: () => { for (const k of [...abertas.keys()]) fechar(k); } }));
   document.body.append(raiz, barra);
-  let z = 10;
+  let z = 1000; // acima da barra do hub (50), da gaveta (60) e de tudo mais
   const abertas = new Map();
 
   const salvar = () => {

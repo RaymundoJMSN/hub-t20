@@ -11,16 +11,16 @@
   margin: 0; padding: 8px 16px; background: rgba(18, 8, 9, .96); color: var(--hn-texto); border-bottom: 1px solid var(--hn-borda); }
 .hub-menu-bt, .hub-titulo, .hub-conta-bt, .hub-gaveta-conta { display: none; }
 .hub-abas { display: flex; flex-wrap: wrap; gap: 2px; flex: 1; } /* quebra linha em vez de rolar escondido (a barra de rolagem é invisível) */
-.hub-abas a { font-family: "Cinzel", serif; font-weight: 700; letter-spacing: .04em; font-size: .86rem; white-space: nowrap;
+.hub-abas a { font-family: "Cinzel", serif; font-weight: 700; letter-spacing: .04em; font-size: 14px; white-space: nowrap;
   color: var(--hn-texto-2); text-decoration: none; padding: 7px 12px; border-radius: 8px; border: 1px solid transparent; cursor: pointer; }
 .hub-abas a:hover { color: var(--hn-ouro-claro); border-color: var(--hn-borda); }
 .hub-abas a.on { color: var(--hn-ouro-claro); background: linear-gradient(180deg, var(--hn-painel), var(--hn-painel2)); border-color: var(--hn-borda); }
 .hub-emoji { display: inline; }
 .hub-rotulo { display: inline; margin-left: 4px; }
-.hub-eu { display: flex; align-items: center; gap: 6px; font-size: .86rem; color: var(--hn-texto-2); margin-left: auto; }
+.hub-eu { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--hn-texto-2); margin-left: auto; }
 .hub-eu .hub-nome b { color: var(--hn-ouro-claro); }
 .hub-eu .hub-pers { font-variant: small-caps; }
-.hub-bt { font-family: "Cinzel", serif; font-weight: 700; font-size: .72rem; letter-spacing: .04em; padding: 4px 10px; border-radius: 999px;
+.hub-bt { font-family: "Cinzel", serif; font-weight: 700; font-size: 11.5px; letter-spacing: .04em; padding: 4px 10px; border-radius: 999px;
   border: 1px solid var(--hn-borda); background: var(--hn-painel); color: var(--hn-texto); cursor: pointer; text-decoration: none; line-height: 1.3; }
 .hub-bt:hover { border-color: var(--hn-ouro); color: var(--hn-ouro-claro); }
 .hub-bt.destaque { background: var(--hn-sangue); border-color: #e2383e; color: #fff; }
@@ -34,33 +34,33 @@
 .hub-dialog::backdrop { background: rgba(0, 0, 0, .6); }
 .hub-dialog form { display: flex; flex-direction: column; gap: 8px; min-width: 260px; margin: 0; }
 .hub-dialog form + form { border-top: 1px solid var(--hn-borda); margin-top: 12px; padding-top: 10px; }
-.hub-dialog h3 { margin: 0 0 4px; font-family: "Cinzel", serif; color: var(--hn-ouro-claro); font-size: 1.1rem; }
+.hub-dialog h3 { margin: 0 0 4px; font-family: "Cinzel", serif; color: var(--hn-ouro-claro); font-size: 18px; }
 .hub-dialog input { background: #150a0d; color: var(--hn-texto); border: 1px solid var(--hn-borda); border-radius: 6px; padding: 8px 10px; font: inherit; }
-.hub-dialog .hub-msg { color: var(--hn-texto-2); font-size: .9rem; min-height: 1.2em; }
+.hub-dialog .hub-msg { color: var(--hn-texto-2); font-size: 14.5px; min-height: 1.2em; }
 .hub-dialog .hub-acoes { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
-.hub-dialog .hub-quem { color: var(--hn-texto-2); font-size: .9rem; }
+.hub-dialog .hub-quem { color: var(--hn-texto-2); font-size: 14.5px; }
 .hub-dialog .hub-quem b { color: var(--hn-ouro-claro); }
-.hub-dialog .hub-rotulo-campo { font-family: "Cinzel", serif; font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; color: var(--hn-texto-2); margin-top: 6px; }
+.hub-dialog .hub-rotulo-campo { font-family: "Cinzel", serif; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--hn-texto-2); margin-top: 6px; }
 
 /* celular: barra fina em cima (☰ · título · 👤); as abas viram uma gaveta que desliza pela esquerda */
 @media (max-width: 900px) {
   .hub-nav { gap: 8px; padding: 6px 10px; flex-wrap: nowrap; }
   .hub-menu-bt { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--hn-borda);
-    background: var(--hn-painel); color: var(--hn-ouro-claro); font-size: 1.3rem; line-height: 1; cursor: pointer; padding: 0; flex: none; }
-  .hub-titulo { display: block; flex: 1; font-family: "Cinzel", serif; font-weight: 700; letter-spacing: .06em; font-size: .95rem; color: var(--hn-ouro-claro);
+    background: var(--hn-painel); color: var(--hn-ouro-claro); font-size: 21px; line-height: 1; cursor: pointer; padding: 0; flex: none; }
+  .hub-titulo { display: block; flex: 1; font-family: "Cinzel", serif; font-weight: 700; letter-spacing: .06em; font-size: 15px; color: var(--hn-ouro-claro);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .hub-eu .hub-nome, .hub-eu .hub-bt:not(.hub-conta-bt) { display: none; }
-  .hub-conta-bt { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; padding: 0; font-size: 1.1rem; }
+  .hub-conta-bt { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; padding: 0; font-size: 18px; }
   .hub-abas { position: fixed; top: 0; left: 0; bottom: 0; z-index: 60; width: min(80vw, 300px); flex-direction: column; gap: 2px;
     padding: 14px 10px calc(14px + env(safe-area-inset-bottom)); overflow-y: auto; background: var(--hn-fundo); border-right: 1px solid var(--hn-borda);
     box-shadow: 8px 0 30px rgba(0, 0, 0, .6); transform: translateX(-102%); transition: transform .18s ease-out; }
   .hub-nav.aberta .hub-abas { transform: none; }
-  .hub-abas a { display: flex; align-items: center; gap: 12px; padding: 11px 12px; font-size: .98rem; border-radius: 10px; }
+  .hub-abas a { display: flex; align-items: center; gap: 12px; padding: 11px 12px; font-size: 16px; border-radius: 10px; }
   .hub-abas a.on { background: rgba(182, 41, 46, .28); border-color: rgba(182, 41, 46, .5); }
-  .hub-abas .hub-emoji { font-size: 1.35rem; width: 28px; text-align: center; }
+  .hub-abas .hub-emoji { font-size: 22px; width: 28px; text-align: center; }
   .hub-abas .hub-rotulo { margin: 0; }
   .hub-gaveta-conta { display: flex; flex-direction: column; gap: 6px; margin-top: auto; padding-top: 12px; border-top: 1px solid var(--hn-borda); }
-  .hub-gaveta-conta .hub-bt { text-align: left; padding: 9px 12px; font-size: .8rem; border-radius: 10px; }
+  .hub-gaveta-conta .hub-bt { text-align: left; padding: 9px 12px; font-size: 13px; border-radius: 10px; }
 }
 
 /* barra de rolagem invisível em todo lugar (rola normal, só não aparece) */

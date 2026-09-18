@@ -31,7 +31,7 @@ const lista = el("div", { className: "grimorio-lista" });
 raiz.append(barraAbas, busca, boxFiltros, el("div", { className: "g-conta-linha" }, conta, ordem), lista);
 
 for (const [col, rot] of pagina.abas) {
-  const b = el("button", { type: "button", className: "chip g-aba", textContent: rot, onclick: () => { if (filtro.aba !== col) { filtro.aba = col; filtro.sel = {}; filtro.faixa = {}; filtro.ord = null; trocarAba(); } } });
+  const b = el("button", { type: "button", className: "chip g-aba", textContent: capitalizar(rot), onclick: () => { if (filtro.aba !== col) { filtro.aba = col; filtro.sel = {}; filtro.faixa = {}; filtro.ord = null; trocarAba(); } } });
   b.dataset.col = col;
   barraAbas.append(b);
 }

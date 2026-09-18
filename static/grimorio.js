@@ -71,7 +71,7 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
 
   for (const [valor, rotulo] of ABAS) {
     const b = el("button", {
-      type: "button", className: "chip g-aba", textContent: rotulo,
+      type: "button", className: "chip g-aba", textContent: capitalizar(rotulo),
       onclick: () => { if (filtro.aba !== valor) trocarAba(valor); },
     });
     b.dataset.aba = valor;

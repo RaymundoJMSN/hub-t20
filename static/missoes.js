@@ -155,6 +155,10 @@ function criarCartaz(m, indice) {
       <button type="button" class="btn-concluir">
         <span class="btn-concluir-txt">Marcar como cumprida</span>
       </button>
+      <span class="cartaz-ferramentas">
+        <button type="button" class="btn-ferramenta btn-editar" title="editar cartaz">✎</button>
+        <button type="button" class="btn-ferramenta btn-tirar" title="tirar do quadro">✕</button>
+      </span>
     </div>
 
     <div class="carimbo-cumprido" aria-hidden="true">
@@ -176,6 +180,8 @@ function criarCartaz(m, indice) {
     if (!ehMestre() || !armazenamento) return;
     armazenamento.concluir(id, !ultimasConcluidas[id]);
   });
+  el.querySelector(".btn-editar").addEventListener("click", () => ehMestre() && abrirEditor(MISSOES.find((x) => x.id === id)));
+  el.querySelector(".btn-tirar").addEventListener("click", () => ehMestre() && tirarDoQuadro(MISSOES.find((x) => x.id === id)));
 
   cartoes.push({ id, indice, el, btn, btnConcluir, marcadoresEl });
   return el;
@@ -255,44 +261,40 @@ function atualizarBadgeUsuario() {
 }
 
 /* ------------------------------------------------------------
-   EDITOR DO QUADRO (Mestre): um bloco por missão; salvar regrava a lista inteira.
+   MESTRE: ✚ cria um cartaz, ✎ edita, ✕ tira do quadro — tudo num popup (mesmo pergaminho do login).
+   Salvar regrava a lista inteira na API; os votos das missões mantidas ficam.
    ------------------------------------------------------------ */
-function abrirEditor() {
-  const editor = document.getElementById("editor");
-  const blocos = document.getElementById("editorBlocos");
-  blocos.innerHTML = "";
-  MISSOES.forEach(blocoEditor);
-  editor.hidden = false;
-  document.getElementById("editorMsg").textContent = "";
-  editor.scrollIntoView({ behavior: "smooth", block: "start" });
+let editando = null; // id da missão aberta no popup (null = nova)
+const $ = (id) => document.getElementById(id);
+function abrirEditor(m = null) {
+  editando = m?.id || null;
+  const f = $("editorForm");
+  $("editorTitulo").textContent = m ? "Editar cartaz" : "Novo cartaz";
+  f.querySelector(".ed-titulo").value = m?.titulo || "";
+  f.querySelector(".ed-solicitante").value = m?.solicitante || "";
+  f.querySelector(".ed-local").value = m?.local || "";
+  f.querySelector(".ed-descricao").value = m?.descricao || "";
+  f.querySelector(".ed-recompensa").value = m?.recompensa || "";
+  f.querySelector(".ed-perigo").value = String(m?.perigo || 1);
+  f.querySelector(".btn-concluir-txt").textContent = m ? "Salvar cartaz" : "Pregar no quadro";
+  $("editorMsg").textContent = "";
+  $("editorDialogo").showModal();
+  f.querySelector(".ed-titulo").focus();
 }
-function blocoEditor(m = { perigo: 1 }) {
-  const b = document.createElement("div");
-  b.className = "editor-bloco";
-  b.dataset.id = m.id || "";
-  b.dataset.concluida = m.concluida ? "1" : "";
-  const campo = (k, rotulo, tipo = "input") => `<label><span>${rotulo}</span><${tipo} class="ed-${k}" ${tipo === "input" ? `value="${escapeHTML(m[k] || "")}"` : ""}>${tipo === "textarea" ? escapeHTML(m[k] || "") : ""}</${tipo}></label>`;
-  b.innerHTML = `
-    ${campo("titulo", "Título")}
-    ${campo("solicitante", "Solicitante")}
-    ${campo("local", "Local")}
-    ${campo("descricao", "Descrição", "textarea")}
-    ${campo("recompensa", "Recompensa")}
-    <label><span>Perigo</span><select class="ed-perigo">${[1, 2, 3, 4, 5].map((n) => `<option value="${n}" ${n === (m.perigo || 1) ? "selected" : ""}>${n} — ${PERIGO_INFO[n].nome}</option>`).join("")}</select></label>
-    <button type="button" class="trocar-usuario ed-tirar">tirar do quadro</button>`;
-  b.querySelector(".ed-tirar").addEventListener("click", () => b.remove());
-  document.getElementById("editorBlocos").appendChild(b);
+async function salvarEditor(e) {
+  e.preventDefault();
+  const f = $("editorForm");
+  const dados = { titulo: f.querySelector(".ed-titulo").value.trim(), solicitante: f.querySelector(".ed-solicitante").value, local: f.querySelector(".ed-local").value,
+    descricao: f.querySelector(".ed-descricao").value, recompensa: f.querySelector(".ed-recompensa").value, perigo: Number(f.querySelector(".ed-perigo").value) };
+  if (!dados.titulo) { $("editorMsg").textContent = "O cartaz precisa de um título."; return; }
+  const lista = editando ? MISSOES.map((m) => (m.id === editando ? { ...m, ...dados } : m)) : [...MISSOES, dados];
+  const r = await armazenamento.salvarQuadro(lista);
+  if (r.ok) $("editorDialogo").close();
+  else $("editorMsg").textContent = r.erro || "Não deu.";
 }
-async function salvarEditor() {
-  const msg = document.getElementById("editorMsg");
-  const missoes = [...document.querySelectorAll("#editorBlocos .editor-bloco")].map((b) => ({
-    id: b.dataset.id || undefined, concluida: !!b.dataset.concluida,
-    titulo: b.querySelector(".ed-titulo").value, solicitante: b.querySelector(".ed-solicitante").value, local: b.querySelector(".ed-local").value,
-    descricao: b.querySelector(".ed-descricao").value, recompensa: b.querySelector(".ed-recompensa").value, perigo: Number(b.querySelector(".ed-perigo").value),
-  }));
-  const r = await armazenamento.salvarQuadro(missoes);
-  msg.textContent = r.ok ? "Quadro atualizado." : r.erro || "Não deu.";
-  if (r.ok) document.getElementById("editor").hidden = true;
+async function tirarDoQuadro(m) {
+  if (!confirm(`Tirar "${m.titulo}" do quadro?`)) return;
+  await armazenamento.salvarQuadro(MISSOES.filter((x) => x.id !== m.id));
 }
 
 /* ------------------------------------------------------------ */
@@ -304,12 +306,11 @@ async function inicializar() {
   document.body.classList.toggle("modo-mestre", souMestre);
   atualizarBadgeUsuario();
 
-  const btnEditar = document.getElementById("editarQuadro");
-  btnEditar.hidden = !souMestre;
-  btnEditar.addEventListener("click", abrirEditor);
-  document.getElementById("editorNova").addEventListener("click", () => blocoEditor());
-  document.getElementById("editorSalvar").addEventListener("click", salvarEditor);
-  document.getElementById("editorCancelar").addEventListener("click", () => (document.getElementById("editor").hidden = true));
+  const btnNovo = $("novoCartaz");
+  btnNovo.hidden = !souMestre;
+  btnNovo.addEventListener("click", () => abrirEditor());
+  $("editorForm").addEventListener("submit", salvarEditor);
+  $("editorCancelar").addEventListener("click", () => $("editorDialogo").close());
 
   armazenamento = criarArmazenamentoApi();
   armazenamento.assinar((dados) => {
