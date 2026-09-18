@@ -4,7 +4,7 @@ A mesa de **Tormenta 20** num lugar só, atrás de login com senha: grimório e 
 bestiário com a ficha inteira, itens, regras dos livros + STR, compêndio, quadro de missões,
 agenda de sessões e os links da mesa (Foundry, call, cenas, arena, downloads).
 
-Um processo Node puro (`server.mjs`, sem dependências), um deploy, um domínio.
+Um processo Node puro (`server.mjs`, sem dependências), um deploy, um domínio: **rpg.raynathus.com.br** (`magias.` e `data.` só redirecionam). Instalável como app (PWA: manifest + `sw.js` rede-primeiro; no celular a barra de abas fica embaixo).
 
 ## Abas
 

@@ -221,8 +221,8 @@ function alvoDaRota(p) {
 }
 const PAGINAS = { "/": "grimorio.html", "/criar": "index.html", "/bestiario": "colecao.html", "/itens": "colecao.html", "/regras": "colecao.html", "/compendio": "colecao.html",
   "/missoes": "missoes.html", "/agenda": "agenda.html", "/links": "links.html", "/mestre": "mestre.html" };
-// sem sessão só passa: login, css/fontes (a tela de login usa) e a API de login
-const livre = (p) => p === "/login" || p === "/api/login" || p === "/style.css" || p.startsWith("/fontes/") || p === "/favicon.ico" || p === "/manifest.webmanifest";
+// sem sessão só passa: login, a API de login e arquivos estáticos (css/js/fontes/ícones/manifest/sw — código e enfeite, não dados)
+const livre = (p) => p === "/login" || p === "/api/login" || /\.(css|js|mjs|png|svg|ico|ttf|otf|woff2|webmanifest)$/.test(p);
 
 async function tratar(req, res) {
   const url = new URL(req.url, "http://x");

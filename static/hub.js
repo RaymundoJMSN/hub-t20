@@ -5,8 +5,9 @@ export const el = (tag, props = {}, ...filhos) => {
   n.append(...filhos.filter((f) => f != null));
   return n;
 };
-export const ABAS = [["/", "📖 Grimório"], ["/bestiario", "🐉 Bestiário"], ["/itens", "🎒 Itens"], ["/regras", "⚖️ Regras"],
-  ["/compendio", "🏛️ Compêndio"], ["/missoes", "📜 Missões"], ["/agenda", "📅 Agenda"], ["/links", "🎲 Mesa"]];
+// [rota, "emoji Rótulo", externo?] — no celular a barra fica embaixo (emoji em cima, rótulo embaixo)
+export const ABAS = [["/", "📖 Grimório"], ["/criar", "✦ Criar magia"], ["/bestiario", "🐉 Bestiário"], ["/itens", "🎒 Itens"], ["/regras", "⚖️ Regras"],
+  ["/compendio", "🏛️ Compêndio"], ["/missoes", "📜 Missões"], ["/agenda", "📅 Agenda"], ["/links", "🎲 Mesa"], ["https://ficha.raynathus.com.br", "🧾 Ficha", true]];
 // páginas de coleção: cada aba da página é uma coleção de dados/colecoes/
 export const PAGINAS_COL = {
   "/bestiario": { titulo: "Bestiário", sub: "620 ameaças com a ficha inteira · Livro Básico, Ameaças de Arton, Deuses de Arton, Guia de NPCs", abas: [["ameacas", "🐉 ameaças"]] },
@@ -20,7 +21,7 @@ export const eu = fetch("/api/eu").then((r) => r.ok ? r.json() : irParaLogin()).
 
 function ativa() {
   const p = location.pathname;
-  if (/^\/(criar|[mod])(\/|$)/.test(p)) return "/";
+  if (/^\/[mod](\/|$)/.test(p)) return "/";
   const c = p.match(/^\/c\/([\w-]+)/);
   if (c) return paginaDaColecao(c[1]) || "/";
   return ABAS.find(([h]) => h !== "/" && p.startsWith(h))?.[0] || (p === "/" ? "/" : "");
@@ -46,8 +47,13 @@ async function trocarSenha() {
 
 eu.then((u) => {
   const at = ativa();
+  const aba = ([href, rot, externo]) => {
+    const [emoji, ...resto] = rot.split(" ");
+    return el("a", { href, className: href === at ? "on" : "", target: externo ? "_blank" : "", rel: externo ? "noopener" : "", title: rot },
+      el("span", { className: "hub-emoji", textContent: emoji }), el("span", { className: "hub-rotulo", textContent: resto.join(" ") }));
+  };
   const nav = el("nav", { className: "hub-nav" },
-    el("div", { className: "hub-abas" }, ...ABAS.map(([href, rot]) => el("a", { href, textContent: rot, className: href === at ? "on" : "" }))),
+    el("div", { className: "hub-abas" }, ...ABAS.map(aba)),
     el("div", { className: "hub-eu" },
       el("span", { className: "hub-nome", title: u.personagem ? `${u.nome} · ${u.personagem}` : u.nome }, el("b", { textContent: u.nome }), u.personagem ? el("span", { className: "hub-pers", textContent: " · " + u.personagem }) : null),
       u.mestre ? el("a", { href: "/mestre", className: "bt mini" + (at === "/mestre" || location.pathname === "/mestre" ? " on" : ""), textContent: "👑 mestre" }) : null,
@@ -55,4 +61,8 @@ eu.then((u) => {
       el("button", { className: "bt mini", textContent: "sair", onclick: async () => { await fetch("/api/sair", { method: "POST" }); location.href = "/login"; } })));
   document.body.prepend(nav);
   document.documentElement.classList.add("com-nav");
+  // aba ativa visível na barra rolável do celular
+  nav.querySelector(".hub-abas a.on")?.scrollIntoView({ inline: "center", block: "nearest" });
 });
+// PWA: instalável e abre offline o que já foi visto (sw.js = rede primeiro)
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});

@@ -1,0 +1,24 @@
+{
+  "id": "/",
+  "name": "Hub T20 — a mesa de Tormenta 20",
+  "short_name": "Hub T20",
+  "description": "Grimório, bestiário, itens, regras, compêndio, missões e agenda da mesa.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#120809",
+  "theme_color": "#120809",
+  "lang": "pt-BR",
+  "icons": [
+    { "src": "/icone-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icone-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icone-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Grimório", "url": "/", "icons": [{ "src": "/icone-192.png", "sizes": "192x192" }] },
+    { "name": "Missões", "url": "/missoes", "icons": [{ "src": "/icone-192.png", "sizes": "192x192" }] },
+    { "name": "Agenda", "url": "/agenda", "icons": [{ "src": "/icone-192.png", "sizes": "192x192" }] },
+    { "name": "Bestiário", "url": "/bestiario", "icons": [{ "src": "/icone-192.png", "sizes": "192x192" }] }
+  ]
+}

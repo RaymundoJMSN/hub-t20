@@ -477,3 +477,22 @@ footer a { color: var(--ouro); }
 .conta-linha b { color: var(--ouro-claro); }
 @media (max-width: 700px) { .conta-linha { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 1100px) { .hub-abas { flex-basis: 100%; order: 2; } }
+
+/* ===================== PWA no celular: barra de abas embaixo (polegar), usuário num pingente no topo ===================== */
+.hub-emoji { display: inline; }
+.hub-rotulo { display: inline; margin-left: 4px; }
+@media (max-width: 700px) {
+  body { padding-bottom: calc(76px + env(safe-area-inset-bottom)); }
+  .hub-nav { position: fixed; top: auto; bottom: 0; left: 0; right: 0; margin: 0; padding: 4px 0 calc(4px + env(safe-area-inset-bottom));
+    border-bottom: 0; border-top: 1px solid var(--borda); gap: 0; flex-wrap: nowrap; background: rgba(18, 8, 9, .97); }
+  .hub-abas { flex-basis: auto; order: 0; gap: 0; padding: 0 4px; width: 100%; }
+  .hub-abas a { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 64px; padding: 4px 6px; font-size: .62rem; letter-spacing: .02em; border: 0; border-radius: 10px; }
+  .hub-abas a.on { background: rgba(182, 41, 46, .25); }
+  .hub-abas .hub-emoji { font-size: 1.35rem; line-height: 1; }
+  .hub-abas .hub-rotulo { margin: 0; white-space: nowrap; }
+  .hub-eu { position: fixed; top: 6px; right: 8px; z-index: 7; margin: 0; gap: 4px; padding: 3px 6px; border-radius: 999px;
+    background: rgba(18, 8, 9, .85); border: 1px solid var(--borda); font-size: .74rem; }
+  .hub-eu .hub-pers { display: none; }
+  .hub-eu .bt.mini { padding: 3px 7px; font-size: .7rem; }
+  #mesa .mesa-barra { bottom: calc(80px + env(safe-area-inset-bottom)); }
+}
