@@ -88,9 +88,22 @@ function lerTexto(arq) { try { return readFileSync(arq, "utf-8").trim(); } catch
 if (!segredo) { segredo = randomBytes(32).toString("hex"); if (!CHECK) { mkdirSync(DADOS, { recursive: true }); writeFileSync(ARQ_SEG, segredo); } }
 
 const hashSenha = (senha, sal) => scryptSync(String(senha), sal, 32).toString("hex");
-function definirUsuario({ nome, senha, papel, personagem }) {
+// conta pode ser achada pelo nome OU pelo apelido (login aceita os dois)
+function buscarConta(nome) {
+  const n = normNome(nome);
+  if (usuarios[n]) return [n, usuarios[n]];
+  const par = Object.entries(usuarios).find(([, u]) => u.apelido && normNome(u.apelido) === n);
+  return par || [null, null];
+}
+function apelidoLivre(apelido, chave) {
+  const n = normNome(apelido);
+  if (!n) return true;
+  return !Object.entries(usuarios).some(([k, u]) => k !== chave && (k === n || normNome(u.apelido) === n));
+}
+function definirUsuario({ nome, senha, papel, personagem, apelido }) {
   const chave = normNome(nome);
   const u = usuarios[chave] || { nome: nome.trim(), criadoEm: new Date().toISOString() };
+  if (apelido != null) u.apelido = String(apelido).trim().slice(0, 40);
   if (senha) { u.sal = randomBytes(16).toString("hex"); u.hash = hashSenha(senha, u.sal); }
   if (papel) u.papel = papel === "mestre" ? "mestre" : "jogador";
   if (!u.papel) u.papel = "jogador";
@@ -102,14 +115,19 @@ function definirUsuario({ nome, senha, papel, personagem }) {
 // muda o nome de exibição (e a chave) e/ou o personagem de uma conta, arrastando tudo que aponta pra ela:
 // magias (estado.usuarios), autor das publicadas, dias da agenda e votos das missões (votante = personagem || nome).
 // Devolve { chave } nova ou uma string de erro. Maiúsculas: a chave é minúscula, o `nome` guarda como foi escrito.
-function renomearConta(chave, { novoNome, personagem }) {
+function renomearConta(chave, { novoNome, personagem, apelido }) {
   const u = usuarios[chave];
   if (!u) return "conta não existe";
+  if (apelido != null) {
+    if (String(apelido).trim() && !nomeOk(apelido)) return "apelido inválido";
+    if (!apelidoLivre(apelido, chave)) return "esse apelido já é de outra conta";
+    u.apelido = String(apelido).trim().slice(0, 40);
+  }
   const votanteAntigo = u.personagem || u.nome;
   if (novoNome != null && String(novoNome).trim() && String(novoNome).trim() !== u.nome) {
     if (!nomeOk(novoNome)) return "nome inválido";
     const nova = normNome(novoNome), antigoNome = u.nome;
-    if (nova !== chave && usuarios[nova]) return "já existe conta com esse nome";
+    if (nova !== chave && (usuarios[nova] || !apelidoLivre(novoNome, chave))) return "já existe conta com esse nome";
     u.nome = String(novoNome).trim();
     if (nova !== chave) {
       delete usuarios[chave]; usuarios[nova] = u;
@@ -145,7 +163,7 @@ function sessaoDe(req) {
 }
 const cookieSessao = (req, valor, maxAge) =>
   `hub=${valor}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${/^(localhost|127\.0\.0\.1)(:|$)/.test(req.headers.host || "") ? "" : "; Secure"}`;
-const publico = (u) => u && { nome: u.nome, papel: u.papel, personagem: u.personagem || "", criadoEm: u.criadoEm };
+const publico = (u) => u && { nome: u.nome, apelido: u.apelido || "", papel: u.papel, personagem: u.personagem || "", criadoEm: u.criadoEm };
 // freio de força bruta por IP: 8 erros → 60 s de espera
 const erros = new Map();
 function bloqueado(ip) { const e = erros.get(ip); return e && e.n >= 8 && Date.now() - e.em < 60_000; }
@@ -265,9 +283,9 @@ async function tratar(req, res) {
     if (bloqueado(ip)) return json(res, 429, { erro: "muitas tentativas — espere um minuto" });
     let b;
     try { b = await corpo(req); } catch { return json(res, 400, { erro: "corpo inválido" }); }
-    const u = usuarios[normNome(b.nome)];
+    const [chaveLogin, u] = buscarConta(b.nome);
     if (!u || !conferirSenha(u, String(b.senha ?? ""))) { errou(ip); return json(res, 401, { erro: "nome ou senha errados" }); }
-    return json(res, 200, { ok: true, eu: publico(u) }, { "set-cookie": cookieSessao(req, tokenDe(normNome(b.nome)), 365 * 86400) });
+    return json(res, 200, { ok: true, eu: publico(u) }, { "set-cookie": cookieSessao(req, tokenDe(chaveLogin), 365 * 86400) });
   }
   if (p === "/login") {
     if (eu) return redirecionar(res, url.searchParams.get("voltar") || "/");
@@ -295,7 +313,7 @@ async function tratar(req, res) {
   if (p === "/api/conta" && req.method === "POST") {
     let b;
     try { b = await corpo(req); } catch { return json(res, 400, { erro: "corpo inválido" }); }
-    const r = renomearConta(eu.chave, { novoNome: b.nome, personagem: b.personagem });
+    const r = renomearConta(eu.chave, { novoNome: b.nome, personagem: b.personagem, apelido: b.apelido });
     if (typeof r === "string") return json(res, 400, { erro: r });
     // a chave mudou → cookie novo (o antigo aponta pra uma conta que não existe mais)
     return json(res, 200, { ok: true, eu: publico(usuarios[r.chave]) }, r.chave !== eu.chave ? { "set-cookie": cookieSessao(req, tokenDe(r.chave), 365 * 86400) } : {});
@@ -317,9 +335,11 @@ async function tratar(req, res) {
     const eraEu = chave === eu.chave;
     if (!usuarios[chave] && String(b.senha || "").length < 4) return json(res, 400, { erro: "conta nova precisa de senha (mínimo 4)" });
     if (chave === eu.chave && b.papel && b.papel !== "mestre") return json(res, 400, { erro: "você não pode se rebaixar" });
-    if (!usuarios[chave]) definirUsuario({ nome: b.nome, senha: b.senha, papel: b.papel, personagem: b.personagem });
-    else {
-      const r = renomearConta(chave, { novoNome: b.novoNome, personagem: b.personagem });
+    if (!usuarios[chave]) {
+      if (!apelidoLivre(b.nome, chave) || (b.apelido && !apelidoLivre(b.apelido, chave))) return json(res, 400, { erro: "nome ou apelido já usado" });
+      definirUsuario({ nome: b.nome, senha: b.senha, papel: b.papel, personagem: b.personagem, apelido: b.apelido });
+    } else {
+      const r = renomearConta(chave, { novoNome: b.novoNome, personagem: b.personagem, apelido: b.apelido });
       if (typeof r === "string") return json(res, 400, { erro: r });
       chave = r.chave;
       definirUsuario({ nome: usuarios[chave].nome, senha: b.senha || "", papel: b.papel });
@@ -789,6 +809,11 @@ if (CHECK) {
       if (!Object.values(estado.publicadas).every((m) => m.autor === "RayNathus")) return falha("autor das publicadas não seguiu");
       const HR = { cookie: renRay.headers.get("set-cookie").split(";")[0], "content-type": "application/json" };
       if ((await (await fetch(`${base}/api/eu`, { headers: HR })).json()).nome !== "RayNathus") return falha("cookie do mestre renomeado");
+      // apelido: login aceita nome ou apelido; apelido não pode ser nome/apelido de outro
+      if ((await fetch(`${base}/api/conta`, { method: "POST", headers: { cookie: cookieNovo, "content-type": "application/json" }, body: JSON.stringify({ apelido: "Manduuu" }) })).status !== 200) return falha("definir apelido");
+      if ((await fetch(`${base}/api/login`, { method: "POST", body: JSON.stringify({ nome: "manduuu", senha: "nova1" }) })).status !== 200) return falha("login pelo apelido");
+      if ((await fetch(`${base}/api/usuarios`, { method: "POST", headers: HR, body: JSON.stringify({ nome: "Davi", apelido: "manduuu" }) })).status !== 400) return falha("apelido repetido devia falhar");
+      if ((await fetch(`${base}/api/usuarios`, { method: "POST", headers: HR, body: JSON.stringify({ nome: "Manduuu", senha: "1234" }) })).status !== 400) return falha("conta nova com nome igual a apelido devia falhar");
       // criador de ficha: personagens por conta (o "jogador" do site é ignorado), lista/ler/apagar
       const HP = { cookie: cookieNovo, "content-type": "application/json" };
       const putP = await fetch(`${base}/api/criador/personagens/abcd1234?jogador=outro`, { method: "PUT", headers: HP, body: JSON.stringify({ jogador: "outro", nome: "Zé", resumo: "humano guerreiro", estado: { nome: "Zé" }, passo: "raca" }) });

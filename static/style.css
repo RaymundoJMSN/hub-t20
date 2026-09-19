@@ -465,7 +465,7 @@ footer a { color: var(--ouro); }
 .links-lista .card { text-decoration: none; color: inherit; display: block; }
 .link-card .circ { font-size: 1.3rem; }
 .contas { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
-.conta-linha { display: grid; grid-template-columns: 1.2fr 1.4fr 1.2fr auto auto auto; gap: 6px; align-items: center; }
+.conta-linha { display: grid; grid-template-columns: 1.1fr 1fr 1.3fr 1.1fr auto auto auto; gap: 6px; align-items: center; }
 .conta-linha b { color: var(--ouro-claro); }
 @media (max-width: 700px) { .conta-linha { grid-template-columns: 1fr 1fr; } }
 

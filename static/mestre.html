@@ -25,11 +25,12 @@
 <main class="grimorio-main">
   <section class="painel">
     <h2 class="g-grupo">Contas</h2>
-    <p class="explica">Nome = como aparece no hub (maiúsculas contam); personagem = quem vota nas missões. Senha em branco mantém a atual. Renomear arrasta magias, agenda e votos junto.</p>
+    <p class="explica">Nome = como aparece no hub (maiúsculas contam); apelido = segundo nome que também entra no login; personagem = quem vota nas missões. Senha em branco mantém a atual. Renomear arrasta magias, agenda e votos junto.</p>
     <div id="contas" class="contas"></div>
     <h3 class="g-grupo">Nova conta</h3>
     <form id="nova" class="conta-linha">
       <input name="nome" placeholder="nome" required maxlength="40">
+      <input name="apelido" placeholder="apelido (opcional)" maxlength="40">
       <input name="personagem" placeholder="personagem">
       <input name="senha" type="password" placeholder="senha (mín. 4)" required minlength="4" autocomplete="new-password">
       <select name="papel"><option value="jogador">jogador</option><option value="mestre">mestre</option></select>
@@ -47,12 +48,13 @@ async function carregar() {
   const { usuarios = [] } = await (await fetch("/api/usuarios")).json();
   box.replaceChildren(...usuarios.map((u) => {
     const nome = el("input", { value: u.nome, placeholder: "nome", maxLength: 40, title: "nome de exibição (renomear arrasta magias, agenda e votos)" });
+    const apel = el("input", { value: u.apelido || "", placeholder: "apelido" });
     const pers = el("input", { value: u.personagem || "", placeholder: "personagem" });
     const senha = el("input", { type: "password", placeholder: "nova senha", autocomplete: "new-password" });
     const papel = el("select", {}, ...["jogador", "mestre"].map((p) => el("option", { value: p, textContent: p, selected: p === u.papel })));
-    return el("div", { className: "conta-linha" }, nome, pers, senha, papel,
+    return el("div", { className: "conta-linha" }, nome, apel, pers, senha, papel,
       el("button", { className: "bt mini", textContent: "salvar", onclick: async () => {
-        const r = await api("/api/usuarios", { nome: u.nome, novoNome: nome.value, personagem: pers.value, senha: senha.value, papel: papel.value });
+        const r = await api("/api/usuarios", { nome: u.nome, novoNome: nome.value, apelido: apel.value, personagem: pers.value, senha: senha.value, papel: papel.value });
         msg.textContent = r.ok ? `${r.usuario.nome} salvo ✓` : r.erro; senha.value = "";
         if (r.ok) carregar();
       } }),
@@ -62,7 +64,7 @@ async function carregar() {
 document.querySelector("#nova").onsubmit = async (e) => {
   e.preventDefault();
   const f = e.target;
-  const r = await api("/api/usuarios", { nome: f.nome.value, personagem: f.personagem.value, senha: f.senha.value, papel: f.papel.value });
+  const r = await api("/api/usuarios", { nome: f.nome.value, apelido: f.apelido.value, personagem: f.personagem.value, senha: f.senha.value, papel: f.papel.value });
   msg.textContent = r.ok ? `conta ${r.usuario.nome} criada ✓` : r.erro;
   if (r.ok) { f.reset(); carregar(); }
 };

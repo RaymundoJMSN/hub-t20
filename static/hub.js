@@ -144,6 +144,7 @@ function dialogoConta(u) {
   fecharGaveta();
   const dlg = el("dialog", { className: "hub-dialog" });
   const nome = el("input", { value: u.nome, placeholder: "seu nome", maxLength: 40, autocomplete: "username" });
+  const apel = el("input", { value: u.apelido || "", placeholder: "apelido (também serve pra entrar)", maxLength: 40 });
   const pers = el("input", { value: u.personagem || "", placeholder: "personagem (aparece nas missões)", maxLength: 60 });
   const msg1 = el("div", { className: "hub-msg" });
   const atual = el("input", { type: "password", placeholder: "senha atual", required: true, autocomplete: "current-password" });
@@ -153,11 +154,12 @@ function dialogoConta(u) {
     el("h3", { textContent: "Sua conta" }),
     el("div", { className: "hub-quem" }, el("b", { textContent: u.nome }), u.personagem ? ` · ${u.personagem}` : "", u.mestre ? " · mestre" : ""),
     el("label", { className: "hub-rotulo-campo", textContent: "nome" }), nome,
+    el("label", { className: "hub-rotulo-campo", textContent: "apelido" }), apel,
     el("label", { className: "hub-rotulo-campo", textContent: "personagem" }), pers, msg1,
-    el("div", { className: "hub-acoes" }, el("button", { className: "hub-bt destaque", textContent: "salvar nome e personagem" })));
+    el("div", { className: "hub-acoes" }, el("button", { className: "hub-bt destaque", textContent: "salvar" })));
   conta.onsubmit = async (e) => {
     e.preventDefault();
-    const r = await postJson("/api/conta", { nome: nome.value, personagem: pers.value });
+    const r = await postJson("/api/conta", { nome: nome.value, personagem: pers.value, apelido: apel.value });
     if (r.ok) { msg1.textContent = "salvo ✓"; setTimeout(() => location.reload(), 500); } else msg1.textContent = r.erro || "erro";
   };
   const senha = el("form", { method: "dialog" },
