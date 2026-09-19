@@ -93,13 +93,13 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
   }
 
   const EXCLUSIVOS = { Arcana: "Divina", Divina: "Arcana" }; // não se misturam
-  function chips(itens, chave, rotulo = (x) => String(x)) {
-    const box = el("div", { className: "chips" });
+  function chips(itens, chave, rotulo = (x) => String(x), titulo = "") {
+    const box = el("div", { className: "g-abas g-seg" }, titulo ? el("span", { className: "g-ordem-rotulo", textContent: titulo }) : null);
     const botoes = new Map();
     for (const item of itens) {
       const valor = Array.isArray(item) ? item[0] : item;
       const b = el("button", {
-        type: "button", className: "chip",
+        type: "button", className: "chip g-aba",
         textContent: capitalizar(Array.isArray(item) ? item[1] : rotulo(item)),
         onclick: () => {
           const sel = filtro[chave];
@@ -137,11 +137,11 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
   function montarChips() {
     boxFiltros.replaceChildren();
     if (filtro.aba === "magias") {
-      chips(CIRCULOS, "circulo", (c) => `${c}º`);
-      chips(TIPOS, "tipo");
-      chips(ESCOLAS, "escola");
-      chips(FONTES, "fonte");
-      chips(POCOES, "pocao");
+      chips(CIRCULOS, "circulo", (c) => `${c}º`, "Círculo");
+      chips(TIPOS, "tipo", undefined, "Tipo");
+      chips(ESCOLAS, "escola", undefined, "Escola");
+      chips(FONTES, "fonte", undefined, "Fonte");
+      chips(POCOES, "pocao", undefined, "Poção");
       // eixos técnicos: lista longa demais pra chip, e só um valor por vez faz sentido
       boxFiltros.append(el("div", { className: "g-selects" },
         seletor("exec", "execução", EXECUCOES.map((v) => [v, v])),
@@ -151,8 +151,8 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
           ["efeito", EFEITOS.map((v) => ["e:" + v, v])],
         ])));
     } else {
-      chips(CATEGORIAS, "categoria");
-      chips(LIVROS, "livro");
+      chips(CATEGORIAS, "categoria", undefined, "Categoria");
+      chips(LIVROS, "livro", undefined, "Livro");
     }
   }
 

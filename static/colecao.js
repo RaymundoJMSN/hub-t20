@@ -91,9 +91,9 @@ function faixa(f, valores) {
 }
 function chips(f, valores) {
   const sel = filtro.sel[f.k];
-  const box = el("div", { className: "filtro chips" }, el("span", { className: "chips-rotulo", textContent: f.rotulo }));
+  const box = el("div", { className: "g-abas g-seg" }, el("span", { className: "g-ordem-rotulo", textContent: f.rotulo }));
   for (const v of valores) {
-    const b = el("button", { type: "button", className: "chip" + (sel.has(v) ? " on" : ""), textContent: capitalizar(v),
+    const b = el("button", { type: "button", className: "chip g-aba" + (sel.has(v) ? " on" : ""), textContent: capitalizar(v),
       onclick: () => { sel.has(v) ? sel.delete(v) : sel.add(v); b.classList.toggle("on", sel.has(v)); render(); } });
     box.append(b);
   }

@@ -527,3 +527,9 @@ footer a { color: var(--ouro); }
 .g-abas.g-ordem .g-aba { flex: 0 0 auto; padding: 6px 12px; font-size: .78rem; }
 .g-ordem-rotulo { align-self: center; padding: 0 10px; font-family: "Cinzel", serif; font-size: .66rem; letter-spacing: .1em; text-transform: uppercase; color: var(--texto-2); border-right: 1px solid var(--borda); }
 .g-conta-linha { flex-wrap: wrap; gap: 8px; }
+
+/* grupos de filtro (círculo, escola, fonte, livro…): bloco segmentado por linha, nada de bolinhas soltas; multi-seleção */
+.g-abas.g-seg { margin: 0 0 6px; }
+.g-abas.g-seg .g-aba { flex: 0 1 auto; padding: 6px 12px; font-size: .8rem; font-family: "Alegreya", Georgia, serif; letter-spacing: 0; }
+.g-abas.g-seg .g-aba.on { background: var(--sangue); color: #fff; }
+.g-filtros .g-selects, .g-filtros .filtro { margin: 0 0 6px; }
