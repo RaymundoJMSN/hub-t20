@@ -121,7 +121,7 @@ function montarFiltros() {
   if (filtro.ord === null) filtro.ord = META.ordemPadrao ?? (META.filtros?.[0]?.k || "");
   if (!ords.some(([k]) => k === filtro.ord)) filtro.ord = "";
   ordem.replaceChildren(el("span", { className: "g-ordem-rotulo", textContent: "Agrupar" }), ...ords.map(([v, t]) => el("button", { type: "button", className: "chip g-aba" + (v === filtro.ord ? " on" : ""), textContent: t,
-    onclick: () => { filtro.ord = v; for (const b of ordem.querySelectorAll(".g-aba")) b.classList.toggle("on", b === ordem.querySelectorAll(".g-aba")[ords.findIndex(([k]) => k === v)]); render(); } })));
+    onclick: (e) => { filtro.ord = v; for (const b of ordem.querySelectorAll(".g-aba")) b.classList.toggle("on", b === e.currentTarget); render(); } })));
   ordem.hidden = META.modo === "acordeao";
 }
 // valor multi ("magia|itens") casa se qualquer parte estiver selecionada; faixa só filtra quem tem valor
