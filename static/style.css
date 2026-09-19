@@ -533,3 +533,8 @@ footer a { color: var(--ouro); }
 .g-abas.g-seg .g-aba { flex: 0 1 auto; padding: 6px 12px; font-size: .8rem; font-family: "Alegreya", Georgia, serif; letter-spacing: 0; }
 .g-abas.g-seg .g-aba.on { background: var(--sangue); color: #fff; }
 .g-filtros .g-selects, .g-filtros .filtro { margin: 0 0 6px; }
+
+/* os blocos de filtro têm a largura do conteúdo e dividem a linha; quebram quando não cabem */
+.g-filtros { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.g-abas.g-seg, .g-filtros .filtro, .g-filtros .g-selects { display: inline-flex; width: auto; flex: 0 1 auto; margin: 0; border-bottom: 0; padding: 0; }
+.g-filtros .filtro.faixa .faixa-trilho { width: 220px; flex-basis: 220px; }
