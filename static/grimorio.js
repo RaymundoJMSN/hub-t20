@@ -173,7 +173,8 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
     (!filtro.tipo.size || filtro.tipo.has(m.grupo)) &&
     (!filtro.escola.size || filtro.escola.has(m.escola)) &&
     (!filtro.fonte.size || filtro.fonte.has(fonte)) &&
-    (!filtro.pocao.size || (m.pocao && (filtro.pocao.has("sim") || filtro.pocao.has(m.pocao)))) &&
+    // "permitido em poção" só corta quem não vira item; os tipos (poção/óleo/granada) refinam por cima
+    (!filtro.pocao.size || (m.pocao && (![...filtro.pocao].some((v) => v !== "sim") || filtro.pocao.has(m.pocao)))) &&
     (!filtro.exec.size || filtro.exec.has(m.exec)) &&
     (!filtro.alc.size || filtro.alc.has(m.alc)) &&
     (!filtro.res.size || filtro.res.has("t:" + m.res) || filtro.res.has("e:" + m.resEf));
