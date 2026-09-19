@@ -65,7 +65,7 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
   const barraAbas = el("div", { className: "g-abas" });
   const boxFiltros = el("div", { className: "g-filtros" });
   const conta = el("div", { className: "explica" });
-  const ordem = el("select", { className: "g-ordem", title: "ordenar", onchange: (e) => { filtro.ord = e.target.value; render(); } });
+  const ordem = el("div", { className: "g-abas g-ordem", title: "ordenar" }); // botões num bloco só, como as abas
   const lista = el("div", { className: "grimorio-lista" });
   raiz.append(barraAbas, busca, boxFiltros, el("div", { className: "g-conta-linha" }, conta, ordem), lista);
 
@@ -86,7 +86,8 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
     busca.placeholder = valor === "magias"
       ? "pesquisar por nome ou texto… (fogo, medo, cura)"
       : "pesquisar por nome ou texto… (fúria, bárbaro, +2 na Defesa)";
-    ordem.replaceChildren(...ORDENS[valor].map(([v, t]) => el("option", { value: v, textContent: capitalizar(t), selected: v === filtro.ord })));
+    ordem.replaceChildren(el("span", { className: "g-ordem-rotulo", textContent: "Ordem" }), ...ORDENS[valor].map(([v, t]) => el("button", { type: "button", className: "chip g-aba" + (v === filtro.ord ? " on" : ""), textContent: capitalizar(t),
+      onclick: (e) => { filtro.ord = v; for (const b of ordem.querySelectorAll(".g-aba")) b.classList.toggle("on", b === e.currentTarget); render(); } })));
     montarChips();
     return buscar();
   }

@@ -26,7 +26,7 @@ const busca = el("input", { type: "search", className: "g-busca", value: filtro.
 const barraAbas = el("div", { className: "g-abas" });
 const boxFiltros = el("div", { className: "g-filtros" });
 const conta = el("div", { className: "explica" });
-const ordem = el("select", { className: "g-ordem", title: "agrupar por", onchange: (e) => { filtro.ord = e.target.value; render(); } });
+const ordem = el("div", { className: "g-abas g-ordem", title: "agrupar por" }); // botões num bloco só, como as abas
 const lista = el("div", { className: "grimorio-lista" });
 raiz.append(barraAbas, busca, boxFiltros, el("div", { className: "g-conta-linha" }, conta, ordem), lista);
 
@@ -120,7 +120,8 @@ function montarFiltros() {
   const ords = [["", "Por nome"], ...(META.filtros || []).map((f) => [f.k, "Por " + f.rotulo])];
   if (filtro.ord === null) filtro.ord = META.ordemPadrao ?? (META.filtros?.[0]?.k || "");
   if (!ords.some(([k]) => k === filtro.ord)) filtro.ord = "";
-  ordem.replaceChildren(...ords.map(([v, t]) => el("option", { value: v, textContent: t, selected: v === filtro.ord })));
+  ordem.replaceChildren(el("span", { className: "g-ordem-rotulo", textContent: "Agrupar" }), ...ords.map(([v, t]) => el("button", { type: "button", className: "chip g-aba" + (v === filtro.ord ? " on" : ""), textContent: t,
+    onclick: () => { filtro.ord = v; for (const b of ordem.querySelectorAll(".g-aba")) b.classList.toggle("on", b === ordem.querySelectorAll(".g-aba")[ords.findIndex(([k]) => k === v)]); render(); } })));
   ordem.hidden = META.modo === "acordeao";
 }
 // valor multi ("magia|itens") casa se qualquer parte estiver selecionada; faixa só filtra quem tem valor
