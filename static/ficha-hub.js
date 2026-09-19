@@ -3,8 +3,17 @@
 // Só essa pergunta (ela passa por um `await` no site); os outros confirm continuam nativos, que são síncronos.
 (function () {
   const nativo = window.confirm.bind(window);
+  // rascunho "vazio" (sem nome, sem raça, sem classe — o site grava assim que abre): começa do zero sem perguntar
+  function rascunhoVazio() {
+    try {
+      const r = JSON.parse(localStorage.getItem("t20w-site.flag.t20-ficha-wizard.rascunho") || "null");
+      const e = r && r.estado ? JSON.parse(r.estado) : null;
+      return !e || (!(e.nome || "").trim() && !e.racaId && !e.classeId && !(e.classes && e.classes.length));
+    } catch { return true; }
+  }
   window.confirm = function (msg) {
     if (!/ficha em andamento/i.test(String(msg))) return nativo(msg);
+    if (rascunhoVazio()) return Promise.resolve(false);
     return new Promise(function (resolver) {
       const dlg = document.createElement("dialog");
       dlg.className = "hub-confirm";
