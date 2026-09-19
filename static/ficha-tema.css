@@ -40,3 +40,14 @@ html, body {
 .t20w-dialogo::backdrop { background: rgba(0, 0, 0, .6); }
 .t20w-wizard a, .t20w-painel a { color: #c9a227; }
 .t20w-wizard ::selection { background: rgba(182, 41, 46, .5); }
+
+/* popup do hub no lugar do confirm() nativo ("ficha em andamento") */
+.hub-confirm { background: linear-gradient(180deg, #241317, #1d0f12); color: #e8dcc3; border: 1px solid #3d1d22; border-radius: 12px; padding: 20px 22px; max-width: min(420px, 92vw);
+  font-family: "Alegreya", Georgia, serif; font-size: 16px; }
+.hub-confirm::backdrop { background: rgba(0, 0, 0, .65); }
+.hub-confirm h3 { margin: 0 0 8px; font-family: "Cinzel", serif; color: #f0dc82; font-size: 18px; }
+.hub-confirm p { margin: 0 0 14px; line-height: 1.45; }
+.hub-confirm-acoes { display: flex; gap: 8px; justify-content: flex-end; }
+.hub-confirm button { font-family: "Cinzel", serif; font-weight: 700; font-size: 12px; letter-spacing: .04em; padding: 7px 14px; border-radius: 999px; cursor: pointer;
+  border: 1px solid #3d1d22; background: #1d0f12; color: #e8dcc3; }
+.hub-confirm button.retomar { background: #b6292e; border-color: #e2383e; color: #fff; }

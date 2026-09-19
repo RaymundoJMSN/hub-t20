@@ -559,6 +559,8 @@ async function tratar(req, res) {
       // o site lê o nome do jogador do localStorage antes de subir: gravamos o da sessão e escondemos o campo
       let html;
       try { html = readFileSync(join(FICHA_DIR, "index.html"), "utf-8"); } catch { return responderHtml(res, "<h1>Criador de ficha ainda não instalado neste servidor</h1>", 404); }
+      // fundo escuro antes de qualquer CSS (senão pisca branco na carga) + confirm do site no lugar do nativo
+      html = html.replace("<head>", `<head><meta name="color-scheme" content="dark"><style>html,body{background:#120809 !important}</style><script src="/ficha-hub.js"></script>`);
       html = html.replace("</head>", `<script>try{localStorage.setItem("t20w-site.jogador",${JSON.stringify(eu.nome)})}catch{}</script>`
         + `<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Alegreya:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">`
         + `<link rel="stylesheet" href="/ficha-tema.css"><script type="module" src="/hub.js"></script></head>`);

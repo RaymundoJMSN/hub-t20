@@ -512,3 +512,12 @@ footer a { color: var(--ouro); }
 /* galerias (chassis, heranças…) dentro das raças */
 .miolo.generica .galeria-item { clear: both; margin: 8px 0; overflow: hidden; }
 .miolo.generica .galeria-item .a-img { max-width: 34%; max-height: 150px; }
+
+/* abas de coleção (raças/classes/…, livros/STR/…): um bloco só, com divisórias — não círculos soltos */
+.g-abas { display: flex; flex-wrap: wrap; gap: 0; margin-bottom: 10px; border: 1px solid var(--borda); border-radius: 12px; overflow: hidden; background: #150a0d; }
+.g-abas .g-aba { flex: 1 1 auto; border: 0; border-right: 1px solid var(--borda); border-radius: 0; background: transparent; padding: 9px 12px;
+  white-space: nowrap; text-align: center; font-size: .86rem; }
+.g-abas .g-aba:last-child { border-right: 0; }
+.g-abas .g-aba:hover { background: rgba(201, 162, 39, .08); color: var(--ouro-claro); }
+.g-abas .g-aba.on { background: var(--sangue); color: #fff; }
+@media (max-width: 600px) { .g-abas .g-aba { padding: 8px 6px; font-size: .78rem; letter-spacing: .02em; } }
