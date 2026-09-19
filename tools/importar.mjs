@@ -186,7 +186,10 @@ function itens() {
   const todos = [];
   for (const [rel, v, cat] of ITENS) {
     if (!existsSync(join(ARSENAL, rel))) continue;
-    for (const it of primeiraLista(evalVar(rel, v))) {
+    // cada arquivo é um objeto com uma ou mais listas; "poderes" (culinaria.js) são poderes gerais, não itens — ficam de fora
+    const obj = evalVar(rel, v);
+    const listas = Array.isArray(obj) ? [obj] : Object.entries(obj || {}).filter(([k, x]) => Array.isArray(x) && !/poder/i.test(k)).map(([, x]) => x);
+    for (const it of listas.flat()) {
       if (!it?.nome) continue;
       const stats = Object.entries(it).filter(([k, val]) => !PULAR_ITEM.has(k) && val != null && val !== "" && typeof val !== "object")
         .map(([k, val]) => `<b>${esc(rotulo(k))}:</b> ${esc(val)}`).join("; ");
