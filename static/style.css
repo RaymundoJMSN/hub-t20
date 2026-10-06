@@ -215,7 +215,7 @@ input[type="number"] { width: 76px; }
 }
 .carta .stats, .carta-revisao .stats { font-size: .95rem; line-height: 1.5; }
 .carta .stats b, .carta-revisao .stats b { font-weight: bold; color: #fff; }
-.carta .desc, .carta-revisao .desc { margin: 10px 0 0; }
+.carta .desc, .carta-revisao .desc, .miolo.generica .desc { margin: 10px 0 0; text-align: justify; hyphens: auto; }
 .carta .desc b, .carta-revisao .desc b { color: #f0dc82; }
 .carta .efeitos-num, .carta-revisao .efeitos-num { margin: 8px 0 0; }
 .carta .efeitos-num b, .carta-revisao .efeitos-num b { color: #f0dc82; }
