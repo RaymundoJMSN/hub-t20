@@ -434,7 +434,7 @@ async function tratar(req, res) {
     const todos = carregarPoderes(), q = norm(url.searchParams.get("q")).trim();
     const termos = await comIA(termosBusca(q, vocabDe(todos, () => Object.values(todos).map(blobDe))));
     const poderes = filtrar(Object.entries(todos), ([, t]) => blobDe(t), termos)
-      .map(([slug, t]) => ({ slug, nome: t.nome, categoria: t.categoria, sub: t.sub, livro: t.livro, custo: t.custo,
+      .map(([slug, t]) => ({ slug, nome: t.nome, categoria: t.categoria, sub: t.sub, livro: t.livro, custo: t.custo, divindade: t.divindade,
         rel: relevancia([t.nome, [t.categoria, t.sub, t.livro, t.prereq].join(" "), t.descricao], termos, q) }));
     return json(res, 200, { poderes });
   }
@@ -608,10 +608,30 @@ function carregarTextos() {
 function carregarPoderes() {
   if (!carregarPoderes.cache) {
     const p = lerJson(join(DADOS, "poderes.json"), {});
-    for (const t of Object.values(p)) consertarPrereq(t);
+    // nome do poder → deuses que o concedem (lista "Poderes Concedidos" de cada deus na coleção)
+    const porPoder = {};
+    for (const d of carregarColecao("deuses")?.itens || [])
+      for (const n of (d.html.match(/Poderes Concedidos:<\/b>\s*([^<]+)/i)?.[1] || "").replace(/\.\s*$/, "").split(/,\s*/)) if (n.trim()) (porPoder[norm(n.trim())] ??= []).push(d.nome);
+    for (const [slug, t] of Object.entries(p)) {
+      // índice de raça do Heróis de Arton ("Anão: Arma Amada, Atração pela Pólvora, …") que o minerador leu como poder
+      if (t.categoria === "Racial" && !t.sub && (t.nome === "Várias" || /^(?:[^,.\n]{3,45}, ){2,}[^,.\n]{3,45}\.?$/.test(t.descricao.trim()))) { delete p[slug]; continue; }
+      consertarPrereq(t);
+      origemDoPoder(t, porPoder);
+    }
     carregarPoderes.cache = p;
   }
   return carregarPoderes.cache;
+}
+// "Raça: Anão, Hobgoblin" / "Divindade: Lena, Marah" na 1ª linha (Heróis/Deuses de Arton) vira campo próprio e subtítulo;
+// concedido do Livro Básico vem com o domínio ("Paz") → nome do deus pela lista de Poderes Concedidos (4 domínios sem lista, na mão)
+const DOMINIO_DEUS = { Honra: "Lin-Wu", Libertadora: "Valkaria", "Goblinóides": "Thwor", Sol: "Azgher" };
+function origemDoPoder(t, porPoder = {}) {
+  const m = (t.descricao || "").match(/^(Raça|Divindade):\s*([^\n]+)\n+/);
+  if (m) { t[m[1] === "Raça" ? "raca" : "divindade"] = m[2].trim(); t.descricao = t.descricao.slice(m[0].length); }
+  if (t.categoria === "Concedido" && !t.divindade) { const ds = porPoder[norm(t.nome)] || (DOMINIO_DEUS[t.sub] ? [DOMINIO_DEUS[t.sub]] : []); if (ds.length) t.divindade = ds.join(", "); }
+  const sub = t.divindade || t.raca;
+  if (sub) { t.sub = sub; t.linha = [String(t.linha || "").split(" · ")[0], sub, t.livro].filter(Boolean).join(" · "); }
+  return t;
 }
 // OCR do livro partiu 11 poderes na palavra "pré-requisitos" do MEIO do texto ("um poder cujos | cumpra"): o campo
 // prereq ficou com o resto da frase e o pré-requisito de verdade foi parar numa linha no fim da descrição. Recompõe.
@@ -886,6 +906,13 @@ if (CHECK) {
       const pr2 = consertarPrereq({ descricao: "que tenha Encouraçado como\n\nPré-requisito: proficiência com armaduras pesadas.", prereq: "" });
       if (pr2.prereq !== "proficiência com armaduras pesadas" || !pr2.descricao.endsWith("como pré-requisito.")) return falha("consertarPrereq sem campo: " + JSON.stringify(pr2));
       if (consertarPrereq({ descricao: "Pré-requisito: x no começo não é fim", prereq: "" }).prereq !== "") return falha("consertarPrereq não devia mexer em linha inicial");
+      const o1 = origemDoPoder({ nome: "Dom da Esperança", categoria: "Concedido", sub: "Paz", livro: "Livro Básico", linha: "Poder concedido · Paz · Livro Básico", descricao: "Você soma…" }, { "dom da esperanca": ["Marah"] });
+      if (o1.divindade !== "Marah" || o1.sub !== "Marah" || o1.linha !== "Poder concedido · Marah · Livro Básico") return falha("origemDoPoder LB: " + JSON.stringify(o1));
+      const o2 = origemDoPoder({ nome: "Companheiro Celeste", categoria: "Concedido", sub: "", livro: "Deuses de Arton", linha: "Poder concedido · Deuses de Arton", descricao: "Divindade: Lena, Marah\n\nVocê possui um luminar." });
+      if (o2.divindade !== "Lena, Marah" || o2.descricao !== "Você possui um luminar." || o2.linha !== "Poder concedido · Lena, Marah · Deuses de Arton") return falha("origemDoPoder DdA: " + JSON.stringify(o2));
+      const o3 = origemDoPoder({ nome: "Arma Amada", categoria: "Racial", sub: "", livro: "Heróis de Arton", linha: "Poder racial · Heróis de Arton", descricao: "Raça: Anão, Hobgoblin\n\nEscolha uma arma." });
+      if (o3.raca !== "Anão, Hobgoblin" || o3.sub !== "Anão, Hobgoblin" || o3.descricao !== "Escolha uma arma.") return falha("origemDoPoder raça: " + JSON.stringify(o3));
+      if (origemDoPoder({ nome: "Tradição de Samurai", categoria: "Concedido", sub: "Honra", descricao: "x" }).divindade !== "Lin-Wu") return falha("domínio sem lista devia cair na tabela");
       const urso = await (await fetch(`${base}/api/c/teste/urso`, { headers: H })).json();
       if (urso.html !== "<b>PV</b> 30") return falha("ficha da coleção");
       if ((await fetch(`${base}/api/c/naoexiste`, { headers: H })).status !== 404) return falha("coleção inexistente devia dar 404");

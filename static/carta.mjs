@@ -148,7 +148,8 @@ export function cartaHtml(m, r) {
 
 // Carta no MESMO estilo para um PODER oficial (dados de /api/poder/<slug>)
 export function cartaPoderHtml(t) {
-  const stats = [t.prereq && `<b>Pré-requisito:</b> ${esc(t.prereq)}`, t.custo && `<b>Custo:</b> ${esc(t.custo)}`].filter(Boolean);
+  const stats = [t.divindade && `<b>Divindade:</b> ${esc(t.divindade)}`, t.raca && `<b>Raça:</b> ${esc(t.raca)}`,
+    t.prereq && `<b>Pré-requisito:</b> ${esc(t.prereq)}`, t.custo && `<b>Custo:</b> ${esc(t.custo)}`].filter(Boolean);
   return `
     <h2>${esc(t.nome)}</h2>
     <div class="tipo-linha">${esc(t.linha)}</div>

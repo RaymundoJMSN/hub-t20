@@ -22,6 +22,7 @@ const POCOES = [["sim", "🧪 permitido em poção"], ["poção", "poção"], ["
 // poderes: categorias e livros vêm do minerador (tools/minerar-poderes.mjs)
 const CATEGORIAS = ["Combate", "Destino", "Magia", "Tormenta", "Geral", "Grupo", "Classe", "Habilidade", "Racial", "Origem", "Concedido", "Distinção"];
 const LIVROS = ["Livro Básico", "Heróis de Arton", "Dragão Brasil", "Distinções", "Deuses de Arton", "Guia de NPCs"];
+const DEUSES = ["Aharadak", "Allihanna", "Arsenal", "Azgher", "Hyninn", "Kallyadranoch", "Khalmyr", "Lena", "Lin-Wu", "Marah", "Megalokk", "Nimb", "Oceano", "Sszzaas", "Tanna-Toh", "Tenebra", "Thwor", "Thyatis", "Valkaria", "Wynna"];
 
 export const chaveDe = (m) => m.fonte === "mesa" ? "p:" + m.id : m.fonte === "poder" ? "d:" + m.slug : "o:" + m.slug;
 
@@ -32,13 +33,13 @@ const ORDENS = {
 };
 const PADRAO_ORD = { magias: "circulo", poderes: "categoria" };
 // filtros ⇄ URL (?aba=poderes&q=fogo&c=1,2&t=Arcana&e=Evocação&f=mesa&cat=Combate&liv=…&ord=nome)
-const URL_CHAVES = { circulo: "c", tipo: "t", escola: "e", fonte: "f", pocao: "poc", exec: "ex", alc: "al", res: "res", resEf: "ref", categoria: "cat", livro: "liv" };
+const URL_CHAVES = { circulo: "c", tipo: "t", escola: "e", fonte: "f", pocao: "poc", exec: "ex", alc: "al", res: "res", resEf: "ref", categoria: "cat", livro: "liv", divindade: "deus" };
 
 export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = false, aba = "magias" } = {}) {
   const mesa = mesaGlobal();
   // filtros multi-seleção (vazio = todos); Arcana e Divina são exclusivas entre si
   const filtro = { circulo: new Set(), tipo: new Set(), escola: new Set(), fonte: new Set(), pocao: new Set(),
-    exec: new Set(), alc: new Set(), res: new Set(), resEf: new Set(), categoria: new Set(), livro: new Set(), q: qInicial, ord: PADRAO_ORD[aba], aba };
+    exec: new Set(), alc: new Set(), res: new Set(), resEf: new Set(), categoria: new Set(), livro: new Set(), divindade: new Set(), q: qInicial, ord: PADRAO_ORD[aba], aba };
   if (naUrl) {
     const ps = new URLSearchParams(location.search);
     if (ABAS.some(([a]) => a === ps.get("aba"))) filtro.aba = ps.get("aba");
@@ -135,6 +136,7 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
     } else {
       chips(CATEGORIAS, "categoria", undefined, "Categoria");
       chips(LIVROS, "livro", undefined, "Livro");
+      chips(DEUSES, "divindade", undefined, "Divindade"); // só os concedidos têm deus: marcar um filtra pra eles
     }
   }
 
@@ -163,7 +165,8 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
     (!filtro.resEf.size || filtro.resEf.has(m.resEf));
   const passaPoder = (p) =>
     (!filtro.categoria.size || filtro.categoria.has(p.categoria)) &&
-    (!filtro.livro.size || filtro.livro.has(p.livro));
+    (!filtro.livro.size || filtro.livro.has(p.livro)) &&
+    (!filtro.divindade.size || [...filtro.divindade].some((d) => (p.divindade || "").split(", ").includes(d)));
 
   // com busca, quem mais se parece com o que foi digitado vem primeiro, sem separar por círculo/escola/categoria
   const ordemAtiva = () => (filtro.q.trim() ? "" : filtro.ord);
