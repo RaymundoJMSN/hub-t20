@@ -196,6 +196,8 @@ input[type="number"] { width: 76px; }
   padding: 4px 0 0;
   min-height: 180px;
 }
+.quadro-carta h2 { cursor: copy; }
+.quadro-carta h2.copiado::after { content: " ✓ copiado"; font-size: .55em; color: #7bd88f; letter-spacing: 0; }
 .carta h2, .carta-revisao h2 {
   font-family: 'tormenta20', "Cinzel", serif; font-weight: normal; margin: 0;
   color: #d13235; font-size: 2.1rem; letter-spacing: .01em; text-align: center;

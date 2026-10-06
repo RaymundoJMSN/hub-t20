@@ -130,6 +130,16 @@ export function mesaGlobal() {
     try {
       carta.innerHTML = await html(chave);
       carta.append(botoes);
+      const h2 = carta.querySelector("h2"); // clique no nome copia o nome (pra colar no Foundry, no chat…)
+      if (h2) {
+        h2.title = "clique pra copiar o nome";
+        const avisar = () => { h2.classList.add("copiado"); setTimeout(() => h2.classList.remove("copiado"), 1200); };
+        h2.onclick = () => (navigator.clipboard?.writeText(h2.textContent.trim()) || Promise.reject()).then(avisar, () => {
+          const r = document.createRange(); r.selectNodeContents(h2); const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+          if (document.execCommand("copy")) avisar(); // sem clipboard API (http, webview velho): seleciona e copia do jeito antigo
+          s.removeAllRanges();
+        });
+      }
     } catch (e) {
       carta.querySelector("h2").textContent = e.message === "despublicada" ? "magia despublicada" : "texto não disponível";
     }

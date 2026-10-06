@@ -606,8 +606,24 @@ function carregarTextos() {
   return carregarTextos.cache;
 }
 function carregarPoderes() {
-  if (!carregarPoderes.cache) carregarPoderes.cache = lerJson(join(DADOS, "poderes.json"), {});
+  if (!carregarPoderes.cache) {
+    const p = lerJson(join(DADOS, "poderes.json"), {});
+    for (const t of Object.values(p)) consertarPrereq(t);
+    carregarPoderes.cache = p;
+  }
   return carregarPoderes.cache;
+}
+// OCR do livro partiu 11 poderes na palavra "pré-requisitos" do MEIO do texto ("um poder cujos | cumpra"): o campo
+// prereq ficou com o resto da frase e o pré-requisito de verdade foi parar numa linha no fim da descrição. Recompõe.
+function consertarPrereq(t) {
+  const m = (t.descricao || "").match(/\s*Pr[eé]-?requisitos?:\s*([^\n]+?)\s*$/i);
+  if (!m || m.index === 0) return t;
+  const resto = t.descricao.slice(0, m.index).trimEnd(), frag = (t.prereq || "").trim();
+  if (frag && frag === m[1].replace(/\.$/, "")) { t.descricao = resto; return t; } // só duplicado no fim
+  const plural = /cujos|demais$/.test(resto) ? "s" : "";
+  t.descricao = resto + " pré-requisito" + plural + (frag ? (/^[,.;]/.test(frag) ? "" : " ") + frag : "") + (/[.!?)]$/.test(frag) ? "" : ".");
+  t.prereq = m[1].replace(/\.$/, "");
+  return t;
 }
 const norm = (x) => (x || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 const slug = (s) => norm(s).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80) || randomBytes(3).toString("hex");
@@ -865,6 +881,11 @@ if (CHECK) {
       if (tb[0].fortes < 3 || tb[1].fortes !== 1 || tb[1][1] !== "relampago") return falha("termosBusca: " + JSON.stringify(tb));
       if (relevancia(["Relâmpago", "evocação fogo", "raio"], tb, "fogo relampgo") !== 2 + 1.5) return falha("relevância fraca devia valer metade");
       if (distancia("relampago", "relampgo", 2) !== 1 || distancia("urso", "gato", 1) !== 2) return falha("distancia()");
+      const pr = consertarPrereq({ descricao: "Você recebe um poder de cavaleiro cujos\n\nPré-requisito: treinado em Nobreza.", prereq: "cumpra, usando seu nível como nível de cavaleiro" });
+      if (pr.prereq !== "treinado em Nobreza" || pr.descricao !== "Você recebe um poder de cavaleiro cujos pré-requisitos cumpra, usando seu nível como nível de cavaleiro.") return falha("consertarPrereq: " + JSON.stringify(pr));
+      const pr2 = consertarPrereq({ descricao: "que tenha Encouraçado como\n\nPré-requisito: proficiência com armaduras pesadas.", prereq: "" });
+      if (pr2.prereq !== "proficiência com armaduras pesadas" || !pr2.descricao.endsWith("como pré-requisito.")) return falha("consertarPrereq sem campo: " + JSON.stringify(pr2));
+      if (consertarPrereq({ descricao: "Pré-requisito: x no começo não é fim", prereq: "" }).prereq !== "") return falha("consertarPrereq não devia mexer em linha inicial");
       const urso = await (await fetch(`${base}/api/c/teste/urso`, { headers: H })).json();
       if (urso.html !== "<b>PV</b> 30") return falha("ficha da coleção");
       if ((await fetch(`${base}/api/c/naoexiste`, { headers: H })).status !== 404) return falha("coleção inexistente devia dar 404");
