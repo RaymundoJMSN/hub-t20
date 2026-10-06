@@ -134,11 +134,13 @@ function render() {
   gravarUrl();
   lista.replaceChildren();
   const itens = ITENS.filter(passa);
-  const k = filtro.ord;
+  const acordeao = META.modo === "acordeao", buscando = !!filtro.q.trim();
+  // com busca, quem mais se parece com o que foi digitado vem primeiro, sem separar por grupo
+  const k = buscando ? "" : filtro.ord;
   const chave = (it) => String(it.f?.[k] ?? "").split("|")[0];
   if (k) itens.sort((a, b) => posicao(k, chave(a)) - posicao(k, chave(b)) || a.nome.localeCompare(b.nome));
-  else if (META.modo !== "acordeao") itens.sort((a, b) => a.nome.localeCompare(b.nome));
-  const acordeao = META.modo === "acordeao";
+  else if (buscando) itens.sort((a, b) => (b.rel || 0) - (a.rel || 0) || (acordeao ? 0 : a.nome.localeCompare(b.nome)));
+  else if (!acordeao) itens.sort((a, b) => a.nome.localeCompare(b.nome));
   conta.textContent = `${itens.length} ${itens.length === 1 ? (acordeao ? "resposta" : "ficha") : (acordeao ? "respostas" : "fichas")}` + (acordeao ? " · clique numa pergunta pra ler" : " · clique ou arraste pra pôr na mesa");
   lista.classList.toggle("lista-acordeao", acordeao);
   if (!itens.length) return lista.append(el("div", { className: "vazio", textContent: "nada com esses filtros." }));

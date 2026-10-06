@@ -165,13 +165,14 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
     (!filtro.categoria.size || filtro.categoria.has(p.categoria)) &&
     (!filtro.livro.size || filtro.livro.has(p.livro));
 
+  // com busca, quem mais se parece com o que foi digitado vem primeiro, sem separar por círculo/escola/categoria
+  const ordemAtiva = () => (filtro.q.trim() ? "" : filtro.ord);
   function itensMagias() {
     const itens = [
       ...TUDO.publicadas.filter((m) => passa(m, "mesa")).map((m) => ({ ...m, fonte: "mesa" })),
       ...TUDO.oficiais.filter((m) => passa(m, "oficiais")).map((m) => ({ ...m, fonte: "oficiais" })),
     ];
-    const ord = filtro.ord;
-    // com busca, dentro de cada grupo quem bate no nome vem antes de quem só bate num aprimoramento
+    const ord = ordemAtiva();
     const rel = (a, b) => (b.rel || 0) - (a.rel || 0);
     itens.sort((a, b) => ord === "circulo" ? a.circulo - b.circulo || rel(a, b) || a.nome.localeCompare(b.nome)
       : ord === "escola" ? a.escola.localeCompare(b.escola) || a.circulo - b.circulo || rel(a, b) || a.nome.localeCompare(b.nome)
@@ -180,7 +181,7 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
   }
   function itensPoderes() {
     const itens = TUDO.poderes.filter(passaPoder).map((p) => ({ ...p, fonte: "poder" }));
-    const ord = filtro.ord;
+    const ord = ordemAtiva();
     const pos = (p) => { const i = CATEGORIAS.indexOf(p.categoria); return i < 0 ? 99 : i; };
     const rel = (a, b) => (b.rel || 0) - (a.rel || 0);
     itens.sort((a, b) => ord === "categoria" ? pos(a) - pos(b) || (a.sub || "").localeCompare(b.sub || "") || rel(a, b) || a.nome.localeCompare(b.nome)
@@ -204,9 +205,9 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
     let grupo = null;
     for (const m of itens) {
       // cabeçalho por grupo (círculo/escola, ou categoria/livro), só quando faz sentido pra ordem
-      const g = poderes
-        ? (filtro.ord === "categoria" ? m.categoria : filtro.ord === "livro" ? m.livro : null)
-        : (filtro.ord === "circulo" ? `${m.circulo}º círculo` : filtro.ord === "escola" ? m.escola : null);
+      const o = ordemAtiva(), g = poderes
+        ? (o === "categoria" ? m.categoria : o === "livro" ? m.livro : null)
+        : (o === "circulo" ? `${m.circulo}º círculo` : o === "escola" ? m.escola : null);
       if (g !== null && g !== grupo) { grupo = g; lista.append(el("h2", { className: "g-grupo", textContent: g })); }
       const chave = chaveDe(m);
       lista.append(el("div", {

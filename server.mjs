@@ -416,23 +416,26 @@ async function tratar(req, res) {
   // grimório: lista leve (oficiais + publicadas). Busca = toda palavra precisa bater (AND), cada uma com sinônimos (OR)
   if (p === "/api/grimorio" && req.method === "GET") {
     const textos = carregarTextos();
-    const termos = termosBusca(url.searchParams.get("q"));
-    const bate = (blob) => termos.every((alts) => alts.some((t) => blob.includes(t)));
-    const oficiais = Object.entries(textos)
-      .filter(([, t]) => bate(blobDe(t)))
-      .map(([slug, t]) => ({ slug, nome: t.nome, escola: t.escola, grupo: t.grupo, circulo: t.circulo, pocao: tipoDePocao(t.stats?.["Alvo/Área"]), rel: relevancia(t, termos),
+    const q = norm(url.searchParams.get("q")).trim();
+    const termos = await comIA(termosBusca(q, vocabDe(textos, () => Object.values(textos).map(blobDe))));
+    const aprsDe = (t) => (t.aprimoramentos || []).map((a) => a.texto || a).join(" ");
+    const oficiais = filtrar(Object.entries(textos), ([, t]) => blobDe(t), termos)
+      .map(([slug, t]) => ({ slug, nome: t.nome, escola: t.escola, grupo: t.grupo, circulo: t.circulo, pocao: tipoDePocao(t.stats?.["Alvo/Área"]),
+        rel: relevancia([t.nome, [t.linha, t.escola, t.grupo, t.descricao, Object.values(t.stats || {}).join(" ")].join(" "), aprsDe(t)], termos, q),
         ...eixosDe(t.stats?.["Execução"], t.stats?.["Alcance"], t.stats?.["Resistência"]) }));
-    const publicadas = Object.entries(estado.publicadas)
-      .filter(([, m]) => bate(norm([m.nome, htmlParaTexto(m.descricao), m.escola, m.tipo, (m.aprimoramentos || []).map((a) => a.texto).join(" "), JSON.stringify(m.eixos || {})].join(" "))))
-      .map(([id, m]) => ({ id, nome: m.nome, escola: m.escola, grupo: m.tipo, circulo: m.circulo || 1, autor: m.autor, pontos: m.pontos, pocao: tipoDePocaoDosEixos(m.eixos?.alvo),
-        ...eixosDaMesa(m.eixos) }));
+    const publicadasPartes = Object.entries(estado.publicadas)
+      .map(([id, m]) => [id, m, m.nome, [m.escola, m.tipo, htmlParaTexto(m.descricao), JSON.stringify(m.eixos || {})].join(" "), aprsDe(m)]);
+    const publicadas = filtrar(publicadasPartes, ([, , ...partes]) => norm(partes.join(" ")), termos)
+      .map(([id, m, ...partes]) => ({ id, nome: m.nome, escola: m.escola, grupo: m.tipo, circulo: m.circulo || 1, autor: m.autor, pontos: m.pontos, pocao: tipoDePocaoDosEixos(m.eixos?.alvo),
+        rel: relevancia(partes, termos, q), ...eixosDaMesa(m.eixos) }));
     return json(res, 200, { oficiais, publicadas });
   }
   if (p === "/api/poderes" && req.method === "GET") {
-    const termos = termosBusca(url.searchParams.get("q"));
-    const poderes = Object.entries(carregarPoderes())
-      .filter(([, t]) => termos.every((alts) => alts.some((x) => blobDe(t).includes(x))))
-      .map(([slug, t]) => ({ slug, nome: t.nome, categoria: t.categoria, sub: t.sub, livro: t.livro, custo: t.custo, rel: relevancia(t, termos) }));
+    const todos = carregarPoderes(), q = norm(url.searchParams.get("q")).trim();
+    const termos = await comIA(termosBusca(q, vocabDe(todos, () => Object.values(todos).map(blobDe))));
+    const poderes = filtrar(Object.entries(todos), ([, t]) => blobDe(t), termos)
+      .map(([slug, t]) => ({ slug, nome: t.nome, categoria: t.categoria, sub: t.sub, livro: t.livro, custo: t.custo,
+        rel: relevancia([t.nome, [t.categoria, t.sub, t.livro, t.prereq].join(" "), t.descricao], termos, q) }));
     return json(res, 200, { poderes });
   }
   if (p.startsWith("/api/poder/") && req.method === "GET") {
@@ -452,9 +455,12 @@ async function tratar(req, res) {
     const col = carregarColecao(c[1]);
     if (!col) return json(res, 404, { erro: "coleção não existe no servidor" });
     if (c[2]) { const it = col.porId.get(c[2]); return it ? json(res, 200, it) : json(res, 404, { erro: "não existe" }); }
-    const termos = termosBusca(url.searchParams.get("q"));
-    const itens = termos.length ? col.itens.filter((i) => termos.every((alts) => alts.some((t) => i.t.includes(t)))) : col.itens;
-    return json(res, 200, { meta: col.meta, itens: itens.map(resumo) });
+    const q = norm(url.searchParams.get("q")).trim();
+    const termos = await comIA(termosBusca(q, vocabDe(col, () => col.itens.map((i) => i.t))));
+    const itens = termos.length
+      ? filtrar(col.itens, (i) => i.t, termos).map((i) => ({ ...resumo(i), rel: relevancia([i.nome, [i.linha, ...Object.values(i.f || {})].join(" "), i.t], termos, q) }))
+      : col.itens.map(resumo);
+    return json(res, 200, { meta: col.meta, itens });
   }
   if (p === "/api/colecoes") return json(res, 200, lerJson(join(DADOS, "colecoes", "INDEX.json"), { contagem: {} }));
 
@@ -605,14 +611,6 @@ function carregarPoderes() {
 }
 const norm = (x) => (x || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 const slug = (s) => norm(s).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80) || randomBytes(3).toString("hex");
-// quantos grupos de termos batem em cada parte (nome ×3, corpo ×2, aprimoramentos ×1): ordena o resultado da busca
-function relevancia(t, termos) {
-  if (!termos.length) return 0;
-  const nome = norm([t.nome, t.linha, t.escola, t.categoria, t.sub].join(" ")), corpo = norm([t.descricao, t.prereq, Object.values(t.stats || {}).join(" ")].join(" ")), aprs = norm((t.aprimoramentos || []).map((a) => a.texto || a).join(" "));
-  let r = 0;
-  for (const alts of termos) { if (alts.some((x) => nome.includes(x))) r += 3; else if (alts.some((x) => corpo.includes(x))) r += 2; else if (alts.some((x) => aprs.includes(x))) r += 1; }
-  return r;
-}
 const blobs = new WeakMap();
 function blobDe(t) {
   if (!blobs.has(t)) blobs.set(t, norm([t.nome, t.linha, t.escola, t.grupo, t.descricao,
@@ -621,7 +619,10 @@ function blobDe(t) {
     (t.aprimoramentos || []).map((a) => a.texto || a).join(" ")].join(" ")));
   return blobs.get(t);
 }
-// sinônimos: cada palavra da consulta vira um grupo de alternativas (qualquer uma serve)
+// ---- busca (grimório, poderes e toda coleção): cada palavra vira um grupo de alternativas e o item passa
+// se TODO grupo bate (AND). Alternativas FORTES = a palavra e seus sinônimos; FRACAS = palavras do próprio
+// acervo parecidas por digitação (relampgo → relampago) e, com dados/ia.key, sinônimos pedidos à IA.
+// Fraca só entra quando a palavra não acha nada como está, e vale metade na relevância.
 const SINONIMOS = [
   ["fogo", "chama", "queima", "incendi", "ignea", "igneo"],
   ["frio", "gelo", "congel", "gelid"],
@@ -644,11 +645,86 @@ const SINONIMOS = [
   ["voz", "som", "sonico", "silenc", "surdo"],
   ["mental", "mente", "fascinado", "enfeiticado"],
 ];
-function termosBusca(q) {
-  return norm(q).split(/\s+/).filter(Boolean).map((w) => {
+// Levenshtein com teto: para de contar quando passa de `max`
+function distancia(a, b, max) {
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i]; let menor = i;
+    for (let j = 1; j <= b.length; j++) { cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); menor = Math.min(menor, cur[j]); }
+    if (menor > max) return max + 1;
+    prev = cur;
+  }
+  return prev[b.length];
+}
+// vocabulário de cada fonte (palavras com 4+ letras dos blobs), montado uma vez por objeto-fonte
+const vocabs = new WeakMap();
+function vocabDe(chave, blobsDe) {
+  if (!vocabs.has(chave)) { const v = new Set(); for (const b of blobsDe()) for (const w of b.split(/[^a-z0-9]+/)) if (w.length >= 4) v.add(w); vocabs.set(chave, { palavras: v, parecidos: new Map() }); }
+  return vocabs.get(chave);
+}
+function parecidos(w, vocab) {
+  if (!vocab || w.length < 5) return [];
+  if (!vocab.parecidos.has(w)) {
+    let out = [];
+    for (const v of vocab.palavras) if (v.includes(w)) { out = null; break; } // já casa como está: nada a corrigir
+    if (out) { const max = w.length >= 8 ? 2 : 1; for (const v of vocab.palavras) if (Math.abs(v.length - w.length) <= max && distancia(w, v, max) <= max) out.push(v); }
+    vocab.parecidos.set(w, (out || []).slice(0, 8));
+  }
+  return vocab.parecidos.get(w);
+}
+const VAZIAS = new Set(["de", "do", "da", "em", "a", "o", "e", "um", "uma", "no", "na"]);
+function termosBusca(q, vocab) {
+  const ws = norm(q).split(/\s+/).filter(Boolean);
+  return ws.filter((w) => ws.length === 1 || !VAZIAS.has(w)).map((w) => {
     const grupo = SINONIMOS.find((g) => g.some((sin) => w.startsWith(sin) || sin.startsWith(w) && w.length >= 4));
-    return grupo ? [...new Set([w, ...grupo])] : [w];
+    const alts = grupo ? [...new Set([w, ...grupo])] : [w];
+    alts.fortes = alts.length;
+    for (const p of parecidos(w, vocab)) if (!alts.includes(p)) alts.push(p);
+    return alts;
   });
+}
+const bate = (blob, termos) => termos.every((alts) => alts.some((t) => blob.includes(t)));
+// todas as palavras (AND); se nada tem todas ("dragão vermelho" sem dragão vermelho), serve qualquer uma e a relevância ordena
+function filtrar(lista, blob, termos) {
+  if (!termos.length) return lista;
+  const todas = lista.filter((x) => bate(blob(x), termos));
+  return todas.length || termos.length < 2 ? todas : lista.filter((x) => termos.some((alts) => alts.some((t) => blob(x).includes(t))));
+}
+// relevância: nome ×3 > linha/escola/categoria ×2 > corpo ×1 por grupo (fraca vale metade); nome igual à consulta ou começando por ela sobe
+function relevancia(partes, termos, q) {
+  if (!termos.length) return 0;
+  const [nome, meio, corpo] = partes.map(norm);
+  let r = nome.trim() === q ? 6 : nome.startsWith(q) ? 3 : 0;
+  for (const alts of termos) {
+    let melhor = 0;
+    alts.forEach((x, i) => { const p = (nome.includes(x) ? 3 : meio.includes(x) ? 2 : corpo.includes(x) ? 1 : 0) * (i < alts.fortes ? 1 : 0.5); if (p > melhor) melhor = p; });
+    r += melhor;
+  }
+  return r;
+}
+// IA opcional: com dados/ia.key (chave da Anthropic), cada palavra nova da consulta ganha até 6 radicais de T20
+// pedidos ao modelo UMA vez (cache em dados/ia-busca.json); sem chave ou com erro, a busca segue sem ela
+const ARQ_IA = join(DADOS, "ia-busca.json"), ARQ_IA_KEY = join(DADOS, "ia.key");
+let iaCache = null;
+async function sinonimosIA(w) {
+  if (CHECK || w.length < 4 || !existsSync(ARQ_IA_KEY)) return [];
+  iaCache ??= lerJson(ARQ_IA, {});
+  if (w in iaCache) return iaCache[w];
+  iaCache[w] = []; // marca antes: a mesma palavra digitada de novo enquanto a IA responde não dispara outra chamada
+  try {
+    const r = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", signal: AbortSignal.timeout(6000),
+      headers: { "x-api-key": readFileSync(ARQ_IA_KEY, "utf8").trim(), "anthropic-version": "2023-06-01", "content-type": "application/json" },
+      body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 150, messages: [{ role: "user", content:
+        `Busca num compêndio de Tormenta 20 (RPG, português). Termo digitado: "${w}". Responda SÓ um array JSON com até 6 radicais de palavras em português (minúsculas, sem acento, sem espaço; radical curto: "congel" cobre congelado/congelar) que o texto de uma magia, poder, monstro ou item usaria pra falar disso. Só termos específicos; nada genérico como "dano", "criatura", "teste". Se não houver, [].` }] }) });
+    const texto = (await r.json()).content?.[0]?.text || "[]";
+    iaCache[w] = JSON.parse(texto.match(/\[[\s\S]*\]/)?.[0] || "[]").map(norm).filter((s) => /^[a-z0-9-]{3,}$/.test(s) && s !== w).slice(0, 6);
+    gravarJson(ARQ_IA, iaCache);
+  } catch { delete iaCache[w]; return []; }
+  return iaCache[w];
+}
+async function comIA(termos) {
+  for (const alts of termos) for (const s of await sinonimosIA(alts[0])) if (!alts.includes(s)) alts.push(s);
+  return termos;
 }
 
 // ---- ranking de aprimoramentos oficiais contra a magia do usuário ----
@@ -779,6 +855,16 @@ if (CHECK) {
       const lista = await (await fetch(`${base}/api/c/teste?q=garra`, { headers: H })).json();
       if (lista.itens.length !== 1 || lista.itens[0].id !== "urso" || lista.itens[0].html) return falha("busca da coleção: " + JSON.stringify(lista));
       if (lista.meta.ordem.nd[1] !== "2") return falha("meta da coleção não veio");
+      const digitado = await (await fetch(`${base}/api/c/teste?q=mordda`, { headers: H })).json(); // "mordida" com letra faltando
+      if (digitado.itens.length !== 1 || digitado.itens[0].id !== "lobo") return falha("parecido por digitação: " + JSON.stringify(digitado.itens));
+      const ou = await (await fetch(`${base}/api/c/teste?q=lobo urso`, { headers: H })).json(); // ninguém tem as duas → qualquer uma serve
+      if (ou.itens.length !== 2) return falha("busca sem resultado devia cair pra qualquer palavra");
+      const ani = await (await fetch(`${base}/api/c/teste?q=lobo`, { headers: H })).json();
+      if (ani.itens[0]?.rel !== 6 + 3) return falha("nome igual à consulta devia pontuar 9, veio " + ani.itens[0]?.rel);
+      const tb = termosBusca("fogo relampgo", vocabDe({}, () => ["relampago chama"]));
+      if (tb[0].fortes < 3 || tb[1].fortes !== 1 || tb[1][1] !== "relampago") return falha("termosBusca: " + JSON.stringify(tb));
+      if (relevancia(["Relâmpago", "evocação fogo", "raio"], tb, "fogo relampgo") !== 2 + 1.5) return falha("relevância fraca devia valer metade");
+      if (distancia("relampago", "relampgo", 2) !== 1 || distancia("urso", "gato", 1) !== 2) return falha("distancia()");
       const urso = await (await fetch(`${base}/api/c/teste/urso`, { headers: H })).json();
       if (urso.html !== "<b>PV</b> 30") return falha("ficha da coleção");
       if ((await fetch(`${base}/api/c/naoexiste`, { headers: H })).status !== 404) return falha("coleção inexistente devia dar 404");
