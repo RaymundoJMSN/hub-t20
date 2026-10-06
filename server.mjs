@@ -420,7 +420,7 @@ async function tratar(req, res) {
     const bate = (blob) => termos.every((alts) => alts.some((t) => blob.includes(t)));
     const oficiais = Object.entries(textos)
       .filter(([, t]) => bate(blobDe(t)))
-      .map(([slug, t]) => ({ slug, nome: t.nome, escola: t.escola, grupo: t.grupo, circulo: t.circulo, pocao: tipoDePocao(t.stats?.["Alvo/Área"]),
+      .map(([slug, t]) => ({ slug, nome: t.nome, escola: t.escola, grupo: t.grupo, circulo: t.circulo, pocao: tipoDePocao(t.stats?.["Alvo/Área"]), rel: relevancia(t, termos),
         ...eixosDe(t.stats?.["Execução"], t.stats?.["Alcance"], t.stats?.["Resistência"]) }));
     const publicadas = Object.entries(estado.publicadas)
       .filter(([, m]) => bate(norm([m.nome, htmlParaTexto(m.descricao), m.escola, m.tipo, (m.aprimoramentos || []).map((a) => a.texto).join(" "), JSON.stringify(m.eixos || {})].join(" "))))
@@ -432,7 +432,7 @@ async function tratar(req, res) {
     const termos = termosBusca(url.searchParams.get("q"));
     const poderes = Object.entries(carregarPoderes())
       .filter(([, t]) => termos.every((alts) => alts.some((x) => blobDe(t).includes(x))))
-      .map(([slug, t]) => ({ slug, nome: t.nome, categoria: t.categoria, sub: t.sub, livro: t.livro, custo: t.custo }));
+      .map(([slug, t]) => ({ slug, nome: t.nome, categoria: t.categoria, sub: t.sub, livro: t.livro, custo: t.custo, rel: relevancia(t, termos) }));
     return json(res, 200, { poderes });
   }
   if (p.startsWith("/api/poder/") && req.method === "GET") {
@@ -582,8 +582,21 @@ async function tratar(req, res) {
 }
 
 // ---- textos oficiais + busca ----
+const ELEMENTOS = { fogo: ["Reflexos", "em chamas"], frio: ["Fortitude", "arrefecida"], eletricidade: ["Reflexos", "eletrificada"] };
 function carregarTextos() {
-  if (!carregarTextos.cache) carregarTextos.cache = lerJson(join(DADOS, "textos.json"), {});
+  if (!carregarTextos.cache) {
+    const t = lerJson(join(DADOS, "textos.json"), {});
+    for (const m of Object.values(t)) {
+      const d = norm(m.descricao || "");
+      const tem = Object.keys(ELEMENTOS).filter((e) => new RegExp("\\b" + (e === "eletricidade" ? "eletric" : e)).test(d));
+      for (const a of m.aprimoramentos || []) {
+        if (!/muda a resist[eê]ncia para Reflexos \(eletricidade, fogo\)/.test(a.texto) || tem.length !== 1) continue;
+        const [teste, cond] = ELEMENTOS[tem[0]];
+        a.texto = `muda a resistência para ${teste} parcial. Se falha, a criatura fica ${cond} (${tem[0]}). (DB #219)`;
+      }
+    }
+    carregarTextos.cache = t;
+  }
   return carregarTextos.cache;
 }
 function carregarPoderes() {
@@ -592,6 +605,14 @@ function carregarPoderes() {
 }
 const norm = (x) => (x || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 const slug = (s) => norm(s).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80) || randomBytes(3).toString("hex");
+// quantos grupos de termos batem em cada parte (nome ×3, corpo ×2, aprimoramentos ×1): ordena o resultado da busca
+function relevancia(t, termos) {
+  if (!termos.length) return 0;
+  const nome = norm([t.nome, t.linha, t.escola, t.categoria, t.sub].join(" ")), corpo = norm([t.descricao, t.prereq, Object.values(t.stats || {}).join(" ")].join(" ")), aprs = norm((t.aprimoramentos || []).map((a) => a.texto || a).join(" "));
+  let r = 0;
+  for (const alts of termos) { if (alts.some((x) => nome.includes(x))) r += 3; else if (alts.some((x) => corpo.includes(x))) r += 2; else if (alts.some((x) => aprs.includes(x))) r += 1; }
+  return r;
+}
 const blobs = new WeakMap();
 function blobDe(t) {
   if (!blobs.has(t)) blobs.set(t, norm([t.nome, t.linha, t.escola, t.grupo, t.descricao,
@@ -604,7 +625,7 @@ function blobDe(t) {
 const SINONIMOS = [
   ["fogo", "chama", "queima", "incendi", "ignea", "igneo"],
   ["frio", "gelo", "congel", "gelid"],
-  ["eletricidade", "raio", "eletric", "relampago", "choque"],
+  ["eletricidade", "eletric", "eletrific", "relampago", "choque", "faisca"],
   ["acido", "corro"],
   ["cura", "curar", "recupera pv", "recupera pontos de vida", "regenera"],
   ["medo", "amedrontado", "apavorado", "assust", "aterroriz"],
@@ -614,14 +635,14 @@ const SINONIMOS = [
   ["luz", "ilumin", "brilh", "ofuscado", "cego"],
   ["escuridao", "trevas", "sombra"],
   ["morto", "morto-vivo", "mortos-vivos", "necro", "zumbi", "esqueleto"],
-  ["invocar", "convoca", "conjura", "criatura convocada"],
+  ["invocar", "convoca", "criatura convocada"],
   ["teleport", "teletransport", "deslocar", "viaj"],
   ["bonus", "+1", "+2", "+5", "recebe +"],
   ["dormir", "sono", "inconsciente", "adormec"],
-  ["paralis", "imovel", "preso", "enredado", "agarrado"],
-  ["escudo", "protecao", "proteg", "defesa", "abjur"],
+  ["paralis", "imovel", "enredado", "agarrado"],
+  ["escudo", "protecao", "proteg", "abjur"],
   ["voz", "som", "sonico", "silenc", "surdo"],
-  ["mental", "mente", "vontade", "encant", "fascinado", "enfeiticado"],
+  ["mental", "mente", "fascinado", "enfeiticado"],
 ];
 function termosBusca(q) {
   return norm(q).split(/\s+/).filter(Boolean).map((w) => {

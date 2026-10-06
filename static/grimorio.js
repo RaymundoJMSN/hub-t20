@@ -171,18 +171,21 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
       ...TUDO.oficiais.filter((m) => passa(m, "oficiais")).map((m) => ({ ...m, fonte: "oficiais" })),
     ];
     const ord = filtro.ord;
-    itens.sort((a, b) => ord === "circulo" ? a.circulo - b.circulo || a.nome.localeCompare(b.nome)
-      : ord === "escola" ? a.escola.localeCompare(b.escola) || a.circulo - b.circulo || a.nome.localeCompare(b.nome)
-      : a.nome.localeCompare(b.nome));
+    // com busca, dentro de cada grupo quem bate no nome vem antes de quem só bate num aprimoramento
+    const rel = (a, b) => (b.rel || 0) - (a.rel || 0);
+    itens.sort((a, b) => ord === "circulo" ? a.circulo - b.circulo || rel(a, b) || a.nome.localeCompare(b.nome)
+      : ord === "escola" ? a.escola.localeCompare(b.escola) || a.circulo - b.circulo || rel(a, b) || a.nome.localeCompare(b.nome)
+      : rel(a, b) || a.nome.localeCompare(b.nome));
     return itens;
   }
   function itensPoderes() {
     const itens = TUDO.poderes.filter(passaPoder).map((p) => ({ ...p, fonte: "poder" }));
     const ord = filtro.ord;
     const pos = (p) => { const i = CATEGORIAS.indexOf(p.categoria); return i < 0 ? 99 : i; };
-    itens.sort((a, b) => ord === "categoria" ? pos(a) - pos(b) || (a.sub || "").localeCompare(b.sub || "") || a.nome.localeCompare(b.nome)
-      : ord === "livro" ? LIVROS.indexOf(a.livro) - LIVROS.indexOf(b.livro) || pos(a) - pos(b) || a.nome.localeCompare(b.nome)
-      : a.nome.localeCompare(b.nome));
+    const rel = (a, b) => (b.rel || 0) - (a.rel || 0);
+    itens.sort((a, b) => ord === "categoria" ? pos(a) - pos(b) || (a.sub || "").localeCompare(b.sub || "") || rel(a, b) || a.nome.localeCompare(b.nome)
+      : ord === "livro" ? LIVROS.indexOf(a.livro) - LIVROS.indexOf(b.livro) || pos(a) - pos(b) || rel(a, b) || a.nome.localeCompare(b.nome)
+      : rel(a, b) || a.nome.localeCompare(b.nome));
     return itens;
   }
 
