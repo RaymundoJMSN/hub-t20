@@ -16,7 +16,7 @@ document.title = `${pagina.titulo} — Hub T20`;
 const raiz = document.querySelector("#c-pagina");
 const mesa = mesaGlobal();
 const params = new URLSearchParams(location.search);
-const filtro = { aba: rota?.[1] || params.get("aba") || pagina.abas[0][0], q: params.get("q") || "", sel: {}, faixa: {}, ord: params.get("ord") ?? null };
+const filtro = { aba: rota?.[1] || params.get("aba") || pagina.abas[0][0], q: params.get("q") || "", sel: {}, ex: {}, faixa: {}, ord: params.get("ord") ?? null }; // ex = excluídos (botão direito), "-valor" na URL
 if (!pagina.abas.some(([c]) => c === filtro.aba)) filtro.aba = pagina.abas[0][0];
 let META = { filtros: [], ordem: {} }, ITENS = [], buscaTimer;
 const MAX_CHIPS = 12;
@@ -31,7 +31,7 @@ const lista = el("div", { className: "grimorio-lista" });
 raiz.append(barraAbas, busca, boxFiltros, el("div", { className: "g-conta-linha" }, conta, ordem), lista);
 
 for (const [col, rot] of pagina.abas) {
-  const b = el("button", { type: "button", className: "chip g-aba", textContent: capitalizar(rot), onclick: () => { if (filtro.aba !== col) { filtro.aba = col; filtro.sel = {}; filtro.faixa = {}; filtro.ord = null; trocarAba(); } } });
+  const b = el("button", { type: "button", className: "chip g-aba", textContent: capitalizar(rot), onclick: () => { if (filtro.aba !== col) { filtro.aba = col; filtro.sel = {}; filtro.ex = {}; filtro.faixa = {}; filtro.ord = null; trocarAba(); } } });
   b.dataset.col = col;
   barraAbas.append(b);
 }
@@ -43,7 +43,7 @@ function gravarUrl() {
   const ps = new URLSearchParams();
   if (filtro.aba !== pagina.abas[0][0]) ps.set("aba", filtro.aba);
   if (filtro.q.trim()) ps.set("q", filtro.q.trim());
-  for (const [k, v] of Object.entries(filtro.sel)) if (v.size) ps.set(k, [...v].join(","));
+  for (const k of Object.keys(filtro.sel)) { const vs = [...filtro.sel[k], ...[...(filtro.ex[k] || [])].map((v) => "-" + v)]; if (vs.length) ps.set(k, vs.join(",")); }
   for (const [k, [a, b]] of Object.entries(filtro.faixa)) { const vs = valoresDe(k); if (a > 0 || b < vs.length - 1) ps.set(k, `${vs[a]}..${vs[b]}`); }
   if (filtro.ord) ps.set("ord", filtro.ord);
   history.replaceState(null, "", caminho + (ps.size ? "?" + ps : ""));
@@ -90,11 +90,14 @@ function faixa(f, valores) {
   return box;
 }
 function chips(f, valores) {
-  const sel = filtro.sel[f.k];
+  const sel = filtro.sel[f.k], ex = filtro.ex[f.k];
   const box = el("div", { className: "g-abas g-seg" }, el("span", { className: "g-ordem-rotulo", textContent: f.rotulo }));
   for (const v of valores) {
-    const b = el("button", { type: "button", className: "chip g-aba" + (sel.has(v) ? " on" : ""), textContent: capitalizar(v),
-      onclick: () => { sel.has(v) ? sel.delete(v) : sel.add(v); b.classList.toggle("on", sel.has(v)); render(); } });
+    const pintar = () => { b.classList.toggle("on", sel.has(v)); b.classList.toggle("nao", ex.has(v)); };
+    const b = el("button", { type: "button", className: "chip g-aba", textContent: capitalizar(v), title: "clique: só isto · botão direito: sem isto",
+      onclick: () => { ex.delete(v); sel.has(v) ? sel.delete(v) : sel.add(v); pintar(); render(); },
+      oncontextmenu: (e) => { e.preventDefault(); sel.delete(v); ex.has(v) ? ex.delete(v) : ex.add(v); pintar(); render(); } });
+    pintar();
     box.append(b);
   }
   return box;
@@ -112,7 +115,9 @@ function montarFiltros() {
     const valores = valoresDe(f.k);
     if (!valores.length) continue;
     if (f.tipo === "faixa" && valores.length > 2) { boxFiltros.append(faixa(f, valores)); continue; }
-    filtro.sel[f.k] = filtro.sel[f.k] || new Set((params.get(f.k) || "").split(",").filter(Boolean));
+    const daUrl = (params.get(f.k) || "").split(",").filter(Boolean);
+    filtro.sel[f.k] = filtro.sel[f.k] || new Set(daUrl.filter((v) => !v.startsWith("-")));
+    filtro.ex[f.k] = filtro.ex[f.k] || new Set(daUrl.filter((v) => v.startsWith("-")).map((v) => v.slice(1)));
     params.delete(f.k); // só na primeira montagem
     const tipo = f.tipo === "chips" || f.tipo === "select" ? f.tipo : valores.length > MAX_CHIPS ? "select" : "chips";
     boxFiltros.append(tipo === "select" ? seletor(f, valores) : chips(f, valores));
@@ -127,6 +132,7 @@ function montarFiltros() {
 // valor multi ("magia|itens") casa se qualquer parte estiver selecionada; faixa só filtra quem tem valor
 const passa = (it) =>
   Object.entries(filtro.sel).every(([k, sel]) => !sel.size || String(it.f?.[k] ?? "").split("|").some((v) => sel.has(v))) &&
+  Object.entries(filtro.ex).every(([k, ex]) => !ex.size || !String(it.f?.[k] ?? "").split("|").some((v) => ex.has(v))) &&
   Object.entries(filtro.faixa).every(([k, [a, b]]) => { const v = String(it.f?.[k] ?? ""); if (!v) return true; const i = posicao(k, v); return i >= a && i <= b; });
 const badge = (it) => { const k = META.filtros?.[0]?.k; const v = k && String(it.f?.[k] ?? ""); return v && v.length <= 4 ? v : ""; };
 

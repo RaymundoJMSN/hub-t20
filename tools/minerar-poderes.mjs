@@ -139,7 +139,9 @@ const ARQUIVOS = [
   { arq: "herois-arton/02-novos-poderes/poderes-grupo.md", categoria: "Grupo", livro: "Heróis de Arton" },
   { arq: "herois-arton/02-novos-poderes/poderes-raca.md", categoria: "Racial", livro: "Heróis de Arton" },
   { arq: "herois-arton/02-novos-poderes/poderes-de-raca.md", categoria: "Racial", livro: "Heróis de Arton" },
-  { arq: "dragao-brasil/04-pericias-poderes/02-poderes-gerais.md", categoria: "Geral", livro: "Dragão Brasil" },
+  // o capítulo "Poderes Gerais" do DB é um arquivo só com seções "## Poderes de X": cada seção tem a sua categoria
+  { arq: "dragao-brasil/04-pericias-poderes/02-poderes-gerais.md", categoria: "Geral", livro: "Dragão Brasil",
+    secoes: { Combate: ["Combate"], Montaria: ["Combate", "Montaria"], "Coração de Dragão": ["Magia", "Coração de Dragão"], Magia: ["Magia"], Outros: ["Destino"] } },
   // um arquivo por distinção (título do arquivo = nome da distinção, daí o sub "*")
   ...listarMd("herois-arton/02-distincoes").map((arq) => ({ arq, categoria: "Distinção", sub: "*", de: SECAO_DISTINCAO, livro: "Heróis de Arton" })),
   ...listarMd("deuses-arton/03-distincoes").map((arq) => ({ arq, categoria: "Distinção", sub: "*", de: SECAO_DISTINCAO, livro: "Deuses de Arton" })),
@@ -164,9 +166,9 @@ function titulo(s) {
 const NAO_E_PODER = /^(tabela|índice|indice|sumário|introdu|sobre |navega|poderes? de (classe|combate|destino|magia|tormenta|raça|raca|grupo|arton)\b|novos (efeitos|poderes)|refer|lista de|como (usar|funciona)|pré-requisitos)/i;
 
 /** Uma seção de poder por cabeçalho do nível mais profundo que o arquivo usa. */
-export function poderesDoMarkdown(md) {
+export function poderesDoMarkdown(md, nivelForcado) {
   const corpo = md.replace(/\r\n?/g, "\n").replace(/^---\n[\s\S]*?\n---\n/, "");
-  const nivel = (corpo.match(/^### /gm) || []).length >= 5 ? 3 : 2;
+  const nivel = nivelForcado || ((corpo.match(/^### /gm) || []).length >= 5 ? 3 : 2);
   const re = new RegExp(`^#{${nivel}} +(.+?)\\s*$`, "gm");
   const achados = [...corpo.matchAll(re)];
   const out = [];
@@ -187,12 +189,30 @@ export function poderesDoMarkdown(md) {
   return out;
 }
 
+/** [{nome da seção "## Poderes de X", markdown da seção}] */
+export function secoesDoMarkdown(md) {
+  const partes = md.replace(/\r\n?/g, "\n").split(/^## +(.+?)\s*$/m);
+  const out = [];
+  for (let i = 1; i < partes.length; i += 2) out.push({ secao: partes[i].replace(/^Poderes de /, "").replace(/^Outros Poderes$/, "Outros").trim(), md: partes[i + 1] });
+  return out;
+}
 function doMarkdown(poderes) {
   let n = 0;
-  for (const { arq, categoria, sub, livro, de } of ARQUIVOS) {
+  for (const { arq, categoria, sub, livro, de, secoes } of ARQUIVOS) {
     const caminho = join(LIVROS, arq);
     if (!existsSync(caminho)) { console.warn("! livro ausente:", arq); continue; }
     let md = readFileSync(caminho, "utf-8");
+    if (secoes) {
+      for (const { secao, md: trecho } of secoesDoMarkdown(md)) {
+        const [cat, subSecao] = secoes[secao] || [categoria, secao];
+        for (const { nome, texto } of poderesDoMarkdown(trecho, 3)) {
+          const { prereq, descricao } = separarPrereq(texto);
+          guardar(poderes, { nome, categoria: cat, sub: subSecao || "", livro, prereq, descricao, custo: "", publicacao: livro });
+          n++;
+        }
+      }
+      continue;
+    }
     const nomeSub = sub === "*" ? (md.match(/^# +(.+)$/m)?.[1].trim() || "") : (sub || "");
     if (de) {
       const i = md.search(de);

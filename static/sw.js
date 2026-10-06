@@ -4,7 +4,7 @@
 //    (stale-while-revalidate) → a segunda visita a qualquer aba é instantânea; mudança de deploy chega na visita seguinte
 //  • o resto da /api/ (sessão, votos, agenda, magias da mesa): só rede
 // Subir CACHE quando quiser derrubar tudo que está guardado.
-const CACHE = "hub-t20-v3";
+const CACHE = "hub-t20-v4";
 const FIXO = /\.(css|js|mjs|png|svg|ico|ttf|otf|woff2|webmanifest)$/;
 const API_FIXA = /^\/api\/(c\/|grimorio|poderes|poder\/|texto\/)/;
 

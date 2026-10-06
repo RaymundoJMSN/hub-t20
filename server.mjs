@@ -617,6 +617,14 @@ function carregarPoderes() {
       if (t.categoria === "Racial" && !t.sub && (t.nome === "Várias" || /^(?:[^,.\n]{3,45}, ){2,}[^,.\n]{3,45}\.?$/.test(t.descricao.trim()))) { delete p[slug]; continue; }
       consertarPrereq(t);
       origemDoPoder(t, porPoder);
+      if (t.categoria === "Classe" && t.sub === "Geral") { t.sub = "Qualquer classe"; t.linha = t.linha.replace("· Geral ·", "· Qualquer classe ·"); } // Aumento de Atributo
+      // pack "poderes que faltam": "Escolhido de X" da aventura Libertação de Valkaria vem como "Geral" do LB com links @UUID no texto
+      if (/Liberta[çc][ãa]o de Valkaria/.test(t.publicacao || "")) {
+        t.livro = "Libertação de Valkaria";
+        if (t.categoria === "Geral") { t.categoria = "Destino"; const d = t.nome.match(/^Escolhido de (.+)$/)?.[1]; if (d) { t.divindade = d; t.sub = d; } }
+        t.descricao = t.descricao.replace(/@UUID\[[^\]]*\]\{([^}]*)\}/g, "$1");
+        t.linha = ["Poder de " + t.categoria.toLowerCase(), t.sub, t.livro].filter(Boolean).join(" · ");
+      }
     }
     carregarPoderes.cache = p;
   }

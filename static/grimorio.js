@@ -20,8 +20,8 @@ const FONTES = [["oficiais", "📕 oficiais"], ["mesa", "🔗 da mesa"]];
 // item de uso único (LB p. 341): o nome do frasco muda com o alvo da magia
 const POCOES = [["sim", "🧪 permitido em poção"], ["poção", "poção"], ["óleo", "óleo"], ["granada", "granada"]];
 // poderes: categorias e livros vêm do minerador (tools/minerar-poderes.mjs)
-const CATEGORIAS = ["Combate", "Destino", "Magia", "Tormenta", "Geral", "Grupo", "Classe", "Habilidade", "Racial", "Origem", "Concedido", "Distinção"];
-const LIVROS = ["Livro Básico", "Heróis de Arton", "Dragão Brasil", "Distinções", "Deuses de Arton", "Guia de NPCs"];
+const CATEGORIAS = ["Combate", "Destino", "Magia", "Tormenta", "Grupo", "Classe", "Habilidade", "Racial", "Origem", "Concedido", "Distinção"];
+const LIVROS = ["Livro Básico", "Heróis de Arton", "Dragão Brasil", "Distinções", "Deuses de Arton", "Guia de NPCs", "Libertação de Valkaria"];
 const DEUSES = ["Aharadak", "Allihanna", "Arsenal", "Azgher", "Hyninn", "Kallyadranoch", "Khalmyr", "Lena", "Lin-Wu", "Marah", "Megalokk", "Nimb", "Oceano", "Sszzaas", "Tanna-Toh", "Tenebra", "Thwor", "Thyatis", "Valkaria", "Wynna"];
 
 export const chaveDe = (m) => m.fonte === "mesa" ? "p:" + m.id : m.fonte === "poder" ? "d:" + m.slug : "o:" + m.slug;
@@ -33,18 +33,21 @@ const ORDENS = {
 };
 const PADRAO_ORD = { magias: "circulo", poderes: "categoria" };
 // filtros ⇄ URL (?aba=poderes&q=fogo&c=1,2&t=Arcana&e=Evocação&f=mesa&cat=Combate&liv=…&ord=nome)
-const URL_CHAVES = { circulo: "c", tipo: "t", escola: "e", fonte: "f", pocao: "poc", exec: "ex", alc: "al", res: "res", resEf: "ref", categoria: "cat", livro: "liv", divindade: "deus" };
+// valor com "-" na frente = excluído (botão direito no chip): ?cat=Classe,-Habilidade
+const URL_CHAVES = { circulo: "c", tipo: "t", escola: "e", fonte: "f", pocao: "poc", exec: "ex", alc: "al", res: "res", resEf: "ref", categoria: "cat", livro: "liv", divindade: "deus", classe: "cls" };
+const CLASSES_VISTAS = new Set(); // classes que já apareceram em /api/poderes (sub de Classe/Habilidade), pros chips
 
 export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = false, aba = "magias" } = {}) {
   const mesa = mesaGlobal();
   // filtros multi-seleção (vazio = todos); Arcana e Divina são exclusivas entre si
   const filtro = { circulo: new Set(), tipo: new Set(), escola: new Set(), fonte: new Set(), pocao: new Set(),
-    exec: new Set(), alc: new Set(), res: new Set(), resEf: new Set(), categoria: new Set(), livro: new Set(), divindade: new Set(), q: qInicial, ord: PADRAO_ORD[aba], aba };
+    exec: new Set(), alc: new Set(), res: new Set(), resEf: new Set(), categoria: new Set(), livro: new Set(), divindade: new Set(), classe: new Set(), q: qInicial, ord: PADRAO_ORD[aba], aba, ex: {} };
+  for (const k of Object.keys(URL_CHAVES)) filtro.ex[k] = new Set();
   if (naUrl) {
     const ps = new URLSearchParams(location.search);
     if (ABAS.some(([a]) => a === ps.get("aba"))) filtro.aba = ps.get("aba");
     for (const [k, u] of Object.entries(URL_CHAVES))
-      for (const v of (ps.get(u) || "").split(",").filter(Boolean)) filtro[k].add(k === "circulo" ? +v : v);
+      for (const v of (ps.get(u) || "").split(",").filter(Boolean)) { const ex = v.startsWith("-"), s = ex ? v.slice(1) : v; (ex ? filtro.ex[k] : filtro[k]).add(k === "circulo" ? +s : s); }
     if (ORDENS[filtro.aba].some(([o]) => o === ps.get("ord"))) filtro.ord = ps.get("ord");
   }
   function gravarUrl() {
@@ -52,7 +55,7 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
     const ps = new URLSearchParams();
     if (filtro.aba !== "magias") ps.set("aba", filtro.aba);
     if (filtro.q.trim()) ps.set("q", filtro.q.trim());
-    for (const [k, u] of Object.entries(URL_CHAVES)) if (filtro[k].size) ps.set(u, [...filtro[k]].join(","));
+    for (const [k, u] of Object.entries(URL_CHAVES)) if (filtro[k].size || filtro.ex[k].size) ps.set(u, [...filtro[k], ...[...filtro.ex[k]].map((v) => "-" + v)].join(","));
     if (filtro.ord !== PADRAO_ORD[filtro.aba]) ps.set("ord", filtro.ord);
     history.replaceState(null, "", location.pathname + (ps.size ? "?" + ps : ""));
   }
@@ -100,22 +103,32 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
     for (const item of itens) {
       const valor = Array.isArray(item) ? item[0] : item;
       const b = el("button", {
-        type: "button", className: "chip g-aba",
+        type: "button", className: "chip g-aba", title: "clique: só isto · botão direito: sem isto",
         textContent: capitalizar(Array.isArray(item) ? item[1] : rotulo(item)),
         onclick: () => {
           const sel = filtro[chave];
+          filtro.ex[chave].delete(valor);
           if (sel.has(valor)) sel.delete(valor);
           else {
             const oposto = chave === "tipo" && EXCLUSIVOS[valor];
             if (oposto && sel.has(oposto)) { sel.delete(oposto); botoes.get(oposto).classList.remove("on"); }
             sel.add(valor);
           }
-          b.classList.toggle("on", sel.has(valor));
+          pintar();
+          render();
+        },
+        oncontextmenu: (e) => { // botão direito (ou toque longo) = excluir
+          e.preventDefault();
+          const ex = filtro.ex[chave];
+          filtro[chave].delete(valor);
+          ex.has(valor) ? ex.delete(valor) : ex.add(valor);
+          pintar();
           render();
         },
       });
+      const pintar = () => { b.classList.toggle("on", filtro[chave].has(valor)); b.classList.toggle("nao", filtro.ex[chave].has(valor)); };
       botoes.set(valor, b);
-      b.classList.toggle("on", filtro[chave].has(valor));
+      pintar();
       box.append(b);
     }
     boxFiltros.append(box);
@@ -137,6 +150,7 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
       chips(CATEGORIAS, "categoria", undefined, "Categoria");
       chips(LIVROS, "livro", undefined, "Livro");
       chips(DEUSES, "divindade", undefined, "Divindade"); // só os concedidos têm deus: marcar um filtra pra eles
+      if (CLASSES_VISTAS.size) chips([...CLASSES_VISTAS].sort((a, b) => a.localeCompare(b)), "classe", undefined, "Classe"); // poderes e habilidades da classe
     }
   }
 
@@ -149,24 +163,26 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
         ? { ...await (await fetch("/api/grimorio" + qs)).json(), poderes: [] }
         : { oficiais: [], publicadas: [], ...await (await fetch("/api/poderes" + qs)).json() };
     } catch { TUDO = { oficiais: [], publicadas: [], poderes: [] }; }
+    // as classes vêm do próprio dado; na primeira vez que aparecem, o bloco de chips nasce
+    const antes = CLASSES_VISTAS.size;
+    for (const p of TUDO.poderes) if ((p.categoria === "Classe" || p.categoria === "Habilidade") && p.sub) CLASSES_VISTAS.add(p.sub);
+    if (CLASSES_VISTAS.size !== antes && filtro.aba === "poderes") montarChips();
     render();
   }
+  // passa no chip: nada marcado ou este marcado, e não excluído (botão direito)
+  const ok = (k, v) => (!filtro[k].size || filtro[k].has(v)) && !filtro.ex[k].has(v);
 
   const passa = (m, fonte) =>
-    (!filtro.circulo.size || filtro.circulo.has(m.circulo)) &&
-    (!filtro.tipo.size || filtro.tipo.has(m.grupo)) &&
-    (!filtro.escola.size || filtro.escola.has(m.escola)) &&
-    (!filtro.fonte.size || filtro.fonte.has(fonte)) &&
+    ok("circulo", m.circulo) && ok("tipo", m.grupo) && ok("escola", m.escola) && ok("fonte", fonte) &&
     // "permitido em poção" só corta quem não vira item; os tipos (poção/óleo/granada) refinam por cima
     (!filtro.pocao.size || (m.pocao && (![...filtro.pocao].some((v) => v !== "sim") || filtro.pocao.has(m.pocao)))) &&
-    (!filtro.exec.size || filtro.exec.has(m.exec)) &&
-    (!filtro.alc.size || filtro.alc.has(m.alc)) &&
-    (!filtro.res.size || filtro.res.has(m.res)) &&
-    (!filtro.resEf.size || filtro.resEf.has(m.resEf));
-  const passaPoder = (p) =>
-    (!filtro.categoria.size || filtro.categoria.has(p.categoria)) &&
-    (!filtro.livro.size || filtro.livro.has(p.livro)) &&
-    (!filtro.divindade.size || [...filtro.divindade].some((d) => (p.divindade || "").split(", ").includes(d)));
+    !(filtro.ex.pocao.has("sim") && m.pocao) && !(m.pocao && filtro.ex.pocao.has(m.pocao)) &&
+    ok("exec", m.exec) && ok("alc", m.alc) && ok("res", m.res) && ok("resEf", m.resEf);
+  const passaPoder = (p) => {
+    const deuses = (p.divindade || "").split(", ").filter(Boolean);
+    return ok("categoria", p.categoria) && ok("livro", p.livro) && ok("classe", p.sub) &&
+      (!filtro.divindade.size || deuses.some((d) => filtro.divindade.has(d))) && !deuses.some((d) => filtro.ex.divindade.has(d));
+  };
 
   // com busca, quem mais se parece com o que foi digitado vem primeiro, sem separar por círculo/escola/categoria
   const ordemAtiva = () => (filtro.q.trim() ? "" : filtro.ord);
