@@ -41,7 +41,7 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
   const mesa = mesaGlobal();
   // filtros multi-seleção (vazio = todos); Arcana e Divina são exclusivas entre si
   const filtro = { circulo: new Set(), tipo: new Set(), escola: new Set(), fonte: new Set(), pocao: new Set(),
-    exec: new Set(), alc: new Set(), res: new Set(), resEf: new Set(), categoria: new Set(), livro: new Set(), divindade: new Set(), classe: new Set(), q: qInicial, ord: PADRAO_ORD[aba], aba, ex: {} };
+    exec: new Set(), alc: new Set(), res: new Set(), resEf: new Set(), categoria: new Set(), livro: new Set(), divindade: new Set(), classe: new Set(), em: "", q: qInicial, ord: PADRAO_ORD[aba], aba, ex: {} };
   for (const k of Object.keys(URL_CHAVES)) filtro.ex[k] = new Set();
   if (naUrl) {
     const ps = new URLSearchParams(location.search);
@@ -49,6 +49,7 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
     for (const [k, u] of Object.entries(URL_CHAVES))
       for (const v of (ps.get(u) || "").split(",").filter(Boolean)) { const ex = v.startsWith("-"), s = ex ? v.slice(1) : v; (ex ? filtro.ex[k] : filtro[k]).add(k === "circulo" ? +s : s); }
     if (ORDENS[filtro.aba].some(([o]) => o === ps.get("ord"))) filtro.ord = ps.get("ord");
+    if (ps.get("em") === "pre") filtro.em = "pre";
   }
   function gravarUrl() {
     if (!naUrl) return;
@@ -57,6 +58,7 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
     if (filtro.q.trim()) ps.set("q", filtro.q.trim());
     for (const [k, u] of Object.entries(URL_CHAVES)) if (filtro[k].size || filtro.ex[k].size) ps.set(u, [...filtro[k], ...[...filtro.ex[k]].map((v) => "-" + v)].join(","));
     if (filtro.ord !== PADRAO_ORD[filtro.aba]) ps.set("ord", filtro.ord);
+    if (filtro.em && filtro.aba === "poderes") ps.set("em", filtro.em);
     history.replaceState(null, "", location.pathname + (ps.size ? "?" + ps : ""));
   }
   let TUDO = { oficiais: [], publicadas: [], poderes: [] };
@@ -147,6 +149,11 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
       chips(TESTES, "res", undefined, "Resistência");
       chips(EFEITOS, "resEf", undefined, "Efeito");
     } else {
+      // onde a busca procura: tudo, ou só no pré-requisito ("quem exige Ataque Furtivo?")
+      const em = el("div", { className: "g-abas g-seg" }, el("span", { className: "g-ordem-rotulo", textContent: "Buscar em" }),
+        ...[["", "Tudo"], ["pre", "Pré-requisito"]].map(([v, t]) => el("button", { type: "button", className: "chip g-aba" + (filtro.em === v ? " on" : ""), textContent: t,
+          onclick: (e) => { filtro.em = v; for (const b of em.querySelectorAll(".g-aba")) b.classList.toggle("on", b === e.currentTarget); buscar(); } })));
+      boxFiltros.append(em);
       chips(CATEGORIAS, "categoria", undefined, "Categoria");
       chips(LIVROS, "livro", undefined, "Livro");
       chips(DEUSES, "divindade", undefined, "Divindade"); // só os concedidos têm deus: marcar um filtra pra eles
@@ -161,7 +168,7 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
     try {
       TUDO = filtro.aba === "magias"
         ? { ...await (await fetch("/api/grimorio" + qs)).json(), poderes: [] }
-        : { oficiais: [], publicadas: [], ...await (await fetch("/api/poderes" + qs)).json() };
+        : { oficiais: [], publicadas: [], ...await (await fetch("/api/poderes" + qs + (filtro.em && q ? "&em=" + filtro.em : ""))).json() };
     } catch { TUDO = { oficiais: [], publicadas: [], poderes: [] }; }
     // as classes vêm do próprio dado; na primeira vez que aparecem, o bloco de chips nasce
     const antes = CLASSES_VISTAS.size;

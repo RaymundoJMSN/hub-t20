@@ -431,9 +431,12 @@ async function tratar(req, res) {
     return json(res, 200, { oficiais, publicadas });
   }
   if (p === "/api/poderes" && req.method === "GET") {
-    const todos = carregarPoderes(), q = norm(url.searchParams.get("q")).trim();
+    let q = norm(url.searchParams.get("q")).trim(), soPre = url.searchParams.get("em") === "pre";
+    const prefixo = q.match(/^(?:pre[\s-]*)?requisitos?\b[\s:]*/); // "pré-requisito: esgrima" = buscar só no pré-requisito
+    if (prefixo && q.length > prefixo[0].length) { soPre = true; q = q.slice(prefixo[0].length); }
+    const todos = carregarPoderes();
     const termos = await comIA(termosBusca(q, vocabDe(todos, () => Object.values(todos).map(blobDe))));
-    const poderes = filtrar(Object.entries(todos), ([, t]) => blobDe(t), termos)
+    const poderes = filtrar(Object.entries(todos).filter(([, t]) => !soPre || t.prereq), ([, t]) => soPre ? norm(t.prereq) : blobDe(t), termos)
       .map(([slug, t]) => ({ slug, nome: t.nome, categoria: t.categoria, sub: t.sub, livro: t.livro, custo: t.custo, divindade: t.divindade,
         rel: relevancia([t.nome, [t.categoria, t.sub, t.livro, t.prereq].join(" "), t.descricao], termos, q) }));
     return json(res, 200, { poderes });
@@ -703,45 +706,72 @@ function distancia(a, b, max) {
 // vocabulário de cada fonte (palavras com 4+ letras dos blobs), montado uma vez por objeto-fonte
 const vocabs = new WeakMap();
 function vocabDe(chave, blobsDe) {
-  if (!vocabs.has(chave)) { const v = new Set(); for (const b of blobsDe()) for (const w of b.split(/[^a-z0-9]+/)) if (w.length >= 4) v.add(w); vocabs.set(chave, { palavras: v, parecidos: new Map() }); }
+  if (!vocabs.has(chave)) { const v = new Map(); for (const b of blobsDe()) for (const w of b.split(/[^a-z0-9]+/)) if (w.length >= 3) v.set(w, (v.get(w) || 0) + 1); vocabs.set(chave, { palavras: v, parecidos: new Map() }); }
   return vocabs.get(chave);
 }
 function parecidos(w, vocab) {
   if (!vocab || w.length < 5) return [];
   if (!vocab.parecidos.has(w)) {
     let out = [];
-    for (const v of vocab.palavras) if (v.includes(w)) { out = null; break; } // já casa como está: nada a corrigir
-    if (out) { const max = w.length >= 8 ? 2 : 1; for (const v of vocab.palavras) if (Math.abs(v.length - w.length) <= max && distancia(w, v, max) <= max) out.push(v); }
+    for (const v of vocab.palavras.keys()) if (v.includes(w)) { out = null; break; } // já casa como está: nada a corrigir
+    if (out) {
+      const max = w.length >= 8 ? 2 : 1;
+      for (const [v, n] of vocab.palavras) if (v.length >= 4 && Math.abs(v.length - w.length) <= max) { const d = distancia(w, v, max); if (d <= max) out.push([v, d, n]); }
+      const dMin = Math.min(...out.map((c) => c[1])), topo = Math.max(0, ...out.filter((c) => c[1] === dMin).map((c) => c[2]));
+      out = out.filter((c) => c[1] === dMin && c[2] * 5 >= topo).sort((a, b) => b[2] - a[2]).map((c) => c[0]);
+    }
     vocab.parecidos.set(w, (out || []).slice(0, 8));
   }
   return vocab.parecidos.get(w);
 }
-const VAZIAS = new Set(["de", "do", "da", "em", "a", "o", "e", "um", "uma", "no", "na"]);
+const VAZIAS = new Set(["de", "do", "da", "dos", "das", "em", "a", "o", "e", "um", "uma", "no", "na", "com"]);
+// "magias"/"mágicas"/"dragões" → raiz que também casa o singular e o outro gênero
+function raiz(w) {
+  if (w.length < 5) return w;
+  const r = w.replace(/oes$|aes$/, "ao").replace(/ais$/, "al").replace(/eis$/, "el").replace(/(?<=[^aeiou])es$/, "").replace(/s$/, "");
+  return r.length >= 6 ? r.replace(/[ao]$/, "") : r;
+}
+// "espadalonga" → ["espada", "longa"] quando as duas metades são palavras do acervo e a junta não aparece
+function separar(w, vocab) {
+  if (!vocab || w.length < 7 || [...vocab.palavras.keys()].some((v) => v.includes(w))) return null;
+  for (let i = 3; i <= w.length - 3; i++) if (vocab.palavras.has(w.slice(0, i)) && vocab.palavras.has(w.slice(i))) return [w.slice(0, i), w.slice(i)];
+  return null;
+}
 function termosBusca(q, vocab) {
-  const ws = norm(q).split(/\s+/).filter(Boolean);
-  return ws.filter((w) => ws.length === 1 || !VAZIAS.has(w)).map((w) => {
+  let ws = norm(q).split(/[^a-z0-9+]+/).filter(Boolean); // hífen, dois-pontos, vírgula viram espaço
+  ws = ws.filter((w) => ws.length === 1 || !VAZIAS.has(w)).flatMap((w) => separar(w, vocab) || [w]);
+  return ws.map((w) => {
     const grupo = SINONIMOS.find((g) => g.some((sin) => w.startsWith(sin) || sin.startsWith(w) && w.length >= 4));
     const alts = grupo ? [...new Set([w, ...grupo])] : [w];
+    if (!alts.includes(raiz(w))) alts.push(raiz(w));
     alts.fortes = alts.length;
     for (const p of parecidos(w, vocab)) if (!alts.includes(p)) alts.push(p);
     return alts;
   });
 }
-const bate = (blob, termos) => termos.every((alts) => alts.some((t) => blob.includes(t)));
+// palavra de até 3 letras ("for", "sab", "1") só casa inteira: "for 1" não pode achar "forma"
+const fronteiras = new Map();
+function tem(texto, x) {
+  if (x.length > 3) return texto.includes(x);
+  if (!fronteiras.has(x)) fronteiras.set(x, new RegExp(`(?:^|[^a-z0-9])${x.replace(/[+]/g, "\\+")}(?:[^a-z0-9]|$)`));
+  return fronteiras.get(x).test(texto);
+}
+const bate = (blob, termos) => termos.every((alts) => alts.some((t) => tem(blob, t)));
 // todas as palavras (AND); se nada tem todas ("dragão vermelho" sem dragão vermelho), serve qualquer uma e a relevância ordena
 function filtrar(lista, blob, termos) {
   if (!termos.length) return lista;
   const todas = lista.filter((x) => bate(blob(x), termos));
-  return todas.length || termos.length < 2 ? todas : lista.filter((x) => termos.some((alts) => alts.some((t) => blob(x).includes(t))));
+  return todas.length || termos.length < 2 ? todas : lista.filter((x) => termos.some((alts) => alts.some((t) => tem(blob(x), t))));
 }
 // relevância: nome ×3 > linha/escola/categoria ×2 > corpo ×1 por grupo (fraca vale metade); nome igual à consulta ou começando por ela sobe
 function relevancia(partes, termos, q) {
   if (!termos.length) return 0;
-  const [nome, meio, corpo] = partes.map(norm);
-  let r = nome.trim() === q ? 6 : nome.startsWith(q) ? 3 : 0;
+  const [nome, meio, corpo] = partes.map(norm), n = nome.trim(), frase = termos.map((a) => a[0]).join(" ");
+  let r = n === q ? 6 : n.startsWith(q) ? 3 : q.length >= 6 && Math.abs(n.length - q.length) <= 2 && distancia(n, q, 2) <= 2 ? 4 : 0; // "encoracado" ≈ Encouraçado
+  if (termos.length > 1 && (meio.includes(frase) || corpo.includes(frase))) r += 2; // "treinado em luta" na ordem
   for (const alts of termos) {
     let melhor = 0;
-    alts.forEach((x, i) => { const p = (nome.includes(x) ? 3 : meio.includes(x) ? 2 : corpo.includes(x) ? 1 : 0) * (i < alts.fortes ? 1 : 0.5); if (p > melhor) melhor = p; });
+    alts.forEach((x, i) => { const p = (tem(nome, x) ? 3 : tem(meio, x) ? 2 : tem(corpo, x) ? 1 : 0) * (i < alts.fortes ? 1 : 0.5); if (p > melhor) melhor = p; });
     r += melhor;
   }
   return r;
@@ -906,9 +936,16 @@ if (CHECK) {
       const ani = await (await fetch(`${base}/api/c/teste?q=lobo`, { headers: H })).json();
       if (ani.itens[0]?.rel !== 6 + 3) return falha("nome igual à consulta devia pontuar 9, veio " + ani.itens[0]?.rel);
       const tb = termosBusca("fogo relampgo", vocabDe({}, () => ["relampago chama"]));
-      if (tb[0].fortes < 3 || tb[1].fortes !== 1 || tb[1][1] !== "relampago") return falha("termosBusca: " + JSON.stringify(tb));
+      if (tb[0].fortes < 3 || tb[1].fortes !== 2 || tb[1][2] !== "relampago") return falha("termosBusca: " + JSON.stringify(tb));
       if (relevancia(["Relâmpago", "evocação fogo", "raio"], tb, "fogo relampgo") !== 2 + 1.5) return falha("relevância fraca devia valer metade");
       if (distancia("relampago", "relampgo", 2) !== 1 || distancia("urso", "gato", 1) !== 2) return falha("distancia()");
+      const voc = vocabDe({}, () => ["treinado treinado treinado treinado treinado treinado em luta", "trincado", "espada longa"]);
+      if (termosBusca("trinado", voc)[0].join() !== "trinado,trinad,treinado") return falha("correção devia preferir a palavra comum: " + termosBusca("trinado", voc)[0]);
+      if (termosBusca("espadalonga", voc).map((a) => a[0]).join() !== "espada,longa") return falha("palavra grudada devia separar");
+      if (termosBusca("pré-requisito: luta", voc).map((a) => a[0]).join() !== "pre,requisito,luta") return falha("pontuação/hífen da consulta");
+      if (!termosBusca("magias", voc)[0].includes("magia") || !termosBusca("dragoes", voc)[0].includes("draga")) return falha("raiz(): " + termosBusca("dragoes", voc)[0]);
+      if (tem("forma primal", "for") || !tem("for 1, sab 2", "for") || !tem("+2 na defesa", "+2")) return falha("palavra curta só casa inteira");
+      if (relevancia(["Encouraçado", "", ""], termosBusca("encoracado", voc), "encoracado") < 4) return falha("nome quase igual devia pontuar");
       const pr = consertarPrereq({ descricao: "Você recebe um poder de cavaleiro cujos\n\nPré-requisito: treinado em Nobreza.", prereq: "cumpra, usando seu nível como nível de cavaleiro" });
       if (pr.prereq !== "treinado em Nobreza" || pr.descricao !== "Você recebe um poder de cavaleiro cujos pré-requisitos cumpra, usando seu nível como nível de cavaleiro.") return falha("consertarPrereq: " + JSON.stringify(pr));
       const pr2 = consertarPrereq({ descricao: "que tenha Encouraçado como\n\nPré-requisito: proficiência com armaduras pesadas.", prereq: "" });
