@@ -12,7 +12,7 @@ link.dataset.hub = "";
 document.head.append(link);
 
 // [rota, "emoji Rótulo", cargaCompleta?] — /ficha/ é um app à parte (recarrega de verdade)
-export const ABAS = [["/", "📖 Grimório"], ["/criar", "✦ Criar magia"], ["/ficha/", "🧾 Criar ficha", true], ["/bestiario", "🐉 Bestiário"], ["/itens", "🎒 Itens"],
+export const ABAS = [["/", "📖 Grimório"], ["/criar", "✦ Criar magia"], ["/ficha/", "🧾 Criar ficha", true], ["/bestiario", "🐉 Bestiário"], ["/criar-ameaca", "👹 Criar ameaça"], ["/itens", "🎒 Itens"],
   ["/regras", "⚖️ Regras"], ["/compendio", "🏛️ Compêndio"], ["/missoes", "📜 Missões"], ["/agenda", "📅 Agenda"], ["/links", "🎲 Mesa"]];
 // páginas de coleção: cada aba da página é uma coleção de dados/colecoes/
 export const PAGINAS_COL = {
@@ -126,7 +126,7 @@ function ativa() {
   if (/^\/[mod](\/|$)/.test(p)) return "/";
   const c = p.match(/^\/c\/([\w-]+)/);
   if (c) return paginaDaColecao(c[1]) || "/";
-  return ABAS.find(([h]) => h !== "/" && p.startsWith(h))?.[0] || (p === "/" ? "/" : "");
+  return ABAS.find(([h]) => h !== "/" && (p === h || p.startsWith(h.endsWith("/") ? h : h + "/")))?.[0] || (p === "/" ? "/" : "");
 }
 let nav, gaveta;
 function marcarAtiva() {

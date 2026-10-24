@@ -1,6 +1,7 @@
 // tools/importar.mjs — monta dados/colecoes/*.json (fora do git: texto da Jambo) a partir de
 //   • arsenal (github.com/nicholemos/arsenal): ameaças, itens, STR, breves jornadas, perigos, distinções, parceiros
 //   • tormenta-livros/livros (markdown dos 5 livros): regras, raças, classes, origens, deuses
+//   • arena-imperial-t20 (papel de combate de cada ameaça) e compilado-ameacas-t20 (Tabela 2-3 & cia → dados/ameacas-regras.json)
 // Uso: node tools/importar.mjs [--arsenal ../arsenal] [--livros ../tormenta-livros/livros] [--missoes ../guilda-mineradores]
 // Cada coleção = { meta:{titulo, filtros:[{k,rotulo}], ordem:{k:[valores]}}, itens:[{id,nome,linha,grupo,f:{},t,html}] }
 //   t = texto pesquisável já normalizado (sem acento, minúsculo); html = corpo já sanitizado (o servidor confia).
@@ -8,12 +9,15 @@ import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync } from 
 import { join, dirname, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
+import { doArsenal } from "../static/ameaca.mjs";
 
 const RAIZ = dirname(dirname(fileURLToPath(import.meta.url)));
 const arg = (n, d) => { const i = process.argv.indexOf(n); return i > 0 ? process.argv[i + 1] : d; };
 const ARSENAL = arg("--arsenal", join(RAIZ, "..", "arsenal"));
 const LIVROS = arg("--livros", join(RAIZ, "..", "tormenta-livros", "livros"));
 const GUILDA = arg("--missoes", null);
+const ARENA = arg("--arena", join(RAIZ, "..", "arena-imperial-t20", "public", "json", "t20_monsters.json"));
+const COMPILADO = arg("--compilado", join(RAIZ, "..", "compilado-ameacas-t20", "COMPILADO-AMEACAS.md"));
 const SAIDA = join(RAIZ, "dados", "colecoes");
 mkdirSync(SAIDA, { recursive: true });
 
@@ -164,16 +168,73 @@ export function ameacaHtml(a) {
 }
 function ameacas() {
   const db = evalVar("ameacas/ameacas_db.js", "AMEACAS_DB");
+  // o arsenal não traz o papel de combate (solo/lacaio/especial): vem da Arena Imperial, casando pelo nome
+  // nome repetido entre livros (Ogro do Livro Básico é solo, o do Ameaças de Arton é especial): casa pelo livro também
+  const papeis = new Map();
+  if (existsSync(ARENA)) for (const m of JSON.parse(readFileSync(ARENA, "utf-8"))) papeis.set(norm(m.name), [...(papeis.get(norm(m.name)) || []), m]);
+  else console.warn("! sem a Arena Imperial: toda ameaça entra como solo —", ARENA);
+  const papelDe = (a) => { const c = papeis.get(norm(a.nome)) || []; return (c.find((m) => norm(m.sources).startsWith(norm(a.fonte))) || c[0])?.role || []; };
   const itens = db.filter((a) => a.nome).map((a) => {
     const tipoStr = String(a.tipo || "").trim();
     const tamanho = TAMANHOS.find((t) => tipoStr.endsWith(t)) || "";
     const tipo = tipoStr.split(/\s+/)[0].replace(/[^\p{L}-]/gu, "") || "?";
     const nd = String(a.nd || "?").trim();
     return ficha({ id: slug(a.nome), nome: a.nome, linha: `${tipoStr} · ND ${nd} · ${a.fonte || ""}`, grupo: a.fonte || "?",
-      f: { nd, tipo, tamanho, fonte: a.fonte || "?" }, ndn: ndNum(nd), html: ameacaHtml(a) });
+      f: { nd, tipo, tamanho, fonte: a.fonte || "?" }, ndn: ndNum(nd), html: ameacaHtml(a), dados: doArsenal(a, papelDe(a)) });
   }).sort((a, b) => a.ndn - b.ndn || a.nome.localeCompare(b.nome));
   const nds = [...new Set(itens.map((i) => i.f.nd))].filter((v) => /^(\d+|1\/4|1\/2|S|S\+)$/.test(v)).sort((a, b) => ndNum(a) - ndNum(b)); // "-" e "?" ficam fora do slider
   gravar("ameacas", { titulo: "Bestiário", filtros: [{ k: "nd", rotulo: "ND", tipo: "faixa" }, { k: "tipo", rotulo: "tipo" }, { k: "tamanho", rotulo: "tamanho" }, { k: "fonte", rotulo: "livro" }], ordem: { nd: nds, tamanho: TAMANHOS } }, itens);
+}
+
+// ---------------------------------------------------------------- REGRAS DE CRIAÇÃO DE AMEAÇAS (compilado-ameacas-t20)
+// primeira tabela markdown depois do título → linhas de células (sem a linha |---|)
+export function tabelaMd(md, titulo) {
+  const i = md.indexOf(titulo);
+  if (i < 0) return [];
+  const linhas = [];
+  for (const l of md.slice(i + titulo.length).split("\n")) {
+    if (/^\s*\|/.test(l)) { if (!/^\s*\|[\s|:-]+\|\s*$/.test(l)) linhas.push(l.trim().replace(/^\||\|$/g, "").split("|").map((c) => c.trim())); }
+    else if (linhas.length) break;
+  }
+  return linhas;
+}
+const numeroMd = (s) => Number(String(s).replace(/m$/, "").replace(/\.(?=\d{3})/g, "").replace(/[–—−]/g, "-").replace(",", "."));
+const ND_MD = { "¼": "1/4", "½": "1/2" };
+export function regrasDoCompilado(md) {
+  const tabela = {};
+  for (const [papel, titulo] of [["solo", "### Tabela 2-3 A"], ["lacaio", "### Tabela 2-3 B"], ["especial", "### Tabela 2-3 C"]]) {
+    const [, ...linhas] = tabelaMd(md, titulo); // ND | Atq | Dano | Def | Forte | Média | Fraca | PV | CD
+    tabela[papel] = Object.fromEntries(linhas.map((c) => [ND_MD[c[0]] || c[0], { atq: numeroMd(c[1]), dano: numeroMd(c[2]), defesa: numeroMd(c[3]),
+      forte: numeroMd(c[4]), media: numeroMd(c[5]), fraca: numeroMd(c[6]), pv: numeroMd(c[7]), cd: numeroMd(c[8]) }]));
+  }
+  // Tabela 2-2: [lento, normal, rápido] por forma de mover e porte
+  const PORTE = (r) => /pequeno ou menor/i.test(r) ? "peq" : /grande ou maior/i.test(r) ? "gra" : "med";
+  const desl = { bipede: {}, quadrupede: {}, voo: {} };
+  for (const c of [...tabelaMd(md, "| Terrestre |"), ...tabelaMd(md, "| Outros |")]) {
+    const v = c.slice(1, 4).map(numeroMd);
+    if (v.some(Number.isNaN)) continue;
+    if (/^b[ií]pede/i.test(c[0])) desl.bipede[PORTE(c[0])] = v;
+    else if (/^quadr[uú]pede/i.test(c[0])) desl.quadrupede[PORTE(c[0])] = v;
+    else if (/^voador/i.test(c[0])) desl.voo[PORTE(c[0])] = v;
+    else if (/^escalador/i.test(c[0])) desl.escalada = v;
+    else if (/^escavador/i.test(c[0])) desl.escavacao = v;
+    else if (/^nadador/i.test(c[0])) desl.natacao = v;
+  }
+  // passos de dano (LB Tabela 3-2): cada linha é uma escada; célula = alternativas ("1d12, 2d6 ou 3d4")
+  const passos = tabelaMd(md, "**Passos de dano").slice(1).map((c) => c.map((x) => x.split(/\s*(?:,|\bou\b)\s*/).filter(Boolean)));
+  // Tabela 2-4: categorias de atributo
+  const categorias = tabelaMd(md, "**Tabela 2-4: Categorias de atributos**").slice(1).map(([nome, v]) => {
+    const ns = String(v).replace(/[–—−]/g, "-").match(/-?\d+/g)?.map(Number) || [];
+    return { nome, min: Math.min(...ns), max: /\+$/.test(v.trim()) ? 99 : Math.max(...ns) };
+  });
+  return { tabela, desl, passos, categorias };
+}
+function regrasAmeacas() {
+  if (!existsSync(COMPILADO)) { console.warn("! sem o compilado de ameaças — criador fica sem a Tabela 2-3:", COMPILADO); return; }
+  const r = regrasDoCompilado(readFileSync(COMPILADO, "utf-8"));
+  for (const [papel, linhas] of Object.entries(r.tabela)) if (Object.keys(linhas).length !== 24) throw new Error(`Tabela 2-3 (${papel}) veio com ${Object.keys(linhas).length} NDs, esperava 24`);
+  writeFileSync(join(RAIZ, "dados", "ameacas-regras.json"), JSON.stringify({ ...r, geradoEm: new Date().toISOString() }));
+  console.log(`regras-ameacas ${r.passos.length} passos de dano, ${r.categorias.length} categorias, deslocamentos ${Object.keys(r.desl).join("/")}`);
 }
 
 // ---------------------------------------------------------------- ITENS (arsenal/itens)
@@ -365,11 +426,17 @@ if (process.argv.includes("--check")) {
   assert(slug("Água-Viva (Grande)!") === "agua-viva-grande", "slug");
   const h = ameacaHtml({ nd: "1", defesa: "15", atributos: { for: "2" }, ataques: [{ nome: "Mordida", bonus: "+5", dano: "1d6" }], imagem: "https://x/y.png" });
   assert(h.includes('<img class="a-img" src="https://x/y.png"') && h.includes("<b>FOR</b> 2") && h.includes("<b>Mordida</b> +5, 1d6"), "ameacaHtml: " + h);
+  // números inventados: o teste é do parser, não do livro
+  const rg = regrasDoCompilado("### Tabela 2-3 A: Solos\n\n| ND | Atq | Dano | Def | Forte | Média | Fraca | PV | CD |\n|---|---|---|---|---|---|---|---|---|\n| ¼ | 1 | 2 | 3 | 4 | 5 | –6 | 7 | 8 |\n| 17 | 9 | 10 | 11 | 12 | 13 | 14 | 1.234 | 15 |\n\n"
+    + "| Terrestre | Lento | Normal | Rápido |\n|---|---|---|---|\n| Bípede (Médio) | 1m | 2m | 3m |\n\n| Outros | Lento | Normal | Rápido |\n|---|---|---|---|\n| Nadador | 4,5m | 5m | 6m |\n\n"
+    + "**Passos de dano (LB)**\n\n| –2 | –1 | Normal | +1 | +2 | +3 |\n|---|---|---|---|---|---|\n| 1d2 | 1d3 | 2d4, 4d2 ou 8d1 | 1d9 | 1d11 | 1d13 |\n\n**Tabela 2-4: Categorias de atributos**\n\n| Categoria | Valor |\n|---|---|\n| Fraco | –4 / –3 |\n| Ótimo | 8+ |\n");
+  assert(rg.tabela.solo["1/4"].fraca === -6 && rg.tabela.solo["17"].pv === 1234 && rg.desl.bipede.med[2] === 3 && rg.desl.natacao[0] === 4.5, "regras: " + JSON.stringify(rg.tabela.solo) + JSON.stringify(rg.desl));
+  assert(rg.passos[0][2].join("|") === "2d4|4d2|8d1" && rg.categorias[0].min === -4 && rg.categorias[0].max === -3 && rg.categorias[1].max === 99, "passos/categorias: " + JSON.stringify([rg.passos, rg.categorias]));
   console.log("importar.mjs --check OK");
 } else if (import.meta.url === `file://${process.argv[1].replace(/\\/g, "/")}` || process.argv[1]?.endsWith("importar.mjs")) {
   if (GUILDA) missoes();
   else {
-    ameacas(); itens(); str(); perigos(); regras(); compendio();
+    ameacas(); regrasAmeacas(); itens(); str(); perigos(); regras(); compendio();
     writeFileSync(join(SAIDA, "INDEX.json"), JSON.stringify({ geradoEm: new Date().toISOString(), contagem }, null, 1));
   }
 }

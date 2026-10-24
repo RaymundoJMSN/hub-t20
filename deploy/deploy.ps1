@@ -18,7 +18,7 @@ scp -r (Join-Path $proj 'static') devilsworks:/home/ubuntu/hub-t20/
 scp -r (Join-Path $proj 'data') devilsworks:/home/ubuntu/hub-t20/
 scp (Join-Path $proj 'deploy/hub-t20.service') (Join-Path $proj 'deploy/instalar-servidor.sh') devilsworks:/home/ubuntu/hub-t20/deploy/
 scp -r (Join-Path $proj 'tools') devilsworks:/home/ubuntu/hub-t20/
-foreach ($f in 'dados/textos.json', 'dados/aprimoramentos.json', 'dados/poderes.json') {
+foreach ($f in 'dados/textos.json', 'dados/aprimoramentos.json', 'dados/poderes.json', 'dados/ameacas-regras.json') {
   if (Test-Path (Join-Path $proj $f)) { scp (Join-Path $proj $f) devilsworks:/home/ubuntu/hub-t20/dados/ }
 }
 scp (Join-Path $proj 'dados/colecoes/*.json') devilsworks:/home/ubuntu/hub-t20/dados/colecoes/

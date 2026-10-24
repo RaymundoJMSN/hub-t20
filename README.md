@@ -11,7 +11,8 @@ Um processo Node puro (`server.mjs`, sem dependências), um deploy, um domínio:
 | Aba | O que é | De onde vem |
 |---|---|---|
 | 📖 Grimório (`/`, `/criar`) | 275 magias oficiais + 1.612 poderes + magias da mesa; criador por compra de pontos | herdado do [criador-magias-t20](https://github.com/RaymundoJMSN/criador-magias-t20) |
-| 🐉 Bestiário (`/bestiario`) | 620 ameaças com ficha completa (ataques, habilidades, atributos, imagem) | Arsenal |
+| 🐉 Bestiário (`/bestiario`) | 620 ameaças com ficha completa (ataques, habilidades, atributos, imagem); cada uma baixa como ator NPC do Foundry (⬇ Foundry no popup) | Arsenal (+ papel de combate da Arena Imperial) |
+| 👹 Criar ameaça (`/criar-ameaca`) | criador pelos passos 0–7 do manual do Ameaças de Arton: números da Tabela 2-3 por ND e papel, passos de dano, perícias pela regra, biblioteca de habilidades das 620 fichas; salva por conta, exporta/importa ator do Foundry | regras do `../compilado-ameacas-t20` |
 | 🎒 Itens (`/itens`) | armas, armaduras, itens gerais e mágicos, encantos, modificações, maldições, culinária | Arsenal |
 | ⚖️ Regras (`/regras`) | capítulos de regras dos livros (testes, combate, cobertura, condições, perigos, regras opcionais) + 492 respostas do STR + perigos + breves jornadas | livros em markdown + Arsenal |
 | 🏛️ Compêndio (`/compendio`) | raças, classes, origens, deuses, distinções, parceiros | livros em markdown + Arsenal |
@@ -28,7 +29,11 @@ Qualquer ficha (magia, poder, ameaça, item, regra…) abre como carta na **mesa
 - `dados/` fica **fora do git** (texto da Jambo e dados dos jogadores). `tools/importar.mjs` gera
   `dados/colecoes/*.json` a partir do [Arsenal](https://github.com/nicholemos/arsenal) (clone ao lado,
   `../arsenal`) e dos livros em markdown (`../tormenta-livros/livros`). `--missoes ../guilda-mineradores`
-  migra o quadro antigo.
+  migra o quadro antigo. Também escreve `dados/ameacas-regras.json` (Tabelas 2-2, 2-3, 2-4 e passos de dano,
+  lidas de `../compilado-ameacas-t20/COMPILADO-AMEACAS.md`) e põe em cada ameaça do bestiário o modelo
+  estruturado (`dados`, ver `static/ameaca.mjs`) com o papel de combate da Arena (`../arena-imperial-t20`).
+- `static/ameaca.mjs` é o mesmo módulo no navegador, no servidor e no importador: modelo da ameaça,
+  ficha do arsenal → modelo, modelo ⇄ ator NPC do Foundry (sistema tormenta20 1.5, core v13) e a ficha em texto.
 - Cada coleção: `{ meta: { titulo, filtros:[{k,rotulo}], ordem:{k:[…]} }, itens: [{ id, nome, linha, grupo, f, t, html }] }`.
   `t` = texto pesquisável normalizado; `html` já sanitizado (o servidor confia, o navegador só mostra).
 - Login: `dados/usuarios.json` (scrypt) + cookie `hub` assinado com HMAC (`dados/segredo`). Sem sessão a
@@ -39,7 +44,7 @@ Qualquer ficha (magia, poder, ameaça, item, regra…) abre como carta na **mesa
 ```
 node server.mjs --usuario "Raimundo" senha mestre      # cria a conta do mestre
 node server.mjs                                        # http://localhost:8100
-node server.mjs --check && node tools/importar.mjs --check
+node server.mjs --check && node tools/importar.mjs --check && node static/ameaca.mjs --check
 ```
 
 Deploy: `deploy/deploy.ps1` (devilsworks, porta 8100, systemd `hub-t20`).

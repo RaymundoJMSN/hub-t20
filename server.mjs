@@ -12,6 +12,7 @@ import { calcular } from "./static/custo.mjs";
 import { esc, htmlParaTexto, ROTULOS } from "./static/carta.mjs";
 import { tipoDePocao, tipoDePocaoDosEixos } from "./static/pocao.mjs";
 import { eixosDe } from "./static/eixos.mjs";
+import { paraFoundry, normalizar as normalizarAmeaca } from "./static/ameaca.mjs";
 
 // a magia da mesa vira a mesma linha técnica das oficiais, pra cair no mesmo parser
 function eixosDaMesa(e = {}) {
@@ -132,6 +133,7 @@ function renomearConta(chave, { novoNome, personagem, apelido }) {
     if (nova !== chave) {
       delete usuarios[chave]; usuarios[nova] = u;
       if (estado.usuarios[chave]) { estado.usuarios[nova] = estado.usuarios[chave]; delete estado.usuarios[chave]; }
+      for (const [loja, arq] of [[ameacasCriadas, ARQ_AME], [personagens, ARQ_PERS]]) if (loja[chave]) { loja[nova] = loja[chave]; delete loja[chave]; gravarJson(arq, loja); }
       chave = nova;
     }
     for (const m of Object.values(estado.publicadas)) if (mesmoDono(m.autor, antigoNome)) m.autor = u.nome;
@@ -211,6 +213,34 @@ let links = CHECK ? LINKS_PADRAO : lerJson(ARQ_LINKS, LINKS_PADRAO);
 const ARQ_PERS = join(DADOS, "personagens.json");
 let personagens = CHECK ? {} : lerJson(ARQ_PERS, {});
 const FICHA_DIR = join(DADOS, "ficha-site"); // build do criador-ficha-foundry (site, base /ficha/), sobe por scp
+// ameaças do criador de ameaças: { chave da conta: { id: { ameaca, criadoEm, atualizadoEm } } }
+const ARQ_AME = join(DADOS, "ameacas-criadas.json");
+let ameacasCriadas = CHECK ? {} : lerJson(ARQ_AME, {});
+// Tabela 2-3, 2-2, 2-4 e passos de dano (tools/importar.mjs lê do compilado-ameacas-t20; conteúdo da Jambo, fora do git)
+function carregarRegrasAmeacas() {
+  if (carregarRegrasAmeacas.cache === undefined) carregarRegrasAmeacas.cache = lerJson(join(DADOS, "ameacas-regras.json"), null);
+  return carregarRegrasAmeacas.cache;
+}
+// biblioteca de habilidades = as das 620 fichas do bestiário, agrupadas pelo nome (exemplo de texto + quem tem)
+function bibliotecaHabilidades() {
+  const col = carregarColecao("ameacas");
+  if (!col) return [];
+  if (col.biblioteca) return col.biblioteca;
+  const grupos = new Map();
+  for (const it of col.itens) for (const h of it.dados?.habilidades || []) {
+    const k = norm(h.nome);
+    if (!k) continue;
+    let g = grupos.get(k);
+    if (!g) grupos.set(k, (g = { nome: h.nome, acao: h.acao, custo: h.custo, magica: h.magica, extra: h.extra, desc: "", de: "", n: 0, quem: [] }));
+    g.n++;
+    if (g.quem.length < 6) g.quem.push(`${it.nome} (ND ${it.dados.nd})`);
+    // exemplo = a descrição de tamanho mais "típico" (~220 letras), como no gerar.py do compilado
+    const d = h.desc || "";
+    if (!g.desc || (d.length > 40 && Math.abs(d.length - 220) < Math.abs(g.desc.length - 220)))
+      Object.assign(g, { acao: h.acao, custo: h.custo, magica: h.magica, extra: h.extra, desc: d, de: `${it.nome} (ND ${it.dados.nd})` });
+  }
+  return (col.biblioteca = [...grupos.values()].sort((a, b) => b.n - a.n || a.nome.localeCompare(b.nome)));
+}
 
 function validarMagia(m) {
   if (typeof m !== "object" || !m) return "magia inválida";
@@ -268,7 +298,7 @@ function alvoDaRota(p) {
   if (c) { const it = carregarColecao(c[1])?.porId.get(c[2]); return it && [it.nome, it.linha, "Hub T20"]; }
   return null;
 }
-const PAGINAS = { "/": "grimorio.html", "/criar": "index.html", "/bestiario": "colecao.html", "/itens": "colecao.html", "/regras": "colecao.html", "/compendio": "colecao.html",
+const PAGINAS = { "/": "grimorio.html", "/criar": "index.html", "/criar-ameaca": "ameacas.html", "/bestiario": "colecao.html", "/itens": "colecao.html", "/regras": "colecao.html", "/compendio": "colecao.html",
   "/missoes": "missoes.html", "/agenda": "agenda.html", "/links": "links.html", "/mestre": "mestre.html" };
 // sem sessão só passa: login, a API de login e arquivos estáticos (css/js/fontes/ícones/manifest/sw — código e enfeite, não dados)
 const livre = (p) => p === "/login" || p === "/api/login" || /\.(css|js|mjs|png|svg|ico|ttf|otf|woff2|webmanifest)$/.test(p);
@@ -537,6 +567,49 @@ async function tratar(req, res) {
       links: (g.links || []).slice(0, 40).map((l) => ({ nome: String(l.nome || "").slice(0, 80), url: String(l.url || "").slice(0, 500), desc: String(l.desc || "").slice(0, 200), icone: String(l.icone || "").slice(0, 8) })) })) };
     gravarJson(ARQ_LINKS, links);
     return json(res, 200, { ok: true });
+  }
+
+  // ---- criador de ameaças: regras do livro, biblioteca de habilidades, ameaças salvas POR CONTA (o dono é a sessão)
+  if (p === "/api/criador/ameacas-regras" && req.method === "GET") {
+    const r = carregarRegrasAmeacas();
+    return r ? json(res, 200, r) : json(res, 404, { erro: "regras de criação não instaladas no servidor (rode tools/importar.mjs e suba dados/ameacas-regras.json)" });
+  }
+  if (p === "/api/criador/ameacas-habilidades" && req.method === "GET") {
+    const lista = bibliotecaHabilidades(), q = norm(url.searchParams.get("q")).trim();
+    const blob = (g) => norm(`${g.nome} ${g.desc}`);
+    const termos = termosBusca(q, vocabDe(lista, () => lista.map(blob)));
+    const achadas = termos.length
+      ? filtrar(lista, blob, termos).map((g) => [g, relevancia([g.nome, "", g.desc], termos, q)]).sort((x, y) => y[1] - x[1] || y[0].n - x[0].n).map(([g]) => g)
+      : lista;
+    return json(res, 200, achadas.slice(0, 40));
+  }
+  const am = p.match(/^\/api\/criador\/ameacas(?:\/([a-z0-9]{6,16}))?$/);
+  if (am) {
+    const minhas = (ameacasCriadas[eu.chave] ||= {});
+    if (!am[1] && req.method === "GET") return json(res, 200, Object.entries(minhas).map(([id, x]) => ({ id, nome: x.ameaca.nome, nd: x.ameaca.nd, papel: x.ameaca.papel,
+      tipo: x.ameaca.tipo, tamanho: x.ameaca.tamanho, atualizadoEm: x.atualizadoEm })).sort((a, b) => b.atualizadoEm - a.atualizadoEm));
+    if (!am[1]) return json(res, 405, { erro: "método" });
+    const id = am[1];
+    if (req.method === "GET") return minhas[id] ? json(res, 200, { id, ...minhas[id] }) : json(res, 404, { erro: "não encontrada" });
+    if (req.method === "DELETE") { delete minhas[id]; gravarJson(ARQ_AME, ameacasCriadas); return json(res, 200, { ok: true }); }
+    if (req.method === "PUT") {
+      let b;
+      try { b = await corpo(req, 256 * 1024); } catch { return json(res, 400, { erro: "corpo inválido ou grande demais" }); }
+      if (!b?.ameaca || typeof b.ameaca !== "object" || Array.isArray(b.ameaca)) return json(res, 400, { erro: "esperado {ameaca:{...}}" });
+      if (!minhas[id] && Object.keys(minhas).length >= 500) return json(res, 400, { erro: "limite de 500 ameaças por conta" });
+      const ameaca = normalizarAmeaca(b.ameaca);
+      minhas[id] = { ameaca, criadoEm: minhas[id]?.criadoEm || Date.now(), atualizadoEm: Date.now() };
+      gravarJson(ARQ_AME, ameacasCriadas);
+      return json(res, 200, { ok: true, id, ameaca });
+    }
+    return json(res, 405, { erro: "método" });
+  }
+  // ficha do bestiário como ator NPC do Foundry (sistema tormenta20): baixar e importar lá
+  const fd = p.match(/^\/api\/c\/ameacas\/([\w-]+)\/foundry$/);
+  if (fd && req.method === "GET") {
+    const it = carregarColecao("ameacas")?.porId.get(fd[1]);
+    if (!it?.dados) return json(res, 404, { erro: "ameaça sem ficha estruturada no servidor (reimporte o bestiário)" });
+    return json(res, 200, paraFoundry(it.dados), { "content-disposition": `attachment; filename="${fd[1]}.json"` });
   }
 
   // ---- criador de ficha (site do t20-ficha-wizard buildado em dados/ficha-site, base /ficha/): personagens salvos POR CONTA
@@ -881,6 +954,11 @@ if (CHECK) {
         itens: [{ id: "lobo", nome: "Lobo", linha: "Animal · ND 1", grupo: "x", f: { nd: "1" }, t: "lobo animal nd 1 mordida", html: "<b>PV</b> 10" },
           { id: "urso", nome: "Urso", linha: "Animal · ND 2", grupo: "x", f: { nd: "2" }, t: "urso animal nd 2 garra", html: "<b>PV</b> 30" }] };
       colecoes.cache.teste.porId = new Map(colecoes.cache.teste.itens.map((i) => [i.id, i]));
+      colecoes.cache.ameacas = { meta: { titulo: "Bestiário", filtros: [], ordem: {} }, itens: [{ id: "lobo-cinzento", nome: "Lobo Cinzento", linha: "Animal Médio · ND 1", grupo: "x", f: {}, t: "lobo",
+        html: "", dados: normalizarAmeaca({ nome: "Lobo Cinzento", nd: "1", tipo: "Animal", defesa: 15, pv: 20, atributos: { des: 2 },
+          ataques: [{ nome: "Mordida", bonus: 9, dados: "1d6", bonusDano: 4, tipoDano: "perfuração" }], habilidades: [{ nome: "Faro", desc: "fareja quem não vê em alcance curto" }] }) }] };
+      colecoes.cache.ameacas.porId = new Map(colecoes.cache.ameacas.itens.map((i) => [i.id, i]));
+      carregarRegrasAmeacas.cache = { tabela: { solo: { "1": { atq: 1, dano: 2, defesa: 3, forte: 4, media: 5, fraca: 6, pv: 77, cd: 8 } } } }; // números inventados
 
       // sem sessão: API 401, página vira tela de login (com o destino guardado)
       if ((await fetch(`${base}/api/state`)).status !== 401) return falha("sem login devia dar 401");
@@ -1028,10 +1106,34 @@ if (CHECK) {
       if ((await fetch(`${base}/api/criador/personagens/abcd1234`, { method: "DELETE", headers: HP })).status !== 200) return falha("apagar personagem");
       if ((await fetch(`${base}/api/criador/personagens/abcd1234`, { headers: HP })).status !== 404) return falha("personagem devia sumir");
       if ((await fetch(`${base}/ficha`, { headers: HP, redirect: "manual" })).status !== 302) return falha("/ficha devia redirecionar pra /ficha/");
+      // criador de ameaças: regras, biblioteca, CRUD por conta, download Foundry do bestiário
+      if ((await (await fetch(`${base}/api/criador/ameacas-regras`, { headers: HP })).json()).tabela?.solo?.["1"]?.pv !== 77) return falha("regras de ameaças");
+      const bib = await (await fetch(`${base}/api/criador/ameacas-habilidades?q=faro`, { headers: HP })).json();
+      if (bib.length !== 1 || bib[0].nome !== "Faro" || bib[0].n !== 1 || !bib[0].de.includes("Lobo Cinzento")) return falha("biblioteca de habilidades: " + JSON.stringify(bib));
+      const putA = await fetch(`${base}/api/criador/ameacas/abc12345`, { method: "PUT", headers: HP, body: JSON.stringify({ ameaca: { nome: "Lobo Mau", nd: "2", papel: "chefe", ataques: [{ nome: "Mordida", dados: "1d8<script>" }] } }) });
+      const ja = await putA.json();
+      if (putA.status !== 200 || ja.ameaca.papel !== "solo" || ja.ameaca.ataques[0].dados !== "") return falha("PUT ameaça devia normalizar: " + JSON.stringify(ja));
+      const listaA = await (await fetch(`${base}/api/criador/ameacas`, { headers: HP })).json();
+      if (listaA.length !== 1 || listaA[0].nome !== "Lobo Mau" || listaA[0].nd !== "2") return falha("lista de ameaças: " + JSON.stringify(listaA));
+      if ((await (await fetch(`${base}/api/criador/ameacas`, { headers: HR })).json()).length !== 0) return falha("ameaça vazou pra outra conta");
+      if ((await fetch(`${base}/api/criador/ameacas/abc12345`, { method: "PUT", headers: HP, body: JSON.stringify({ ameaca: "x" }) })).status !== 400) return falha("ameaça inválida devia dar 400");
+      if ((await (await fetch(`${base}/api/criador/ameacas/abc12345`, { headers: HP })).json()).ameaca?.nome !== "Lobo Mau") return falha("ler ameaça");
+      const fdl = await fetch(`${base}/api/c/ameacas/lobo-cinzento/foundry`, { headers: HP });
+      const ator = await fdl.json();
+      if (fdl.status !== 200 || !/attachment/.test(fdl.headers.get("content-disposition") || "") || ator.type !== "npc" || ator.system.attributes.defesa.base !== 13
+        || ator.flags.world.hubT20.nome !== "Lobo Cinzento" || ator.items.length !== 2) return falha("download Foundry: " + fdl.status + " " + JSON.stringify(ator).slice(0, 300));
+      if ((await fetch(`${base}/api/c/ameacas/naoexiste/foundry`, { headers: HP })).status !== 404) return falha("download de ameaça inexistente devia dar 404");
+      if ((await fetch(`${base}/criar-ameaca`, { headers: HP })).status !== 200) return falha("página do criador de ameaças");
       // links: padrão vem, mestre troca, jogador não
       const lk = await (await fetch(`${base}/api/links`, { headers: HR })).json(); // H morreu com o rename do Ray
       if (!lk.grupos?.length) return falha("links padrão");
       if ((await fetch(`${base}/api/links`, { method: "PUT", headers: { cookie: cookieNovo, "content-type": "application/json" }, body: JSON.stringify({ grupos: [] }) })).status !== 403) return falha("jogadora não edita links");
+      // renomear a conta leva junto as ameaças criadas
+      const renA = await fetch(`${base}/api/conta`, { method: "POST", headers: HP, body: JSON.stringify({ nome: "Amanda Souza" }) });
+      const HS = { cookie: renA.headers.get("set-cookie")?.split(";")[0] || "", "content-type": "application/json" };
+      if (renA.status !== 200 || (await (await fetch(`${base}/api/criador/ameacas`, { headers: HS })).json()).length !== 1) return falha("ameaça não seguiu a conta renomeada");
+      if ((await fetch(`${base}/api/criador/ameacas/abc12345`, { method: "DELETE", headers: HS })).status !== 200) return falha("apagar ameaça");
+      if ((await fetch(`${base}/api/criador/ameacas/abc12345`, { headers: HS })).status !== 404) return falha("ameaça devia sumir");
       if ((await fetch(`${base}/api/sair`, { method: "POST", headers: HR })).headers.get("set-cookie") !== cookieSessao({ headers: { host: "127.0.0.1" } }, "x", 0)) return falha("sair devia apagar o cookie");
       console.log("server.mjs --check OK");
       server.close();

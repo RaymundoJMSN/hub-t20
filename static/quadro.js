@@ -49,7 +49,10 @@ export function mesaGlobal() {
       const [col, cid] = id.split("/");
       const t = await (await fetch(`/api/c/${col.replace(/[^\w-]/g, "")}/${(cid || "").replace(/[^\w-]/g, "")}`)).json();
       if (t.erro) throw new Error("sem texto");
-      return cartaGenericaHtml(t);
+      // ameaça do bestiário: baixar o ator NPC pro Foundry ou abrir no criador como ponto de partida
+      const acoes = col === "ameacas" && t.dados ? `<div class="q-acoes"><a class="bt mini" href="/api/c/ameacas/${t.id}/foundry" download="${t.id}.json" title="ator NPC pro Foundry (sistema Tormenta20)">⬇ Foundry</a>`
+        + `<a class="bt mini" href="/criar-ameaca?base=${t.id}" title="abrir no criador de ameaças">✎ usar como base</a></div>` : "";
+      return cartaGenericaHtml(t) + acoes;
     }
     const slug = id.replace(/[^\w-]/g, "");
     if (tipo === "d") {
