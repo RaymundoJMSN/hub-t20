@@ -227,14 +227,18 @@ export function regrasDoCompilado(md) {
     const ns = String(v).replace(/[–—−]/g, "-").match(/-?\d+/g)?.map(Number) || [];
     return { nome, min: Math.min(...ns), max: /\+$/.test(v.trim()) ? 99 : Math.max(...ns) };
   });
-  return { tabela, desl, passos, categorias };
+  // §9 chefe final, arquétipo Rei da Arena: arenas e recursos (efeito com "a/b/c/d" = valor por patamar do chefe)
+  const semMd = (s) => String(s).replace(/\*+/g, "").trim();
+  const catalogo = (t) => tabelaMd(md, t).slice(1).map(([nome, efeito]) => ({ nome: semMd(nome), efeito: semMd(efeito) }));
+  return { tabela, desl, passos, categorias, chefe: { arenas: catalogo("**Arenas**"), recursos: catalogo("**Recursos**") } };
 }
 function regrasAmeacas() {
   if (!existsSync(COMPILADO)) { console.warn("! sem o compilado de ameaças — criador fica sem a Tabela 2-3:", COMPILADO); return; }
   const r = regrasDoCompilado(readFileSync(COMPILADO, "utf-8"));
   for (const [papel, linhas] of Object.entries(r.tabela)) if (Object.keys(linhas).length !== 24) throw new Error(`Tabela 2-3 (${papel}) veio com ${Object.keys(linhas).length} NDs, esperava 24`);
   writeFileSync(join(RAIZ, "dados", "ameacas-regras.json"), JSON.stringify({ ...r, geradoEm: new Date().toISOString() }));
-  console.log(`regras-ameacas ${r.passos.length} passos de dano, ${r.categorias.length} categorias, deslocamentos ${Object.keys(r.desl).join("/")}`);
+  if (!r.chefe.arenas.length || !r.chefe.recursos.length) console.warn("! compilado sem as tabelas de Arenas/Recursos do chefe final (§9)");
+  console.log(`regras-ameacas ${r.passos.length} passos de dano, ${r.categorias.length} categorias, deslocamentos ${Object.keys(r.desl).join("/")}, chefe final ${r.chefe.arenas.length} arenas e ${r.chefe.recursos.length} recursos`);
 }
 
 // ---------------------------------------------------------------- ITENS (arsenal/itens)
@@ -429,9 +433,12 @@ if (process.argv.includes("--check")) {
   // números inventados: o teste é do parser, não do livro
   const rg = regrasDoCompilado("### Tabela 2-3 A: Solos\n\n| ND | Atq | Dano | Def | Forte | Média | Fraca | PV | CD |\n|---|---|---|---|---|---|---|---|---|\n| ¼ | 1 | 2 | 3 | 4 | 5 | –6 | 7 | 8 |\n| 17 | 9 | 10 | 11 | 12 | 13 | 14 | 1.234 | 15 |\n\n"
     + "| Terrestre | Lento | Normal | Rápido |\n|---|---|---|---|\n| Bípede (Médio) | 1m | 2m | 3m |\n\n| Outros | Lento | Normal | Rápido |\n|---|---|---|---|\n| Nadador | 4,5m | 5m | 6m |\n\n"
-    + "**Passos de dano (LB)**\n\n| –2 | –1 | Normal | +1 | +2 | +3 |\n|---|---|---|---|---|---|\n| 1d2 | 1d3 | 2d4, 4d2 ou 8d1 | 1d9 | 1d11 | 1d13 |\n\n**Tabela 2-4: Categorias de atributos**\n\n| Categoria | Valor |\n|---|---|\n| Fraco | –4 / –3 |\n| Ótimo | 8+ |\n");
+    + "**Passos de dano (LB)**\n\n| –2 | –1 | Normal | +1 | +2 | +3 |\n|---|---|---|---|---|---|\n| 1d2 | 1d3 | 2d4, 4d2 ou 8d1 | 1d9 | 1d11 | 1d13 |\n\n**Tabela 2-4: Categorias de atributos**\n\n| Categoria | Valor |\n|---|---|\n| Fraco | –4 / –3 |\n| Ótimo | 8+ |\n"
+    + "\n**Arenas**\n\n| Arena | Efeito |\n|---|---|\n| **Pântano** | Chefe +1/+2/+3/+4 em tudo, sob *Névoa*. |\n\n**Recursos**\n\n| Recurso | Efeito |\n|---|---|\n| **Totem** | Cura 1/2/3/4. |\n| **Sino** | Toca. |\n");
   assert(rg.tabela.solo["1/4"].fraca === -6 && rg.tabela.solo["17"].pv === 1234 && rg.desl.bipede.med[2] === 3 && rg.desl.natacao[0] === 4.5, "regras: " + JSON.stringify(rg.tabela.solo) + JSON.stringify(rg.desl));
   assert(rg.passos[0][2].join("|") === "2d4|4d2|8d1" && rg.categorias[0].min === -4 && rg.categorias[0].max === -3 && rg.categorias[1].max === 99, "passos/categorias: " + JSON.stringify([rg.passos, rg.categorias]));
+  assert(JSON.stringify(rg.chefe) === JSON.stringify({ arenas: [{ nome: "Pântano", efeito: "Chefe +1/+2/+3/+4 em tudo, sob Névoa." }], recursos: [{ nome: "Totem", efeito: "Cura 1/2/3/4." }, { nome: "Sino", efeito: "Toca." }] }),
+    "chefe final: " + JSON.stringify(rg.chefe));
   console.log("importar.mjs --check OK");
 } else if (import.meta.url === `file://${process.argv[1].replace(/\\/g, "/")}` || process.argv[1]?.endsWith("importar.mjs")) {
   if (GUILDA) missoes();

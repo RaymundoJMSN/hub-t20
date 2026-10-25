@@ -12,7 +12,7 @@ import { calcular } from "./static/custo.mjs";
 import { esc, htmlParaTexto, ROTULOS } from "./static/carta.mjs";
 import { tipoDePocao, tipoDePocaoDosEixos } from "./static/pocao.mjs";
 import { eixosDe } from "./static/eixos.mjs";
-import { paraFoundry, normalizar as normalizarAmeaca } from "./static/ameaca.mjs";
+import { paraFoundry, normalizar as normalizarAmeaca, ND_ORDEM, tipoLinha } from "./static/ameaca.mjs";
 
 // a magia da mesa vira a mesma linha técnica das oficiais, pra cair no mesmo parser
 function eixosDaMesa(e = {}) {
@@ -240,6 +240,18 @@ function bibliotecaHabilidades() {
       Object.assign(g, { acao: h.acao, custo: h.custo, magica: h.magica, extra: h.extra, desc: d, de: `${it.nome} (ND ${it.dados.nd})` });
   }
   return (col.biblioteca = [...grupos.values()].sort((a, b) => b.n - a.n || a.nome.localeCompare(b.nome)));
+}
+
+// fichas do bestiário mais parecidas com a ameaça (tipo, subtipo, tamanho, ND): a referência de atributos do criador
+function parecidas({ tipo, subtipo, tamanho, nd }, n = 6) {
+  const col = carregarColecao("ameacas");
+  if (!col) return [];
+  const i0 = Math.max(0, ND_ORDEM.indexOf(nd)), palavras = (s) => norm(s).split(/[^a-z]+/).filter((w) => w.length > 2), subs = new Set(palavras(subtipo));
+  return col.itens.filter((it) => it.dados).map((it) => {
+    const d = it.dados;
+    return [(d.tipo === tipo ? 10 : 0) + palavras(d.subtipo).filter((w) => subs.has(w)).length * 4 + (d.tamanho === tamanho ? 2 : 0) - Math.abs(ND_ORDEM.indexOf(d.nd) - i0), it];
+  }).sort((x, y) => y[0] - x[0]).slice(0, n)
+    .map(([, it]) => ({ id: it.id, nome: it.nome, nd: it.dados.nd, linha: tipoLinha(it.dados), atributos: it.dados.atributos, sentidos: it.dados.sentidos, defesas: it.dados.defesas }));
 }
 
 function validarMagia(m) {
@@ -582,6 +594,10 @@ async function tratar(req, res) {
       ? filtrar(lista, blob, termos).map((g) => [g, relevancia([g.nome, "", g.desc], termos, q)]).sort((x, y) => y[1] - x[1] || y[0].n - x[0].n).map(([g]) => g)
       : lista;
     return json(res, 200, achadas.slice(0, 40));
+  }
+  if (p === "/api/criador/ameacas-parecidas" && req.method === "GET") {
+    const q = Object.fromEntries(["tipo", "subtipo", "tamanho", "nd"].map((k) => [k, String(url.searchParams.get(k) || "").slice(0, 60)]));
+    return json(res, 200, parecidas(q));
   }
   const am = p.match(/^\/api\/criador\/ameacas(?:\/([a-z0-9]{6,16}))?$/);
   if (am) {
@@ -1110,6 +1126,8 @@ if (CHECK) {
       if ((await (await fetch(`${base}/api/criador/ameacas-regras`, { headers: HP })).json()).tabela?.solo?.["1"]?.pv !== 77) return falha("regras de ameaças");
       const bib = await (await fetch(`${base}/api/criador/ameacas-habilidades?q=faro`, { headers: HP })).json();
       if (bib.length !== 1 || bib[0].nome !== "Faro" || bib[0].n !== 1 || !bib[0].de.includes("Lobo Cinzento")) return falha("biblioteca de habilidades: " + JSON.stringify(bib));
+      const par = await (await fetch(`${base}/api/criador/ameacas-parecidas?tipo=Animal&tamanho=M%C3%A9dio&nd=2`, { headers: HP })).json();
+      if (par[0]?.nome !== "Lobo Cinzento" || par[0].atributos?.des !== 2) return falha("fichas parecidas: " + JSON.stringify(par));
       const putA = await fetch(`${base}/api/criador/ameacas/abc12345`, { method: "PUT", headers: HP, body: JSON.stringify({ ameaca: { nome: "Lobo Mau", nd: "2", papel: "chefe", ataques: [{ nome: "Mordida", dados: "1d8<script>" }] } }) });
       const ja = await putA.json();
       if (putA.status !== 200 || ja.ameaca.papel !== "solo" || ja.ameaca.ataques[0].dados !== "") return falha("PUT ameaça devia normalizar: " + JSON.stringify(ja));

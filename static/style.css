@@ -606,6 +606,21 @@ input.a-n.a-fora { outline: 2px solid #d9822b; outline-offset: 1px; }
 .a-lado-acoes { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
 .ameaca-ficha .l { margin: 3px 0; line-height: 1.4; }
 .miolo.generica.ameaca-ficha .a-img { max-width: 34%; max-height: 160px; }
+.a-main input::placeholder, .a-main textarea::placeholder, .a-barra input::placeholder { font-style: italic; opacity: .45; }
+.a-opcoes { margin: 2px 0 8px; }
+.chip.a-op { padding: 2px 8px; font-size: .78rem; opacity: .85; }
+.chip.a-op:hover { opacity: 1; }
+.a-conta { color: var(--texto-2); font-size: .76rem; }
+select.a-cat { font-size: .74rem; padding: 2px 4px; width: 100%; }
+.a-arma { width: 260px; }
+.a-col { display: flex; flex-direction: column; flex: 1; min-width: 200px; }
+.a-mec { margin: 8px 0 2px; border-top: 1px dashed rgba(201, 162, 39, .25); padding-top: 6px; }
+.a-mec summary { cursor: pointer; color: var(--ouro); font-size: .9rem; }
+.a-ro { display: block; color: #9fc49a; font-size: .78rem; margin: 2px 0 6px; }
+.a-formula { width: 90px; }
+.a-dados.a-quebra { flex-wrap: wrap; }
+.a-sugestoes[hidden] { display: none; } /* o display:flex da classe vencia o atributo */
+.a-main .a-base-box .a-base { width: min(100%, 420px); }
 .a-avisos { margin: 10px 0; padding-left: 18px; color: #e8b46a; font-size: .88rem; }
 .a-ajuda { margin-top: 10px; font-size: .92rem; }
 .a-ajuda li { margin: 4px 0; }
