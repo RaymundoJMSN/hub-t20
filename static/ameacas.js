@@ -6,7 +6,8 @@ import { el, aoSair } from "/hub.js";
 import { ND_ORDEM, TIPOS, TAMANHOS, ACOES, ATRIBUTOS, TIPOS_DANO, PERICIAS, normalizar, paraFoundry, deFoundry, fichaHtml, fichaTexto,
   danoMedio, bonusPraMedia, nivelDoNd, meioNd, treinoDoNd, patamarDoNd, chavePericia, tipoPorArma, norm, sinal, num, comoChefe, ndRecompensa, porPatamar, RD_CHEFE,
   ALCANCES, FORMAS, DURACOES, EFEITOS_TESTE, TIPOS_HAB, CONDICOES_NOMES, TESTES, camposDoTexto, descDosCampos, mecanicaEfetiva, tracosDe, sentidosDe, luzDe, danoDoTexto,
-  formulaOk } from "/ameaca.mjs?v=2"; // ?v= sobe quando mudam as exportações: o roteador do hub reimporta esta página, mas um /ameaca.mjs já carregado ficaria velho
+  formulaOk, textoDeHtml } from "/ameaca.mjs?v=2";
+import { mesaGlobal } from "/quadro.js"; // ?v= sobe quando mudam as exportações: o roteador do hub reimporta esta página, mas um /ameaca.mjs já carregado ficaria velho
 
 const form = document.querySelector("#a-form"), lado = document.querySelector("#a-lado"), barra = document.querySelector("#a-barra");
 const params = new URLSearchParams(location.search);
@@ -250,7 +251,8 @@ function opcoes(obj, k, input, lista) {
     } });
   }));
 }
-// campo de busca com lista de sugestões embaixo: buscar(q) → [{nome, linha, ...}], escolher → ao(item)
+// campo de busca com lista de sugestões embaixo: buscar(q) → [{nome, linha, carta?}], escolher → ao(item);
+// item com `carta` (chave da mesa: "c:itens/<id>", "o:<magia>") ganha 👁 que abre a ficha sem escolher
 function sugestao(placeholder, buscar, ao, className = "a-base") {
   const entrada = el("input", { type: "search", className, placeholder });
   const sug = el("div", { className: "a-sugestoes", hidden: true });
@@ -262,8 +264,11 @@ function sugestao(placeholder, buscar, ao, className = "a-base") {
       let itens = [];
       if (q) try { itens = await buscar(q); } catch {}
       if (entrada.value.trim() !== q || document.activeElement !== entrada) return; // resposta de uma busca velha, ou o campo já perdeu o foco
-      sug.replaceChildren(...itens.map((it) => el("button", { type: "button", className: "a-sug", onmousedown: (e) => e.preventDefault(),
-        onclick: () => { sug.hidden = true; entrada.value = ""; ao(it); } }, el("b", { textContent: it.nome }), el("small", { textContent: ` ${it.linha || ""}` }))));
+      sug.replaceChildren(...itens.map((it) => el("div", { className: "a-sug-linha" },
+        el("button", { type: "button", className: "a-sug", onmousedown: (e) => e.preventDefault(),
+          onclick: () => { sug.hidden = true; entrada.value = ""; ao(it); } }, el("b", { textContent: it.nome }), el("small", { textContent: ` ${it.linha || ""}` })),
+        it.carta ? el("button", { type: "button", className: "a-sug-ver", textContent: "👁", title: "ver a ficha antes de escolher", "aria-label": `ver ${it.nome}`,
+          onmousedown: (e) => e.preventDefault(), onclick: () => mesaGlobal().abrir(it.carta) }) : null)));
       sug.hidden = !itens.length;
     }, 250);
   };
@@ -271,7 +276,44 @@ function sugestao(placeholder, buscar, ao, className = "a-base") {
   return el("div", { className: "a-base-box" }, entrada, sug);
 }
 const buscarColecao = (col, filtro = () => true) => async (q) =>
-  ((await (await fetch(`/api/c/${col}?q=${encodeURIComponent(q)}`)).json()).itens || []).filter(filtro).sort((a, b) => (b.rel || 0) - (a.rel || 0)).slice(0, 10);
+  ((await (await fetch(`/api/c/${col}?q=${encodeURIComponent(q)}`)).json()).itens || []).filter(filtro).sort((a, b) => (b.rel || 0) - (a.rel || 0)).slice(0, 10)
+    .map((it) => ({ ...it, carta: `c:${col}/${it.id}` }));
+// grimório: oficiais (o:<slug>) e as publicadas pela mesa (p:<id>)
+async function buscarMagias(q) {
+  const r = await (await fetch(`/api/grimorio?q=${encodeURIComponent(q)}`)).json();
+  return [...(r.oficiais || []).map((m) => ({ ...m, linha: `${m.circulo}º círculo · ${m.escola} · ${m.grupo}`, carta: `o:${m.slug}` })),
+    ...(r.publicadas || []).map((m) => ({ ...m, linha: `${m.circulo}º círculo · ${m.escola} · de ${m.autor}`, carta: `p:${m.id}` }))]
+    .sort((a, b) => (b.rel || 0) - (a.rel || 0)).slice(0, 12);
+}
+// magia → habilidade "Magia: X": PM do círculo, ação da execução, mecânica da linha técnica + texto, teste com a CD da ficha
+const PM_CIRCULO = [1, 3, 6, 10, 15];
+const acaoDe = (s) => Object.keys(ACOES).find((a) => a && norm(s).startsWith(norm(a).slice(0, 5))) || "";
+async function magiaComoHabilidade(it) {
+  let nome, circulo, desc, st;
+  if (it.slug) {
+    const t = await (await fetch(`/api/texto/${encodeURIComponent(it.slug)}`)).json();
+    if (t.erro) throw new Error(t.erro);
+    ({ nome, circulo } = t); desc = t.descricao || "";
+    st = { exec: t.stats?.["Execução"], alcance: t.stats?.Alcance, alvo: t.stats?.["Alvo/Área"], dur: t.stats?.["Duração"], res: t.stats?.["Resistência"] };
+  } else {
+    const m = await (await fetch(`/api/magia/${encodeURIComponent(it.id)}`)).json();
+    if (m.erro) throw new Error(m.erro);
+    const e = m.eixos || {};
+    ({ nome } = m); circulo = m.circulo || 1; desc = textoDeHtml(m.descricao);
+    st = { exec: e.execucao, alcance: e.alcance, dur: e.duracao, res: e.teste && e.resistencia && e.resistencia !== "nenhuma" ? `${e.teste} ${String(e.resistencia).replace("reduz-metade", "reduz à metade")}` : "" };
+  }
+  desc = String(desc).replace(/\s+/g, " ").trim();
+  const res = String(st.res || "").replace(/\.\s*$/, "").trim(), teste = res && !/^nenhum/i.test(res);
+  const h = { nome: `Magia: ${nome}`, acao: acaoDe(st.exec), custo: PM_CIRCULO[(circulo || 1) - 1] ?? 1, magica: true, extra: "",
+    desc: `${desc}${teste ? ` (${res} CD ${A.cd ?? "?"})` : ""}`, ...camposDoTexto(`${st.alvo || ""}. ${desc}. ${res}`) };
+  const al = { curto: "curto", medio: "médio", longo: "longo", toque: "toque/adjacente", pessoal: "pessoal" }[norm(st.alcance).split(/\W/)[0]];
+  if (al) h.alcance = al;
+  if (st.alvo && !h.forma) h.alvo = st.alvo;
+  const du = norm(st.dur), rod = du.match(/^(\d+d\d+|\d+) rodadas?/);
+  if (rod) { h.duracao = "rodadas"; h.duracaoN = rod[1]; }
+  else for (const [k, v] of [["cena", "cena"], ["sustentad", "sustentada"], ["permanente", "permanente"], ["dia", "dia"]]) if (du.startsWith(k)) { h.duracao = v; delete h.duracaoN; }
+  return h; // instantânea: fica a duração que o texto der pras condições ("lento por 1 rodada")
+}
 // "Dano: 1d8; Crítico: 19/x2; …" da ficha do item → { dano: "1d8", critico: "19/x2", … }
 async function statsItem(itemId) {
   const it = await (await fetch(`/api/c/itens/${encodeURIComponent(itemId)}`)).json();
@@ -594,9 +636,14 @@ function passo5() {
   busca.oninput = () => { clearTimeout(timer); timer = setTimeout(procurar, 250); };
   const biblio = el("details", { className: "a-biblio-box", ontoggle: (e) => { if (e.target.open && !achados.childElementCount) procurar(); } },
     el("summary", { textContent: "📚 pegar de uma ficha do bestiário (a CD do texto vira a desta ameaça)" }), busca, achados);
+  const magia = sugestao("🔮 magia como habilidade: procure no grimório (👁 abre a carta)", buscarMagias, async (it) => {
+    try { const h = await magiaComoHabilidade(it); A.habilidades.push(h); mecAbertas.add(h); render(); }
+    catch { msg("não achei o texto dessa magia no servidor", true); }
+  }, "a-base a-magia");
   return secao(5, "Habilidades", "Na ordem do livro: ataque, defesa, percepção e movimento, variadas. Misture passivas e ativadas; prefira recarga e 1×/cena a PM. Solo e chefão precisam de área ou vários ataques. Habilidade nova: baseie numa magia parecida.",
     el("p", { className: "explica", textContent: "Em ⚙ mecânica ficam a área, o dano, o teste e as condições: é o que vira campo de verdade no Foundry (molde de área no mapa, rolagem de dano com tipo, botão de aplicar condição). Campo vazio é lido do texto; dá pra montar o texto a partir dos campos." }),
     ...A.habilidades.map(linhaHab), el("div", { className: "a-pe" }, botao("✚ habilidade", () => { const h = { nome: "", acao: "", custo: 0, magica: false, extra: "", desc: "" }; A.habilidades.push(h); mecAbertas.add(h); render(); })),
+    magia, el("p", { className: "explica", textContent: "Magia vira \"Magia: Nome\" com o PM do círculo (1/3/6/10/15), a execução, o alcance, a área, o teste e o dano dela; a CD é a da ficha." }),
     biblio, conta);
 }
 function linhaPer(p, i, fixa) {

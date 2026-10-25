@@ -620,6 +620,11 @@ select.a-cat { font-size: .74rem; padding: 2px 4px; width: 100%; }
 .a-formula { width: 90px; }
 .a-dados.a-quebra { flex-wrap: wrap; }
 .a-sugestoes[hidden] { display: none; } /* o display:flex da classe vencia o atributo */
+.a-sug-linha { display: flex; border-bottom: 1px solid var(--borda); }
+.a-sug-linha .a-sug { flex: 1; border-bottom: 0; }
+.a-sug-ver { background: none; border: 0; border-left: 1px solid var(--borda); color: var(--texto-2); padding: 0 10px; cursor: pointer; font-size: 1rem; }
+.a-sug-ver:hover, .a-sug-ver:focus-visible { background: #2a1418; color: var(--texto); }
+.a-magia { width: min(100%, 420px); }
 .a-main .a-base-box .a-base { width: min(100%, 420px); }
 .a-avisos { margin: 10px 0; padding-left: 18px; color: #e8b46a; font-size: .88rem; }
 .a-ajuda { margin-top: 10px; font-size: .92rem; }
