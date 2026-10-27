@@ -4,13 +4,14 @@
 // meta.modo "acordeao" (STR): lista fechada de perguntas, abre pra ler a resposta — nada de popup.
 // Clicar/arrastar um card põe a ficha na mesa (quadro.js). O roteador roda este módulo de novo a cada visita.
 import { mesaGlobal, TIPO_ARRASTO } from "/quadro.js";
-import { el, PAGINAS_COL, paginaDaColecao, capitalizar, aoSair } from "/hub.js";
+import { el, PAGINAS_COL, paginaDaColecao, capitalizar, aoSair, marcarAtiva } from "/hub.js";
 
 const rota = location.pathname.match(/^\/c\/([\w-]+)\/([\w-]+)/);
 const caminho = rota ? paginaDaColecao(rota[1]) : location.pathname;
 const pagina = PAGINAS_COL[caminho] || PAGINAS_COL["/bestiario"];
 document.querySelector("#titulo").textContent = pagina.titulo;
 document.querySelector("#sub").textContent = pagina.sub;
+if (pagina.acao) document.querySelector("#sub").append(" · ", el("a", { className: "link-ouro", href: pagina.acao[0], textContent: pagina.acao[1] }));
 document.title = `${pagina.titulo} — Hub T20`;
 
 const raiz = document.querySelector("#c-pagina");
@@ -51,6 +52,7 @@ function gravarUrl() {
 async function trocarAba() {
   for (const b of barraAbas.children) b.classList.toggle("on", b.dataset.col === filtro.aba);
   await buscar();
+  marcarAtiva(); // a aba (raças, classes…) é um item do menu lateral
 }
 async function buscar() {
   const q = filtro.q.trim();

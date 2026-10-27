@@ -37,7 +37,8 @@ const PADRAO_ORD = { magias: "circulo", poderes: "categoria" };
 const URL_CHAVES = { circulo: "c", tipo: "t", escola: "e", fonte: "f", pocao: "poc", exec: "ex", alc: "al", res: "res", resEf: "ref", categoria: "cat", livro: "liv", divindade: "deus", classe: "cls" };
 const CLASSES_VISTAS = new Set(); // classes que já apareceram em /api/poderes (sub de Classe/Habilidade), pros chips
 
-export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = false, aba = "magias" } = {}) {
+// soAba: a página mostra só uma das abas (/ = magias, /poderes = poderes) — a gaveta do criador segue com as duas
+export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = false, aba = "magias", soAba = false } = {}) {
   const mesa = mesaGlobal();
   // filtros multi-seleção (vazio = todos); Arcana e Divina são exclusivas entre si
   const filtro = { circulo: new Set(), tipo: new Set(), escola: new Set(), fonte: new Set(), pocao: new Set(),
@@ -45,7 +46,7 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
   for (const k of Object.keys(URL_CHAVES)) filtro.ex[k] = new Set();
   if (naUrl) {
     const ps = new URLSearchParams(location.search);
-    if (ABAS.some(([a]) => a === ps.get("aba"))) filtro.aba = ps.get("aba");
+    if (!soAba && ABAS.some(([a]) => a === ps.get("aba"))) filtro.aba = ps.get("aba");
     for (const [k, u] of Object.entries(URL_CHAVES))
       for (const v of (ps.get(u) || "").split(",").filter(Boolean)) { const ex = v.startsWith("-"), s = ex ? v.slice(1) : v; (ex ? filtro.ex[k] : filtro[k]).add(k === "circulo" ? +s : s); }
     if (ORDENS[filtro.aba].some(([o]) => o === ps.get("ord"))) filtro.ord = ps.get("ord");
@@ -54,7 +55,7 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
   function gravarUrl() {
     if (!naUrl) return;
     const ps = new URLSearchParams();
-    if (filtro.aba !== "magias") ps.set("aba", filtro.aba);
+    if (filtro.aba !== "magias" && !soAba) ps.set("aba", filtro.aba);
     if (filtro.q.trim()) ps.set("q", filtro.q.trim());
     for (const [k, u] of Object.entries(URL_CHAVES)) if (filtro[k].size || filtro.ex[k].size) ps.set(u, [...filtro[k], ...[...filtro.ex[k]].map((v) => "-" + v)].join(","));
     if (filtro.ord !== PADRAO_ORD[filtro.aba]) ps.set("ord", filtro.ord);
@@ -74,6 +75,7 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
   const ordem = el("div", { className: "g-abas g-ordem", title: "ordenar" }); // botões num bloco só, como as abas
   const lista = el("div", { className: "grimorio-lista" });
   raiz.append(barraAbas, busca, boxFiltros, el("div", { className: "g-conta-linha" }, conta, ordem), lista);
+  barraAbas.hidden = soAba;
 
   for (const [valor, rotulo] of ABAS) {
     const b = el("button", {
@@ -268,10 +270,19 @@ const pagina = document.querySelector("#g-pagina");
 if (pagina) {
   const params = new URLSearchParams(location.search);
   const rota = location.pathname.match(/^\/([mod])\/([\w-]+)/);
-  const g = montarGrimorio(pagina, {
-    qInicial: params.get("q") || "", abrir: params.get("abrir"), naUrl: true,
-    aba: rota?.[1] === "d" ? "poderes" : "magias",
-  });
+  // poderes têm página própria: /poderes (e /d/<slug>); link antigo /?aba=poderes vira /poderes
+  if (location.pathname === "/" && params.get("aba") === "poderes") {
+    params.delete("aba");
+    history.replaceState(null, "", "/poderes" + (params.size ? "?" + params : ""));
+  }
+  const aba = rota?.[1] === "d" || location.pathname === "/poderes" ? "poderes" : "magias";
+  if (aba === "poderes") {
+    document.querySelector("header h1").textContent = "Poderes";
+    document.querySelector("header .sub").replaceChildren("Tormenta 20 · poderes de todos os livros: classe, raça, origem, concedidos, distinções · ",
+      el("a", { className: "link-ouro", href: "/", textContent: "📖 magias" }));
+    document.title = "Poderes — Hub T20";
+  }
+  const g = montarGrimorio(pagina, { qInicial: params.get("q") || "", abrir: params.get("abrir"), naUrl: true, aba, soAba: true });
   if (rota) mesaGlobal().abrir(`${rota[1] === "m" ? "p" : rota[1]}:${rota[2]}`);
   const atalho = (e) => {
     if (e.key === "/" && !e.target.closest("input, textarea, [contenteditable]")) { e.preventDefault(); g.busca.focus(); g.busca.select(); }

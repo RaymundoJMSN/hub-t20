@@ -11,12 +11,22 @@ const link = el("link", { rel: "stylesheet", href: "/nav.css" });
 link.dataset.hub = "";
 document.head.append(link);
 
-// [rota, "emoji Rótulo", cargaCompleta?] — /ficha/ é um app à parte (recarrega de verdade)
-export const ABAS = [["/", "📖 Grimório"], ["/criar", "✦ Criar magia"], ["/ficha/", "🧾 Criar ficha", true], ["/bestiario", "🐉 Bestiário"], ["/criar-ameaca", "👹 Criar ameaça"], ["/itens", "🎒 Itens"],
-  ["/regras", "⚖️ Regras"], ["/compendio", "🏛️ Compêndio"], ["/missoes", "📜 Missões"], ["/agenda", "📅 Agenda"], ["/links", "🎲 Mesa"]];
+// menu lateral em árvore: ["emoji Grupo", [filhos]] ou [rota, "emoji Rótulo", [filhos]?, cargaCompleta?]
+// /ficha/ é um app à parte (recarrega de verdade). Abas de página de coleção são "?aba=<coleção>".
+export const MENU = [
+  ["🏛️ Compêndio", [
+    ["/", "📖 Grimório", [["/criar", "✦ Criar magia"]]],
+    ["/poderes", "⚔️ Poderes"],
+    ["/bestiario", "🐉 Bestiário", [["/criar-ameaca", "👹 Criar ameaça"]]],
+    ["/itens", "🎒 Itens"],
+    ["/compendio", "🧝 Raças"], ["/compendio?aba=classes", "🛡️ Classes"], ["/compendio?aba=origens", "🏠 Origens"],
+    ["/compendio?aba=deuses", "☀️ Deuses"], ["/compendio?aba=distincoes", "🎖️ Distinções"], ["/compendio?aba=parceiros", "🐎 Parceiros"]]],
+  ["⚖️ Regras", [["/regras", "📘 Livros"], ["/regras?aba=str", "⚖️ STR"], ["/regras?aba=perigos", "☠️ Perigos"], ["/regras?aba=aventuras", "🗺️ Breves jornadas"]]],
+  ["🎲 Mesa", [["/ficha/", "🧾 Fichas", null, true], ["/missoes", "📜 Missões"], ["/agenda", "📅 Agenda"], ["/links", "🔗 Links"]]],
+];
 // páginas de coleção: cada aba da página é uma coleção de dados/colecoes/
 export const PAGINAS_COL = {
-  "/bestiario": { titulo: "Bestiário", sub: "620 ameaças com a ficha inteira · Livro Básico, Ameaças de Arton, Deuses de Arton, Guia de NPCs", abas: [["ameacas", "🐉 ameaças"]] },
+  "/bestiario": { titulo: "Bestiário", sub: "620 ameaças com a ficha inteira · Livro Básico, Ameaças de Arton, Deuses de Arton, Guia de NPCs", abas: [["ameacas", "🐉 ameaças"]], acao: ["/criar-ameaca", "👹 criar ameaça"] },
   "/itens": { titulo: "Itens", sub: "armas, armaduras, itens gerais e mágicos, encantamentos, modificações, maldições e culinária", abas: [["itens", "🎒 itens"]] },
   "/regras": { titulo: "Regras", sub: "os capítulos de regras dos livros, o Supremo Tribunal Regreiro (Dragão Brasil) e os perigos", abas: [["regras", "📘 livros"], ["str", "⚖️ STR"], ["perigos", "☠️ perigos"], ["aventuras", "🗺️ breves jornadas"]] },
   "/compendio": { titulo: "Compêndio", sub: "raças, classes, origens, deuses, distinções e parceiros", abas: [["racas", "🧝 raças"], ["classes", "🛡️ classes"], ["origens", "🏠 origens"], ["deuses", "☀️ deuses"], ["distincoes", "🎖️ distinções"], ["parceiros", "🐎 parceiros"]] },
@@ -116,27 +126,122 @@ document.addEventListener("click", (e) => {
 addEventListener("popstate", () => visitar(location.href, { push: false }));
 // passar o mouse (ou tocar) numa aba já busca o HTML dela
 document.addEventListener("pointerover", (e) => {
-  const a = e.target.closest(".hub-abas a[href]");
+  const a = e.target.closest(".hub-lado a[href], .hub-atalhos a[href]");
   if (a && a.href.startsWith(location.origin) && !CARGA_COMPLETA.test(new URL(a.href).pathname)) buscarHtml(new URL(a.href).pathname).catch(() => {});
 });
 
-// ---------------------------------------------------------------- barra, gaveta (celular) e conta
-function ativa() {
-  const p = location.pathname;
-  if (/^\/[mod](\/|$)/.test(p)) return "/";
+// ---------------------------------------------------------------- menu lateral, atalhos e busca em tudo
+// Menu = árvore à esquerda: aparece ao encostar o mouse na borda, ☰ deixa fixo (desktop) ou abre a gaveta (celular).
+// Cada página do menu tem ☆ = atalho no topo, guardado na conta (/api/atalhos), então vale em qualquer aparelho.
+const no = (x) => x[0].startsWith("/") ? { href: x[0], rot: x[1], filhos: (x[2] || []).map(no), completa: x[3] } : { rot: x[0], filhos: x[1].map(no) };
+const celular = () => matchMedia("(max-width: 900px)").matches;
+const guardado = (k, padrao) => { try { return JSON.parse(localStorage.getItem(k)) ?? padrao; } catch { return padrao; } };
+const guardar = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+let arvore = [], nav, lado, fundo, atalhosBox, atalhos = [], abertos = guardado("hub-menu", {});
+// rota → chave do menu: /o/x é o grimório, /d/x os poderes, /c/<col>/x a página da coleção (com ?aba= se não for a 1ª)
+function chaveAtual() {
+  const p = location.pathname, aba = new URLSearchParams(location.search).get("aba");
+  if (/^\/[mo](\/|$)/.test(p) || (p === "/" && aba === "poderes")) return aba === "poderes" ? "/poderes" : "/";
+  if (/^\/d(\/|$)/.test(p)) return "/poderes";
+  if (p.startsWith("/ficha/")) return "/ficha/";
   const c = p.match(/^\/c\/([\w-]+)/);
-  if (c) return paginaDaColecao(c[1]) || "/";
-  return ABAS.find(([h]) => h !== "/" && (p === h || p.startsWith(h.endsWith("/") ? h : h + "/")))?.[0] || (p === "/" ? "/" : "");
+  const pag = c ? paginaDaColecao(c[1]) : p, col = c ? c[1] : aba;
+  if (PAGINAS_COL[pag]) return pag + (col && col !== PAGINAS_COL[pag].abas[0][0] ? "?aba=" + col : "");
+  return p;
 }
-let nav, gaveta;
-function marcarAtiva() {
-  if (!nav) return;
-  const at = ativa();
-  for (const a of nav.querySelectorAll(".hub-abas a[href]")) a.classList.toggle("on", a.getAttribute("href") === at);
-  nav.querySelector(".hub-titulo").textContent = (ABAS.find(([h]) => h === at)?.[1] || "Hub T20").replace(/^\S+\s/, "");
+const caminhoAte = (chave, nos = arvore, pais = []) => {
+  for (const n of nos) {
+    if (n.href === chave) return [...pais, n];
+    const r = caminhoAte(chave, n.filhos, [...pais, n]);
+    if (r) return r;
+  }
+  return null;
+};
+const semEmoji = (rot) => rot.replace(/^\S+\s/, "");
+export function marcarAtiva() {
+  if (!lado) return;
+  const chave = chaveAtual(), caminho = caminhoAte(chave) || [];
+  for (const a of lado.querySelectorAll("a[href]")) a.classList.toggle("on", a.getAttribute("href") === chave);
+  for (const a of atalhosBox.querySelectorAll("a[href]")) a.classList.toggle("on", a.getAttribute("href") === chave);
+  for (const n of caminho.slice(0, -1)) n.li.classList.add("aberto"); // a página atual nunca fica escondida num galho fechado
+  nav.querySelector(".hub-trilha").textContent = caminho.length ? caminho.map((n) => semEmoji(n.rot)).join(" › ") : "Hub T20";
+  if (lado.contains(document.activeElement)) document.activeElement.blur(); // senão o :focus-within segura o menu aberto depois do clique
 }
-function abrirGaveta() { nav.classList.add("aberta"); gaveta.hidden = false; }
-function fecharGaveta() { nav?.classList.remove("aberta"); if (gaveta) gaveta.hidden = true; }
+function alternar(n) {
+  const aberto = n.li.classList.toggle("aberto");
+  abertos[n.rot] = aberto; guardar("hub-menu", abertos);
+}
+function montarNo(n) {
+  const [emoji, ...resto] = n.rot.split(" ");
+  const rotulo = [el("span", { className: "hub-emoji", textContent: emoji }), el("span", { className: "hub-rotulo", textContent: resto.join(" ") })];
+  const linha = el("div", { className: "hub-linha" });
+  if (n.href) {
+    const a = el("a", { href: n.href, title: semEmoji(n.rot) }, ...rotulo);
+    if (n.completa) a.dataset.recarrega = "";
+    linha.append(a, el("button", { type: "button", className: "hub-estrela", title: "atalho no topo", onclick: () => alternarAtalho(n.href) }));
+  } else linha.append(el("button", { type: "button", className: "hub-grupo-bt", onclick: () => alternar(n) }, ...rotulo));
+  if (n.filhos.length) linha.append(el("button", { type: "button", className: "hub-seta", title: "abrir / fechar", "aria-label": "abrir ou fechar " + semEmoji(n.rot), onclick: () => alternar(n) }));
+  // grupo começa aberto, página com filhos começa fechada; o que a pessoa abriu/fechou fica lembrado
+  n.li = el("li", { className: (n.href ? "hub-item" : "hub-grupo") + ((abertos[n.rot] ?? !n.href) ? " aberto" : "") }, linha);
+  if (n.filhos.length) n.li.append(el("ul", {}, ...n.filhos.map(montarNo)));
+  return n.li;
+}
+const todos = (nos = arvore) => nos.flatMap((n) => [n, ...todos(n.filhos)]);
+function desenharAtalhos() {
+  const porHref = new Map(todos().filter((n) => n.href).map((n) => [n.href, n]));
+  atalhosBox.replaceChildren(...atalhos.filter((h) => porHref.has(h)).map((h) => {
+    const n = porHref.get(h), [emoji, ...resto] = n.rot.split(" ");
+    const a = el("a", { href: h, title: semEmoji(n.rot) }, el("span", { className: "hub-emoji", textContent: emoji }), el("span", { className: "hub-rotulo", textContent: resto.join(" ") }));
+    if (n.completa) a.dataset.recarrega = "";
+    return a;
+  }));
+  for (const n of porHref.values()) {
+    const b = n.li.querySelector(":scope > .hub-linha > .hub-estrela"), tem = atalhos.includes(n.href);
+    b.textContent = tem ? "★" : "☆"; b.classList.toggle("on", tem); b.title = tem ? "tirar do topo" : "atalho no topo";
+  }
+  marcarAtiva();
+}
+async function alternarAtalho(href) {
+  atalhos = atalhos.includes(href) ? atalhos.filter((h) => h !== href) : [...atalhos, href];
+  desenharAtalhos();
+  try { atalhos = (await postJson("/api/atalhos", { atalhos })).atalhos ?? atalhos; } catch {}
+}
+function abrirGaveta() { lado.classList.add("aberto"); fundo.hidden = false; }
+function fecharGaveta() { lado?.classList.remove("aberto"); if (fundo) fundo.hidden = true; }
+function fixar(sim) { document.documentElement.classList.toggle("lado-fixo", sim); guardar("hub-lado-fixo", sim); }
+
+// busca em tudo: /api/busca devolve as melhores de cada fonte; "ver todas" abre a página da fonte já filtrada
+function caixaDeBusca() {
+  const caixa = el("input", { type: "search", className: "hub-busca", placeholder: "Buscar em tudo…", autocomplete: "off", title: "buscar em magias, poderes, bestiário, itens, regras… (Ctrl+K)" });
+  const res = el("div", { className: "hub-resultados", hidden: true });
+  let timer, n = 0;
+  const paginaDe = (g, q) => {
+    const u = new URL(g.col ? paginaDaColecao(g.col) || "/compendio" : g.pagina, location.origin);
+    if (g.col) u.searchParams.set("aba", g.col);
+    u.searchParams.set("q", q);
+    return u.pathname + u.search;
+  };
+  async function buscar() {
+    const q = caixa.value.trim(), eu = ++n;
+    if (q.length < 2) { res.hidden = true; return; }
+    const r = await fetch("/api/busca?q=" + encodeURIComponent(q)).then((x) => x.json()).catch(() => ({ grupos: [] }));
+    if (eu !== n) return; // chegou resposta de uma busca velha
+    res.replaceChildren(...(r.grupos?.length ? r.grupos.map((g) => el("div", { className: "hub-res-grupo" },
+      el("a", { className: "hub-res-titulo", href: paginaDe(g, q), textContent: `${g.titulo} · ${g.total}${g.total > g.itens.length ? " — ver todas" : ""}` }),
+      ...g.itens.map((i) => el("a", { className: "hub-res-item", href: i.href }, el("b", { textContent: i.nome }), el("span", { textContent: i.linha || "" })))))
+      : [el("div", { className: "hub-res-vazio", textContent: "nada encontrado" })]));
+    res.hidden = false;
+  }
+  caixa.oninput = () => { clearTimeout(timer); timer = setTimeout(buscar, 250); };
+  caixa.onfocus = () => { if (res.childElementCount && caixa.value.trim().length > 1) res.hidden = false; };
+  caixa.onkeydown = (e) => {
+    if (e.key === "Escape") { res.hidden = true; caixa.blur(); }
+    if (e.key === "Enter") res.querySelector(".hub-res-item")?.click();
+  };
+  res.addEventListener("click", (e) => { if (e.target.closest("a")) res.hidden = true; });
+  document.addEventListener("pointerdown", (e) => { if (!e.target.closest(".hub-busca-box")) res.hidden = true; });
+  return el("div", { className: "hub-busca-box" }, caixa, res);
+}
 
 const postJson = (rota, corpo) => fetch(rota, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(corpo) }).then((r) => r.json());
 // diálogo da conta: nome de exibição + personagem (quem vota nas missões), trocar senha, sair (+ painel do mestre)
@@ -181,31 +286,35 @@ function dialogoConta(u) {
 }
 
 eu.then((u) => {
-  const aba = ([href, rot, completa]) => {
-    const [emoji, ...resto] = rot.split(" ");
-    const a = el("a", { href, title: rot }, el("span", { className: "hub-emoji", textContent: emoji }), el("span", { className: "hub-rotulo", textContent: resto.join(" ") }));
-    if (completa) a.dataset.recarrega = "";
-    return a;
-  };
-  nav = el("nav", { className: "hub-nav" },
-    el("button", { className: "hub-menu-bt", type: "button", title: "menu", textContent: "☰", onclick: () => nav.classList.contains("aberta") ? fecharGaveta() : abrirGaveta() }),
-    el("span", { className: "hub-titulo" }),
-    el("div", { className: "hub-abas" }, ...ABAS.map(aba),
-      el("div", { className: "hub-gaveta-conta" },
-        el("button", { className: "hub-bt", type: "button", textContent: (u.mestre ? "👑 " : "👤 ") + u.nome, onclick: () => dialogoConta(u) }),
-        el("button", { className: "hub-bt", type: "button", textContent: "sair", onclick: sair }))),
+  arvore = MENU.map(no);
+  if (u.mestre) arvore.find((n) => n.rot.endsWith("Mesa"))?.filhos.push(no(["/mestre", "👑 Mestre"]));
+  atalhos = u.atalhos || [];
+  atalhosBox = el("div", { className: "hub-atalhos" });
+  const menuBt = el("button", { className: "hub-menu-bt", type: "button", title: "menu (fixar aberto)", textContent: "☰",
+    onclick: () => celular() ? (lado.classList.contains("aberto") ? fecharGaveta() : abrirGaveta()) : fixar(!document.documentElement.classList.contains("lado-fixo")) });
+  nav = el("nav", { className: "hub-nav" }, menuBt, el("span", { className: "hub-trilha" }), atalhosBox, caixaDeBusca(),
     el("div", { className: "hub-eu" },
       el("span", { className: "hub-nome", title: u.personagem ? `${u.nome} · ${u.personagem}` : u.nome }, el("b", { textContent: u.nome }), u.personagem ? el("span", { className: "hub-pers", textContent: " · " + u.personagem }) : null),
-      u.mestre ? el("a", { href: "/mestre", className: "hub-bt", textContent: "👑 mestre" }) : null,
       el("button", { className: "hub-bt", type: "button", textContent: "conta", onclick: () => dialogoConta(u) }),
       el("button", { className: "hub-bt", type: "button", textContent: "sair", onclick: sair }),
       el("button", { className: "hub-bt hub-conta-bt", type: "button", title: u.nome, textContent: u.mestre ? "👑" : "👤", onclick: () => dialogoConta(u) })));
-  nav.dataset.hub = "";
-  gaveta = el("div", { className: "hub-fundo", hidden: true, onclick: fecharGaveta });
-  gaveta.dataset.hub = "";
-  document.body.prepend(nav, gaveta);
+  lado = el("aside", { className: "hub-lado", "aria-label": "menu" },
+    el("div", { className: "hub-lado-topo" }, el("b", { textContent: "Hub T20" }),
+      el("button", { className: "hub-fixar", type: "button", title: "deixar o menu sempre aberto", textContent: "📌", onclick: () => fixar(!document.documentElement.classList.contains("lado-fixo")) })),
+    el("ul", { className: "hub-arvore" }, ...arvore.map(montarNo)),
+    el("div", { className: "hub-gaveta-conta" },
+      el("button", { className: "hub-bt", type: "button", textContent: (u.mestre ? "👑 " : "👤 ") + u.nome, onclick: () => dialogoConta(u) }),
+      el("button", { className: "hub-bt", type: "button", textContent: "sair", onclick: sair })));
+  const borda = el("div", { className: "hub-borda", "aria-hidden": "true" }); // faixa invisível na esquerda: encostar abre o menu
+  fundo = el("div", { className: "hub-fundo", hidden: true, onclick: fecharGaveta });
+  for (const n of [nav, borda, lado, fundo]) n.dataset.hub = "";
+  document.body.prepend(nav, borda, lado, fundo);
   document.documentElement.classList.add("com-nav");
-  marcarAtiva();
+  fixar(guardado("hub-lado-fixo", false));
+  desenharAtalhos();
+});
+addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); document.querySelector(".hub-busca")?.focus(); }
 });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") fecharGaveta(); });
 // PWA: instalável e abre offline o que já foi visto (sw.js = cache primeiro pra css/js/dados fixos)

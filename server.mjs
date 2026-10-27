@@ -165,7 +165,9 @@ function sessaoDe(req) {
 }
 const cookieSessao = (req, valor, maxAge) =>
   `hub=${valor}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${/^(localhost|127\.0\.0\.1)(:|$)/.test(req.headers.host || "") ? "" : "; Secure"}`;
-const publico = (u) => u && { nome: u.nome, apelido: u.apelido || "", papel: u.papel, personagem: u.personagem || "", criadoEm: u.criadoEm };
+const publico = (u) => u && { nome: u.nome, apelido: u.apelido || "", papel: u.papel, personagem: u.personagem || "", criadoEm: u.criadoEm, atalhos: u.atalhos || [] };
+// atalhos do topo: rotas internas do menu ("/", "/poderes", "/compendio?aba=classes"), sem repetir, até 16
+const limparAtalhos = (xs) => [...new Set((Array.isArray(xs) ? xs : []).map(String).filter((h) => /^\/(?!\/)[\w\-/?=&.]{0,80}$/.test(h)))].slice(0, 16);
 // freio de força bruta por IP: 8 erros → 60 s de espera
 const erros = new Map();
 function bloqueado(ip) { const e = erros.get(ip); return e && e.n >= 8 && Date.now() - e.em < 60_000; }
@@ -310,7 +312,7 @@ function alvoDaRota(p) {
   if (c) { const it = carregarColecao(c[1])?.porId.get(c[2]); return it && [it.nome, it.linha, "Hub T20"]; }
   return null;
 }
-const PAGINAS = { "/": "grimorio.html", "/criar": "index.html", "/criar-ameaca": "ameacas.html", "/bestiario": "colecao.html", "/itens": "colecao.html", "/regras": "colecao.html", "/compendio": "colecao.html",
+const PAGINAS = { "/": "grimorio.html", "/poderes": "grimorio.html", "/criar": "index.html", "/criar-ameaca": "ameacas.html", "/bestiario": "colecao.html", "/itens": "colecao.html", "/regras": "colecao.html", "/compendio": "colecao.html",
   "/missoes": "missoes.html", "/agenda": "agenda.html", "/links": "links.html", "/mestre": "mestre.html" };
 // sem sessão só passa: login, a API de login e arquivos estáticos (css/js/fontes/ícones/manifest/sw — código e enfeite, não dados)
 const livre = (p) => p === "/login" || p === "/api/login" || /\.(css|js|mjs|png|svg|ico|ttf|otf|woff2|webmanifest)$/.test(p);
@@ -359,6 +361,13 @@ async function tratar(req, res) {
     if (typeof r === "string") return json(res, 400, { erro: r });
     // a chave mudou → cookie novo (o antigo aponta pra uma conta que não existe mais)
     return json(res, 200, { ok: true, eu: publico(usuarios[r.chave]) }, r.chave !== eu.chave ? { "set-cookie": cookieSessao(req, tokenDe(r.chave), 365 * 86400) } : {});
+  }
+  if (p === "/api/atalhos" && req.method === "POST") {
+    let b;
+    try { b = await corpo(req); } catch { return json(res, 400, { erro: "corpo inválido" }); }
+    usuarios[eu.chave].atalhos = limparAtalhos(b.atalhos);
+    gravarJson(ARQ_USU, usuarios);
+    return json(res, 200, { ok: true, atalhos: usuarios[eu.chave].atalhos });
   }
   // ---- painel do mestre: contas (criar, senha, papel, personagem, renomear, apagar)
   if (p.startsWith("/api/usuarios")) {
@@ -492,6 +501,34 @@ async function tratar(req, res) {
     let f;
     try { f = await corpo(req); } catch { return json(res, 400, { erro: "corpo inválido" }); }
     return json(res, 200, { sugestoes: sugerirAprimoramentos(f, tratar.aprs) });
+  }
+
+  // ---- busca em tudo (caixa do topo): as 5 melhores de cada fonte, fontes ordenadas pela melhor nota.
+  // Mesmas chaves de vocabulário das rotas de cada fonte, então o cache de correção é dividido com elas.
+  if (p === "/api/busca" && req.method === "GET") {
+    const q = norm(url.searchParams.get("q")).trim();
+    if (q.length < 2) return json(res, 200, { grupos: [] });
+    const textos = carregarTextos(), poderes = carregarPoderes();
+    const fontes = [
+      [{ titulo: "Magias", pagina: "/" }, textos, Object.entries(textos), ([, t]) => blobDe(t),
+        ([s, t]) => [t.nome, t.linha, "/o/" + s, [t.nome, [t.linha, t.escola, t.grupo].join(" "), t.descricao]]],
+      [{ titulo: "Poderes", pagina: "/poderes" }, poderes, Object.entries(poderes), ([, t]) => blobDe(t),
+        ([s, t]) => [t.nome, t.linha, "/d/" + s, [t.nome, [t.categoria, t.sub, t.livro, t.prereq].join(" "), t.descricao]]],
+    ];
+    for (const nome of new Set([...Object.keys(lerJson(join(DADOS, "colecoes", "INDEX.json"), { contagem: {} }).contagem), ...Object.keys(colecoes.cache)])) {
+      const col = carregarColecao(nome);
+      if (col) fontes.push([{ titulo: col.meta.titulo || nome, col: nome }, col, col.itens, (i) => i.t,
+        (i) => [i.nome, i.linha, `/c/${nome}/${i.id}`, [i.nome, [i.linha, ...Object.values(i.f || {})].join(" "), i.t]]]);
+    }
+    const grupos = [];
+    for (const [cab, chave, lista, blob, info] of fontes) {
+      const termos = await comIA(termosBusca(q, vocabDe(chave, () => lista.map(blob))));
+      const achados = filtrar(lista, blob, termos).map((x) => { const [nome, linha, href, partes] = info(x); return { nome, linha, href, rel: relevancia(partes, termos, q) }; })
+        .sort((a, b) => b.rel - a.rel);
+      if (achados.length) grupos.push({ ...cab, total: achados.length, itens: achados.slice(0, 5) });
+    }
+    grupos.sort((a, b) => b.itens[0].rel - a.itens[0].rel);
+    return json(res, 200, { grupos });
   }
 
   // ---- coleções: /api/c/<nome>?q=  (lista leve)  |  /api/c/<nome>/<id>  (ficha completa)
@@ -1055,6 +1092,11 @@ if (CHECK) {
       const urso = await (await fetch(`${base}/api/c/teste/urso`, { headers: H })).json();
       if (urso.html !== "<b>PV</b> 30") return falha("ficha da coleção");
       if ((await fetch(`${base}/api/c/naoexiste`, { headers: H })).status !== 404) return falha("coleção inexistente devia dar 404");
+      const tudo = await (await fetch(`${base}/api/busca?q=garra`, { headers: H })).json();
+      if (tudo.grupos.find((g) => g.col === "teste")?.itens[0]?.href !== "/c/teste/urso") return falha("busca em tudo: " + JSON.stringify(tudo).slice(0, 300));
+      const at = await (await fetch(`${base}/api/atalhos`, { method: "POST", headers: HJ, body: JSON.stringify({ atalhos: ["/poderes", "/poderes", "javascript:alert(1)", "//fora.com", "/compendio?aba=classes"] }) })).json();
+      if (JSON.stringify(at.atalhos) !== '["/poderes","/compendio?aba=classes"]') return falha("atalhos: " + JSON.stringify(at));
+      if ((await (await fetch(`${base}/api/eu`, { headers: HJ })).json()).atalhos?.length !== 2) return falha("atalhos não voltam no /api/eu");
       const paginaC = await fetch(`${base}/c/teste/urso`, { headers: H });
       if (paginaC.status !== 200 || !(await paginaC.text()).includes('og:title" content="Urso"')) return falha("/c/ sem Open Graph");
 

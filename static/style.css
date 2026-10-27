@@ -519,6 +519,7 @@ footer a { color: var(--ouro); }
 
 /* abas de coleção (raças/classes/…, livros/STR/…): um bloco só, com divisórias — não círculos soltos */
 .g-abas { display: flex; flex-wrap: wrap; gap: 0; margin-bottom: 10px; border: 1px solid var(--borda); border-radius: 12px; overflow: hidden; background: #150a0d; }
+.g-abas[hidden] { display: none; } /* o display:flex da classe vencia o atributo hidden (barra de aba única, /poderes) */
 .g-abas .g-aba { flex: 1 1 auto; border: 0; border-right: 1px solid var(--borda); border-radius: 0; background: transparent; padding: 9px 12px;
   white-space: nowrap; text-align: center; font-size: .86rem; }
 .g-abas .g-aba:last-child { border-right: 0; }

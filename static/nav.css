@@ -1,32 +1,101 @@
-/* nav.css — só a casca do Hub (hub.js injeta este arquivo em toda página): barra de abas no desktop,
-   ☰ com gaveta pela esquerda no celular, diálogo da conta. Autocontido: não depende do style.css,
-   então páginas com CSS próprio (agenda, missões, criador de ficha) ficam intactas. */
-.hub-nav, .hub-dialog, .hub-fundo {
+/* nav.css — só a casca do Hub (hub.js injeta este arquivo em toda página): barra do topo (☰ · trilha · atalhos ·
+   busca em tudo · conta), menu lateral em árvore que aparece ao encostar na borda esquerda (☰/📌 deixa fixo; no
+   celular é gaveta), diálogo da conta. Autocontido: não depende do style.css, então páginas com CSS próprio
+   (agenda, missões, criador de ficha) ficam intactas. */
+.hub-nav, .hub-dialog, .hub-fundo, .hub-lado {
   --hn-fundo: #120809; --hn-painel: #241317; --hn-painel2: #1d0f12; --hn-borda: #3d1d22;
   --hn-sangue: #b6292e; --hn-ouro: #c9a227; --hn-ouro-claro: #f0dc82; --hn-texto: #e8dcc3; --hn-texto-2: #a8977c;
   font-family: "Alegreya", Georgia, serif; font-size: 16px; line-height: 1.3; box-sizing: border-box;
 }
-.hub-nav *, .hub-dialog * { box-sizing: border-box; }
-.hub-nav { position: sticky; top: 0; z-index: 50; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-  margin: 0; padding: 8px 16px; background: rgba(18, 8, 9, .96); color: var(--hn-texto); border-bottom: 1px solid var(--hn-borda); }
-.hub-menu-bt, .hub-titulo, .hub-conta-bt, .hub-gaveta-conta { display: none; }
-.hub-abas { display: flex; flex-wrap: wrap; gap: 2px; flex: 1; } /* quebra linha em vez de rolar escondido (a barra de rolagem é invisível) */
-.hub-abas a { font-family: "Cinzel", serif; font-weight: 700; letter-spacing: .04em; font-size: 14px; white-space: nowrap;
-  color: var(--hn-texto-2); text-decoration: none; padding: 7px 12px; border-radius: 8px; border: 1px solid transparent; cursor: pointer; }
-.hub-abas a:hover { color: var(--hn-ouro-claro); border-color: var(--hn-borda); }
-.hub-abas a.on { color: var(--hn-ouro-claro); background: linear-gradient(180deg, var(--hn-painel), var(--hn-painel2)); border-color: var(--hn-borda); }
-.hub-emoji { display: inline; }
-.hub-rotulo { display: inline; margin-left: 4px; }
-.hub-eu { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--hn-texto-2); margin-left: auto; }
+.hub-nav *, .hub-dialog *, .hub-lado * { box-sizing: border-box; }
+
+/* ---- barra do topo */
+.hub-nav { position: sticky; top: 0; z-index: 50; display: flex; align-items: center; gap: 10px;
+  margin: 0; padding: 6px 14px; background: rgba(18, 8, 9, .96); color: var(--hn-texto); border-bottom: 1px solid var(--hn-borda); }
+.hub-menu-bt { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 9px; border: 1px solid var(--hn-borda); flex: none;
+  background: var(--hn-painel); color: var(--hn-ouro-claro); font-size: 19px; line-height: 1; cursor: pointer; padding: 0; }
+.hub-menu-bt:hover { border-color: var(--hn-ouro); }
+html.lado-fixo .hub-menu-bt { border-color: var(--hn-ouro); }
+.hub-trilha { font-family: "Cinzel", serif; font-weight: 700; letter-spacing: .05em; font-size: 14px; color: var(--hn-ouro-claro);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 32vw; flex: none; }
+.hub-atalhos { display: flex; flex-wrap: wrap; gap: 2px; flex: 1; min-width: 0; }
+.hub-atalhos a { font-family: "Cinzel", serif; font-weight: 700; letter-spacing: .03em; font-size: 13px; white-space: nowrap;
+  color: var(--hn-texto-2); text-decoration: none; padding: 5px 10px; border-radius: 8px; border: 1px solid transparent; }
+.hub-atalhos a:hover { color: var(--hn-ouro-claro); border-color: var(--hn-borda); }
+.hub-atalhos a.on { color: var(--hn-ouro-claro); background: linear-gradient(180deg, var(--hn-painel), var(--hn-painel2)); border-color: var(--hn-borda); }
+.hub-atalhos .hub-rotulo { margin-left: 5px; }
+
+/* busca em tudo */
+.hub-busca-box { position: relative; flex: 0 1 260px; margin-left: auto; min-width: 0; }
+.hub-busca { width: 100%; background: #150a0d; color: var(--hn-texto); border: 1px solid var(--hn-borda); border-radius: 999px;
+  padding: 6px 14px; font: inherit; font-size: 14px; }
+.hub-busca:focus { outline: none; border-color: var(--hn-ouro); }
+.hub-resultados { position: absolute; right: 0; top: calc(100% + 6px); z-index: 70; width: min(520px, 94vw); max-height: 72vh; overflow-y: auto;
+  padding: 6px; background: linear-gradient(180deg, var(--hn-painel), var(--hn-painel2)); border: 1px solid var(--hn-borda);
+  border-radius: 12px; box-shadow: 0 14px 40px rgba(0, 0, 0, .65); }
+.hub-resultados[hidden] { display: none; }
+.hub-res-titulo { display: block; padding: 8px 8px 4px; font-family: "Cinzel", serif; font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--hn-ouro); text-decoration: none; }
+.hub-res-titulo:hover { color: var(--hn-ouro-claro); }
+.hub-res-item { display: flex; flex-direction: column; padding: 6px 10px; border-radius: 8px; text-decoration: none; color: var(--hn-texto); }
+.hub-res-item:hover, .hub-res-item:focus-visible { background: rgba(182, 41, 46, .25); outline: none; }
+.hub-res-item b { color: var(--hn-ouro-claro); font-weight: 700; }
+.hub-res-item span { font-size: 13px; color: var(--hn-texto-2); }
+.hub-res-grupo + .hub-res-grupo { border-top: 1px solid var(--hn-borda); margin-top: 4px; }
+.hub-res-vazio { padding: 10px; color: var(--hn-texto-2); }
+
+/* conta */
+.hub-eu { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--hn-texto-2); flex: none; }
 .hub-eu .hub-nome b { color: var(--hn-ouro-claro); }
 .hub-eu .hub-pers { font-variant: small-caps; }
 .hub-bt { font-family: "Cinzel", serif; font-weight: 700; font-size: 11.5px; letter-spacing: .04em; padding: 4px 10px; border-radius: 999px;
   border: 1px solid var(--hn-borda); background: var(--hn-painel); color: var(--hn-texto); cursor: pointer; text-decoration: none; line-height: 1.3; }
 .hub-bt:hover { border-color: var(--hn-ouro); color: var(--hn-ouro-claro); }
 .hub-bt.destaque { background: var(--hn-sangue); border-color: #e2383e; color: #fff; }
-.hub-fundo { position: fixed; inset: 0; z-index: 45; /* abaixo da barra (50): a gaveta vive DENTRO da barra e ficava presa no contexto dela, sob o fundo */ background: rgba(0, 0, 0, .55); }
+.hub-conta-bt, .hub-gaveta-conta { display: none; }
+@media (max-width: 1250px) { .hub-eu .hub-nome { display: none; } }
+
+/* ---- menu lateral (árvore) */
+.hub-lado { position: fixed; top: 0; left: 0; bottom: 0; z-index: 60; width: 270px; display: flex; flex-direction: column;
+  padding: 10px 8px calc(14px + env(safe-area-inset-bottom)); overflow-y: auto; color: var(--hn-texto);
+  background: var(--hn-fundo); border-right: 1px solid var(--hn-borda); box-shadow: 8px 0 30px rgba(0, 0, 0, .6);
+  transform: translateX(-102%); transition: transform .16s ease-out .35s; } /* some com um respiro, pra não fechar no tremido do mouse */
+.hub-borda { position: fixed; top: 0; left: 0; bottom: 0; width: 10px; z-index: 59; }
+.hub-lado.aberto, html.lado-fixo .hub-lado { transform: none; transition-delay: 0s; }
+@media (hover: hover) and (min-width: 901px) {
+  .hub-borda:hover + .hub-lado, .hub-lado:hover, .hub-lado:focus-within { transform: none; transition-delay: 0s; }
+}
+html.lado-fixo { padding-left: 270px; }
+html.lado-fixo .hub-borda { display: none; }
+html.lado-fixo .hub-lado { box-shadow: none; }
+.hub-lado-topo { display: flex; align-items: center; justify-content: space-between; padding: 4px 8px 10px; margin-bottom: 6px;
+  border-bottom: 1px solid var(--hn-borda); font-family: "Cinzel", serif; letter-spacing: .08em; color: var(--hn-ouro-claro); }
+.hub-fixar { background: none; border: 1px solid transparent; border-radius: 8px; cursor: pointer; opacity: .5; font-size: 14px; padding: 3px 6px; }
+.hub-fixar:hover { opacity: 1; border-color: var(--hn-borda); }
+html.lado-fixo .hub-fixar { opacity: 1; background: var(--hn-painel); border-color: var(--hn-ouro); }
+.hub-arvore, .hub-arvore ul { list-style: none; margin: 0; padding: 0; }
+.hub-arvore ul { display: none; margin-left: 18px; padding-left: 6px; border-left: 1px solid var(--hn-borda); }
+.hub-arvore li.aberto > ul { display: block; }
+.hub-grupo + .hub-grupo { margin-top: 8px; }
+.hub-linha { display: flex; align-items: center; gap: 2px; }
+.hub-linha > a, .hub-grupo-bt { flex: 1; display: flex; align-items: center; gap: 8px; min-width: 0; padding: 7px 8px; border-radius: 8px;
+  border: 1px solid transparent; background: none; color: var(--hn-texto-2); text-decoration: none; cursor: pointer; text-align: left;
+  font-family: "Cinzel", serif; font-weight: 700; font-size: 13.5px; letter-spacing: .03em; white-space: nowrap; }
+.hub-grupo-bt { color: var(--hn-ouro); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; }
+.hub-linha > a:hover, .hub-grupo-bt:hover { color: var(--hn-ouro-claro); background: rgba(255, 255, 255, .04); }
+.hub-linha > a.on { color: var(--hn-ouro-claro); background: rgba(182, 41, 46, .28); border-color: rgba(182, 41, 46, .5); }
+.hub-lado .hub-emoji { width: 22px; text-align: center; flex: none; font-size: 16px; }
+.hub-lado .hub-rotulo { overflow: hidden; text-overflow: ellipsis; }
+.hub-estrela, .hub-seta { flex: none; width: 26px; height: 26px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 6px;
+  background: none; color: var(--hn-texto-2); cursor: pointer; font-size: 14px; }
+.hub-estrela { opacity: 0; }
+.hub-linha:hover .hub-estrela, .hub-estrela.on, .hub-estrela:focus-visible { opacity: 1; }
+.hub-estrela.on { color: var(--hn-ouro); }
+.hub-estrela:hover, .hub-seta:hover { color: var(--hn-ouro-claro); background: rgba(255, 255, 255, .06); }
+.hub-seta::before { content: "▸"; display: inline-block; transition: transform .12s; }
+.hub-arvore li.aberto > .hub-linha > .hub-seta::before { transform: rotate(90deg); }
+.hub-fundo { position: fixed; inset: 0; z-index: 58; background: rgba(0, 0, 0, .55); }
 .hub-fundo[hidden] { display: none; }
-@media (max-width: 1100px) and (min-width: 901px) { .hub-abas { flex-basis: 100%; order: 2; } }
 
 /* diálogo da conta — mesmo visual em qualquer página */
 .hub-dialog { background: linear-gradient(180deg, var(--hn-painel), var(--hn-painel2)); color: var(--hn-texto); border: 1px solid var(--hn-borda);
@@ -42,26 +111,28 @@
 .hub-dialog .hub-quem b { color: var(--hn-ouro-claro); }
 .hub-dialog .hub-rotulo-campo { font-family: "Cinzel", serif; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--hn-texto-2); margin-top: 6px; }
 
-/* celular: barra fina em cima (☰ · título · 👤); as abas viram uma gaveta que desliza pela esquerda */
+/* celular: ☰ abre o menu como gaveta (sem fixar), atalhos só com o emoji, conta vira 👤 */
 @media (max-width: 900px) {
-  .hub-nav { gap: 8px; padding: 6px 10px; flex-wrap: nowrap; }
-  .hub-menu-bt { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--hn-borda);
-    background: var(--hn-painel); color: var(--hn-ouro-claro); font-size: 21px; line-height: 1; cursor: pointer; padding: 0; flex: none; }
-  .hub-titulo { display: block; flex: 1; font-family: "Cinzel", serif; font-weight: 700; letter-spacing: .06em; font-size: 15px; color: var(--hn-ouro-claro);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hub-nav { gap: 8px; padding: 6px 10px; }
+  .hub-menu-bt { width: 40px; height: 40px; font-size: 21px; border-color: var(--hn-borda); }
+  .hub-trilha { flex: 1; max-width: none; font-size: 14px; }
+  .hub-atalhos { flex: none; flex-wrap: nowrap; overflow-x: auto; max-width: 34vw; }
+  .hub-atalhos a { padding: 5px 7px; font-size: 16px; }
+  .hub-atalhos .hub-rotulo { display: none; }
+  .hub-busca-box { flex: 0 1 140px; margin-left: 0; }
+  .hub-resultados { position: fixed; left: 3vw; right: 3vw; top: 56px; width: auto; }
   .hub-eu .hub-nome, .hub-eu .hub-bt:not(.hub-conta-bt) { display: none; }
   .hub-conta-bt { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; padding: 0; font-size: 18px; }
-  .hub-abas { position: fixed; top: 0; left: 0; bottom: 0; z-index: 60; width: min(80vw, 300px); flex-direction: column; gap: 2px;
-    padding: 14px 10px calc(14px + env(safe-area-inset-bottom)); overflow-y: auto; background: var(--hn-fundo); border-right: 1px solid var(--hn-borda);
-    box-shadow: 8px 0 30px rgba(0, 0, 0, .6); transform: translateX(-102%); transition: transform .18s ease-out; }
-  .hub-nav.aberta .hub-abas { transform: none; }
-  .hub-abas a { display: flex; align-items: center; gap: 12px; padding: 11px 12px; font-size: 16px; border-radius: 10px; }
-  .hub-abas a.on { background: rgba(182, 41, 46, .28); border-color: rgba(182, 41, 46, .5); }
-  .hub-abas .hub-emoji { font-size: 22px; width: 28px; text-align: center; }
-  .hub-abas .hub-rotulo { margin: 0; }
+  .hub-borda, .hub-fixar { display: none; }
+  html.lado-fixo { padding-left: 0; }
+  .hub-lado, html.lado-fixo .hub-lado { width: min(82vw, 300px); transform: translateX(-102%); transition-delay: 0s; }
+  html .hub-lado.aberto { transform: none; }
+  .hub-linha > a, .hub-grupo-bt { padding: 10px 8px; font-size: 15px; }
+  .hub-estrela { opacity: .45; }
   .hub-gaveta-conta { display: flex; flex-direction: column; gap: 6px; margin-top: auto; padding-top: 12px; border-top: 1px solid var(--hn-borda); }
   .hub-gaveta-conta .hub-bt { text-align: left; padding: 9px 12px; font-size: 13px; border-radius: 10px; }
 }
+@media (max-width: 480px) { .hub-trilha { display: none; } .hub-busca-box { flex: 1; } }
 
 /* barra de rolagem invisível em todo lugar (rola normal, só não aparece) */
 * { scrollbar-width: none; }
