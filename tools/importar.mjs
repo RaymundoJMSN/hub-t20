@@ -386,7 +386,16 @@ function compendio() {
   for (const s of secoes(corpoOr)) if (s.nivel === 3 && s.pais.includes("Origens Detalhadas"))
     origens.push(ficha({ id: slug(`lb-${s.titulo}`), nome: s.titulo, linha: "Livro Básico · origem", grupo: "Livro Básico", f: { livro: "Livro Básico" }, html: md(s.corpo) }));
   for (const f of arquivosMd("herois-arton/01-campeoes-arton").filter((f) => /origem-/.test(f))) origens.push(arquivoInteiro("Heróis de Arton", f));
-  for (const f of arquivosMd("dragao-brasil/03-origens")) origens.push(arquivoInteiro("Dragão Brasil", f));
+  // DB: um arquivo com várias origens "## Nome" (as condicionais trazem os poderes em ### dentro delas)
+  for (const f of arquivosMd("dragao-brasil/03-origens")) {
+    let atual = null;
+    for (const s of secoes(frontmatter(lerMd(f))[1])) {
+      if (s.nivel === 2) origens.push(atual = { nome: s.titulo, corpo: s.corpo });
+      else if (atual && s.nivel > 2) atual.corpo += `\n\n${"#".repeat(s.nivel)} ${s.titulo}\n${s.corpo}`;
+    }
+    for (let i = 0; i < origens.length; i++) if (origens[i].corpo !== undefined)
+      origens[i] = ficha({ id: slug(`db-${origens[i].nome}`), nome: origens[i].nome, linha: "Dragão Brasil · origem", grupo: "Dragão Brasil", f: { livro: "Dragão Brasil" }, html: md(origens[i].corpo) });
+  }
   gravar("origens", { titulo: "Origens", filtros: [{ k: "livro", rotulo: "livro" }] }, origens);
   const deuses = [];
   const [, corpoDe] = frontmatter(lerMd("tormenta20-core/02-criacao-personagens/06-deuses.md"));

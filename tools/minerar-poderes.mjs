@@ -165,6 +165,11 @@ function titulo(s) {
 // cabeçalho que é seção do livro, não poder
 const NAO_E_PODER = /^(tabela|índice|indice|sumário|introdu|sobre |navega|poderes? de (classe|combate|destino|magia|tormenta|raça|raca|grupo|arton)\b|novos (efeitos|poderes)|refer|lista de|como (usar|funciona)|pré-requisitos)/i;
 
+// tira navegação, réguas, imagens e negrito do markdown dos livros
+export const limparMd = (t) => t.replace(/^\s*\[[^\]]*\]\([^)]*\)[^\n]*$/gm, "")
+  .replace(/^\s*---\s*$/gm, "").replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+  .replace(/\*\*/g, "").replace(/\n{3,}/g, "\n\n").trim();
+
 /** Uma seção de poder por cabeçalho do nível mais profundo que o arquivo usa. */
 export function poderesDoMarkdown(md, nivelForcado) {
   const corpo = md.replace(/\r\n?/g, "\n").replace(/^---\n[\s\S]*?\n---\n/, "");
@@ -176,11 +181,7 @@ export function poderesDoMarkdown(md, nivelForcado) {
     const nome = achados[i][1].replace(/\*+/g, "").trim();
     const ini = achados[i].index + achados[i][0].length;
     const fim = i + 1 < achados.length ? achados[i + 1].index : corpo.length;
-    let texto = corpo.slice(ini, fim);
-    texto = texto.replace(/^\s*\[[^\]]*\]\([^)]*\)[^\n]*$/gm, "")   // linhas de navegação
-                 .replace(/^\s*---\s*$/gm, "")
-                 .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
-                 .replace(/\*\*/g, "").replace(/\n{3,}/g, "\n\n").trim();
+    const texto = limparMd(corpo.slice(ini, fim));
     if (NAO_E_PODER.test(nome)) continue;
     if (/^\|/m.test(texto)) continue;          // seção com tabela = índice, não poder
     if (texto.length < 60) continue;
@@ -228,6 +229,46 @@ function doMarkdown(poderes) {
   return n;
 }
 
+// ---------- 3. origens com benefício próprio ----------
+// Origem especial (Heróis de Arton) e regional (Dragão Brasil) dá UM benefício único no lugar dos dois da lista:
+// esse benefício é o poder da origem, com o nome dela. As condicionais do DB trazem poderes com nome (### dentro da origem).
+/** md de um arquivo com várias origens "## Nome" → [{origem, beneficio, poderes:[{nome, texto}]}] */
+export function origensDoMarkdown(md) {
+  const out = [];
+  for (const parte of md.replace(/\r\n?/g, "\n").split(/^(?=## )/m).slice(1)) {
+    const origem = parte.match(/^## +(.+?)\s*$/m)[1].trim();
+    const [topo, ...subs] = parte.split(/^(?=### )/m);
+    const beneficio = topo.match(/\*\*Benefício\.\*\*\s*([\s\S]*?)(?=\n\s*\*\*\w+\.\*\*|\n---|$(?![\s\S]))/)?.[1] || "";
+    // ### dentro de origem regional é a ficha de um parceiro (Alikunhá); só nas condicionais é poder
+    const poderes = /\*\*Benefícios\.\*\*[^\n]*\(poderes\)/.test(topo)
+      ? subs.map((s) => ({ nome: s.match(/^### +(.+?)\s*$/m)[1].trim(), texto: limparMd(s.replace(/^### .*$/m, "")) })) : [];
+    out.push({ origem, beneficio: limparMd(beneficio), poderes });
+  }
+  return out;
+}
+function origensEspeciais(poderes) {
+  let n = 0;
+  const pega = (nome, texto, livro, sub) => {
+    if (texto.length < 30) return;
+    const { prereq, descricao } = separarPrereq(texto);
+    guardar(poderes, { nome, categoria: "Origem", sub, livro, prereq, descricao, custo: "", publicacao: livro });
+    n++;
+  };
+  for (const arq of listarMd("herois-arton/01-campeoes-arton").filter((f) => /\/origem-/.test(f))) {
+    const md = readFileSync(join(LIVROS, arq), "utf-8").replace(/\r\n?/g, "\n");
+    const nome = md.match(/^# +(.+)$/m)?.[1].trim();
+    const ben = md.match(/^## Benef\S*\s*\n([\s\S]*?)(?=^## |(?![\s\S]))/m)?.[1];
+    if (nome && ben) pega(nome, limparMd(ben).replace(/^\s*[-*] +/gm, ""), "Heróis de Arton", nome);
+  }
+  for (const arq of listarMd("dragao-brasil/03-origens")) {
+    for (const o of origensDoMarkdown(readFileSync(join(LIVROS, arq), "utf-8"))) {
+      pega(o.origem, o.beneficio, "Dragão Brasil", o.origem);
+      for (const p of o.poderes) pega(p.nome, p.texto, "Dragão Brasil", o.origem);
+    }
+  }
+  return n;
+}
+
 // ---------- montagem ----------
 const LINHA = { Classe: "Poder de classe", Habilidade: "Habilidade de classe", Racial: "Poder racial", Concedido: "Poder concedido", Origem: "Poder de origem", Distinção: "Distinção", Geral: "Poder geral", Grupo: "Poder de grupo" };
 
@@ -251,7 +292,7 @@ function guardar(poderes, p) {
 async function principal() {
   const poderes = {};
   const nc = await doCompendio(poderes);
-  const nm = doMarkdown(poderes);
+  const nm = doMarkdown(poderes) + origensEspeciais(poderes);
   mkdirSync(dirname(SAIDA), { recursive: true });
   writeFileSync(SAIDA, JSON.stringify(poderes), "utf-8");
   const porCat = {};
@@ -285,6 +326,9 @@ function check() {
   guardar(pd, { nome: "Revide", categoria: "Combate", sub: "", livro: "Livro Básico", prereq: "", descricao: "oficial", custo: "", publicacao: "LB" });
   guardar(pd, { nome: "Revide", categoria: "Combate", sub: "", livro: "Heróis de Arton", prereq: "", descricao: "md", custo: "", publicacao: "HdA" });
   if (pd.revide.descricao !== "oficial") return erro("markdown sobrescreveu o compêndio");
+  const os = origensDoMarkdown("# X\n\n## Camponês\n\nTexto.\n\n**Benefício.** Você é treinado em Adestramento e recebe +1d6.\n\n**Itens.** Lança.\n\n### Alikunhá\n\nFicha de parceiro.\n\n---\n\n## Retornado\n\n**Itens.** Um acessório.\n\n**Benefícios.** Intimidação (perícias); Presença Aterradora (poderes).\n\n### Presença Aterradora\n\nVocê recebe +5 contra medo.\n");
+  if (os.length !== 2 || os[0].beneficio !== "Você é treinado em Adestramento e recebe +1d6." || os[0].poderes.length) return erro("origem regional: " + JSON.stringify(os[0]));
+  if (os[1].poderes[0]?.nome !== "Presença Aterradora" || os[1].poderes[0].texto !== "Você recebe +5 contra medo.") return erro("origem condicional: " + JSON.stringify(os[1]));
   if (!process.exitCode) console.log("minerar-poderes.mjs --check OK");
 }
 
