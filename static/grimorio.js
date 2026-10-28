@@ -92,8 +92,8 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
     if (!ORDENS[valor].some(([o]) => o === filtro.ord)) filtro.ord = PADRAO_ORD[valor];
     for (const b of barraAbas.children) b.classList.toggle("on", b.dataset.aba === valor);
     busca.placeholder = valor === "magias"
-      ? "pesquisar por nome ou texto… (fogo, medo, cura)"
-      : "pesquisar por nome ou texto… (fúria, bárbaro, +2 na Defesa)";
+      ? "pesquisar por nome ou texto… (fogo, medo, cura · \"entre aspas\" = exato)"
+      : "pesquisar por nome ou texto… (fúria, bárbaro · \"+2 na Defesa\" = exato)";
     ordem.replaceChildren(el("span", { className: "g-ordem-rotulo", textContent: "Ordem" }), ...ORDENS[valor].map(([v, t]) => el("button", { type: "button", className: "chip g-aba" + (v === filtro.ord ? " on" : ""), textContent: capitalizar(t),
       onclick: (e) => { filtro.ord = v; for (const b of ordem.querySelectorAll(".g-aba")) b.classList.toggle("on", b === e.currentTarget); render(); } })));
     montarChips();

@@ -863,8 +863,15 @@ function separar(w, vocab) {
   for (let i = 3; i <= w.length - 3; i++) if (vocab.palavras.has(w.slice(0, i)) && vocab.palavras.has(w.slice(i))) return [w.slice(0, i), w.slice(i)];
   return null;
 }
+// "entre aspas" = trecho cru: casa exatamente (com a pontuação, "1/4", "+2 na Defesa"), sem sinônimo, raiz,
+// correção nem IA. Vira um termo que começa com aspa — palavra solta nunca tem aspa, então tem() sabe a diferença.
 function termosBusca(q, vocab) {
-  let ws = norm(q).split(/[^a-z0-9+]+/).filter(Boolean); // hífen, dois-pontos, vírgula viram espaço
+  const literais = [];
+  q = norm(q).replace(/"([^"]*)"?/g, (_, t) => { t = t.trim().replace(/\s+/g, " "); if (t) literais.push(Object.assign([`"${t}"`], { fortes: 1 })); return " "; });
+  return [...literais, ...termosSoltos(q, vocab)];
+}
+function termosSoltos(q, vocab) {
+  let ws = q.split(/[^a-z0-9+]+/).filter(Boolean); // hífen, dois-pontos, vírgula viram espaço
   ws = ws.filter((w) => ws.length === 1 || !VAZIAS.has(w)).flatMap((w) => separar(w, vocab) || [w]);
   return ws.map((w) => {
     const grupo = SINONIMOS.find((g) => g.some((sin) => w.startsWith(sin) || sin.startsWith(w) && w.length >= 4));
@@ -878,8 +885,9 @@ function termosBusca(q, vocab) {
 // palavra de até 3 letras ("for", "sab", "1") só casa inteira: "for 1" não pode achar "forma"
 const fronteiras = new Map();
 function tem(texto, x) {
-  if (x.length > 3) return texto.includes(x);
-  if (!fronteiras.has(x)) fronteiras.set(x, new RegExp(`(?:^|[^a-z0-9])${x.replace(/[+]/g, "\\+")}(?:[^a-z0-9]|$)`));
+  if (x[0] === '"') x = x.slice(1, -1); // trecho cru: sempre com borda (o "1/4" não acha "11/40")
+  else if (x.length > 3) return texto.includes(x);
+  if (!fronteiras.has(x)) fronteiras.set(x, new RegExp(`(?:^|[^a-z0-9])${x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:[^a-z0-9]|$)`));
   return fronteiras.get(x).test(texto);
 }
 const bate = (blob, termos) => termos.every((alts) => alts.some((t) => tem(blob, t)));
@@ -892,7 +900,8 @@ function filtrar(lista, blob, termos) {
 // relevância: nome ×3 > linha/escola/categoria ×2 > corpo ×1 por grupo (fraca vale metade); nome igual à consulta ou começando por ela sobe
 function relevancia(partes, termos, q) {
   if (!termos.length) return 0;
-  const [nome, meio, corpo] = partes.map(norm), n = nome.trim(), frase = termos.map((a) => a[0]).join(" ");
+  q = q.replace(/"/g, "").trim();
+  const [nome, meio, corpo] = partes.map(norm), n = nome.trim(), frase = termos.map((a) => a[0].replace(/"/g, "")).join(" ");
   let r = n === q ? 6 : n.startsWith(q) ? 3 : q.length >= 6 && Math.abs(n.length - q.length) <= 2 && distancia(n, q, 2) <= 2 ? 4 : 0; // "encoracado" ≈ Encouraçado
   if (termos.length > 1 && (meio.includes(frase) || corpo.includes(frase))) r += 2; // "treinado em luta" na ordem
   for (const alts of termos) {
@@ -923,7 +932,7 @@ async function sinonimosIA(w) {
   return iaCache[w];
 }
 async function comIA(termos) {
-  for (const alts of termos) for (const s of await sinonimosIA(alts[0])) if (!alts.includes(s)) alts.push(s);
+  for (const alts of termos) if (alts[0][0] !== '"') for (const s of await sinonimosIA(alts[0])) if (!alts.includes(s)) alts.push(s);
   return termos;
 }
 
@@ -1066,6 +1075,9 @@ if (CHECK) {
       if (ou.itens.length !== 2) return falha("busca sem resultado devia cair pra qualquer palavra");
       const ani = await (await fetch(`${base}/api/c/teste?q=lobo`, { headers: H })).json();
       if (ani.itens[0]?.rel !== 6 + 3) return falha("nome igual à consulta devia pontuar 9, veio " + ani.itens[0]?.rel);
+      const lit = termosBusca('lobo "ND 1/4" "+2 na Defesa', vocabDe({}, () => ["lobo"]));
+      if (lit.map((a) => a[0]).join("|") !== '"nd 1/4"|"+2 na defesa"|lobo' || lit[0].length !== 1) return falha("aspas: " + JSON.stringify(lit));
+      if (!tem("animal · nd 1/4 · livro", lit[0][0]) || tem("nd 11/40", '"1/4"') || tem("nd 1/40", '"1/4"') || !tem("recebe +2 na defesa.", lit[1][0])) return falha("tem() com trecho cru");
       const tb = termosBusca("fogo relampgo", vocabDe({}, () => ["relampago chama"]));
       if (tb[0].fortes < 3 || tb[1].fortes !== 2 || tb[1][2] !== "relampago") return falha("termosBusca: " + JSON.stringify(tb));
       if (relevancia(["Relâmpago", "evocação fogo", "raio"], tb, "fogo relampgo") !== 2 + 1.5) return falha("relevância fraca devia valer metade");

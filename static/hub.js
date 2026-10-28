@@ -212,7 +212,7 @@ function fixar(sim) { document.documentElement.classList.toggle("lado-fixo", sim
 
 // busca em tudo: /api/busca devolve as melhores de cada fonte; "ver todas" abre a página da fonte já filtrada
 function caixaDeBusca() {
-  const caixa = el("input", { type: "search", className: "hub-busca", placeholder: "Buscar em tudo…", autocomplete: "off", title: "buscar em magias, poderes, bestiário, itens, regras… (Ctrl+K)" });
+  const caixa = el("input", { type: "search", className: "hub-busca", placeholder: "Buscar em tudo…", autocomplete: "off", title: "buscar em magias, poderes, bestiário, itens, regras… (Ctrl+K) · \"entre aspas\" = texto exato" });
   const res = el("div", { className: "hub-resultados", hidden: true });
   let timer, n = 0;
   const paginaDe = (g, q) => {

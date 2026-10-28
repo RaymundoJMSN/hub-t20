@@ -22,7 +22,7 @@ if (!pagina.abas.some(([c]) => c === filtro.aba)) filtro.aba = pagina.abas[0][0]
 let META = { filtros: [], ordem: {} }, ITENS = [], buscaTimer;
 const MAX_CHIPS = 12;
 
-const busca = el("input", { type: "search", className: "g-busca", value: filtro.q, autocomplete: "off", placeholder: "Pesquisar por nome ou texto…",
+const busca = el("input", { type: "search", className: "g-busca", value: filtro.q, autocomplete: "off", placeholder: "Pesquisar por nome ou texto… (\"entre aspas\" = exato, ex.: \"1/4\")",
   oninput: (e) => { filtro.q = e.target.value; clearTimeout(buscaTimer); buscaTimer = setTimeout(buscar, 300); } });
 const barraAbas = el("div", { className: "g-abas" });
 const boxFiltros = el("div", { className: "g-filtros" });
