@@ -1,0 +1,12 @@
+{
+  "_": "Correções decididas à mão depois da revisão 1 a 1 (node tools/juntar-revisao.mjs --problemas). Chave = slug do poder. Campos: lixo, acesso, categoria, donos, opcaoDe, prereq, custo, nota. Só categoria/nome/número: nenhum texto de livro aqui.",
+  "material-especial": { "lixo": true },
+  "natureza-vegetal-finntroll": { "lixo": true },
+  "florescer-feerico": { "opcaoDe": "Naturezas do Duende", "nota": "vem com a natureza vegetal do duende" },
+  "dom-da-imortalidade": { "prereq": "paladino" },
+  "dom-da-ressurreicao": { "prereq": "clérigo" },
+  "exaltar-honra": { "prereq": "habilidade Abençoado ou Devoto Fiel" },
+  "tempestade-de-areia": { "prereq": "Bater e Correr" },
+  "auxilio-de-mira": { "custo": "1 PM" },
+  "revoada-de-texugos": { "donos": ["Tukala"] }
+}

@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arauto — Hub T20</title>
+<meta name="description" content="Pergunte ao Arauto: regras, poderes, raças, classes e o mundo de Tormenta 20, com fonte e página.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Alegreya:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#120809">
+<link rel="apple-touch-icon" href="/icone-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪶</text></svg>">
+</head>
+<body>
+<div class="brasa" aria-hidden="true"></div>
+
+<header>
+  <h1>Arauto</h1>
+  <p class="sub">o sábio da mesa · responde com o acervo do hub e os livros, citando a fonte · é o mesmo Arauto do Papinho</p>
+</header>
+
+<main class="grimorio-main">
+  <section class="painel arauto">
+    <div id="a-conversa" class="a-conversa" aria-live="polite"></div>
+    <form id="a-form" class="a-form">
+      <textarea id="a-pergunta" rows="2" maxlength="4000" placeholder="Pergunte: “quero um personagem veloz, o que me dá mais deslocamento?” (Enter envia · Shift+Enter quebra a linha)"></textarea>
+      <button class="bt" id="a-enviar">perguntar</button>
+    </form>
+    <div class="a-rodape">
+      <button type="button" class="bt mini" id="a-nova">✕ nova conversa</button>
+      <span class="explica" id="a-nota">As respostas vêm do acervo revisado e dos livros. Clique num nome sublinhado para abrir a carta.</span>
+    </div>
+  </section>
+</main>
+
+<footer>Ferramenta de fã. Tormenta 20 pertence à Jambo Editora.</footer>
+
+<script type="module" src="/hub.js"></script>
+<script type="module" src="/arauto.js"></script>
+</body>
+</html>

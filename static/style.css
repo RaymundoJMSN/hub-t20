@@ -631,3 +631,45 @@ select.a-cat { font-size: .74rem; padding: 2px 4px; width: 100%; }
 .a-ajuda { margin-top: 10px; font-size: .92rem; }
 .a-ajuda li { margin: 4px 0; }
 .a-macro { white-space: pre-wrap; font-size: .72rem; background: #0d0607; border: 1px solid var(--borda); border-radius: 6px; padding: 8px; max-height: 220px; overflow: auto; }
+
+/* ---- base v2 (2026-11): resumo da revisão em cada card, temas agrupados, carta com "como se obtém" ---- */
+.card .resumo { margin-top: 4px; font-size: .84rem; line-height: 1.3; color: var(--texto); opacity: .88;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.card .pre { margin-top: 3px; font-size: .76rem; color: var(--ouro); opacity: .9; }
+.card-sem { border-style: dashed; } /* veio pela busca por sentido, sem as palavras digitadas */
+.g-tema-grupo.aberto { background: rgba(201, 162, 39, .16); color: var(--ouro-claro); }
+.g-tema-grupo.tem { box-shadow: inset 0 -2px 0 var(--sangue-vivo); }
+.g-abas.g-seg.g-tema-lista { flex-basis: 100%; }
+.carta .como-obter { margin-top: 8px; padding: 7px 10px; border-left: 3px solid #f0dc82; background: rgba(240, 220, 130, .08); font-size: .92rem; line-height: 1.4; }
+.carta .como-obter b, .carta .q-rel b { color: #f0dc82; }
+.carta .q-rel { margin-top: 8px; font-size: .9rem; }
+.carta .q-link { color: #ffe9a8; text-decoration: underline dotted; cursor: pointer; }
+.carta .q-temas { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+.carta .q-tema { font-size: .74rem; padding: 2px 8px; border: 1px solid rgba(240, 220, 130, .4); border-radius: 999px; color: #f0dc82; text-decoration: none; }
+.carta .q-tema:hover { background: rgba(240, 220, 130, .15); }
+
+/* ---- Arauto (conversa): lista de mensagens + caixa de pergunta, no molde dos chats comuns ---- */
+.arauto { display: flex; flex-direction: column; gap: 10px; }
+.a-conversa { display: flex; flex-direction: column; gap: 10px; min-height: 38vh; max-height: calc(100vh - 330px); overflow-y: auto; padding: 4px 2px; }
+.a-msg { max-width: min(820px, 92%); padding: 10px 14px; border-radius: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.a-eu { align-self: flex-end; background: var(--sangue); color: #fff; border-bottom-right-radius: 4px; white-space: pre-wrap; }
+.a-arauto { align-self: flex-start; background: #1b1013; border: 1px solid var(--borda); border-bottom-left-radius: 4px; }
+.a-arauto.a-erro { border-color: var(--sangue-vivo); color: var(--texto-2); }
+.a-arauto p { margin: 0 0 8px; } .a-arauto p:last-child { margin-bottom: 0; }
+.a-arauto h3, .a-arauto h4, .a-arauto h5 { margin: 12px 0 4px; font-family: "Cinzel", serif; color: var(--ouro-claro); font-size: 1rem; }
+.a-arauto h3:first-child, .a-arauto h4:first-child, .a-arauto h5:first-child { margin-top: 0; }
+.a-arauto ul, .a-arauto ol { margin: 4px 0 8px; padding-left: 22px; } .a-arauto li { margin: 3px 0; }
+.a-arauto b { color: #f0dc82; }
+.a-arauto .q-link { color: #ffe9a8; text-decoration: underline dotted; cursor: pointer; }
+.a-arauto code { background: rgba(255, 255, 255, .08); padding: 0 4px; border-radius: 4px; }
+.a-arauto hr { border: 0; border-top: 1px dashed var(--borda); margin: 10px 0; }
+.a-espera .a-status { color: var(--texto-2); font-style: italic; animation: a-pulso 1.6s ease-in-out infinite; }
+@keyframes a-pulso { 50% { opacity: .45; } }
+.a-vazio { margin: auto; text-align: center; color: var(--texto-2); display: flex; flex-direction: column; gap: 8px; align-items: center; }
+.a-vazio p { margin: 0 0 4px; }
+.a-exemplo { max-width: 640px; white-space: normal; text-align: left; line-height: 1.35; padding: 8px 14px; }
+.a-form { display: flex; gap: 8px; align-items: flex-end; }
+.a-form textarea { flex: 1; resize: vertical; min-height: 54px; font-size: 1rem; }
+.a-rodape { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.a-rodape .explica { margin: 0; }
+@media (max-width: 700px) { .a-conversa { max-height: calc(100vh - 360px); } .a-msg { max-width: 96%; } }

@@ -2,6 +2,7 @@
 // server (página /m/<id>). Sem DOM: sanitização por regex.
 import { circuloEfetivo } from "./custo.mjs";
 import { tipoDePocao, tipoDePocaoDosEixos, nomeDoItem } from "./pocao.mjs";
+import { TEMA_ROTULO } from "./temas.mjs";
 
 /** Linha "vira granada de Bola de Fogo" — só aparece quando a magia pode virar item. */
 function linhaPocao(tipo, nome) {
@@ -146,16 +147,22 @@ export function cartaHtml(m, r) {
     </div>`;
 }
 
-// Carta no MESMO estilo para um PODER oficial (dados de /api/poder/<slug>)
+// Carta no MESMO estilo para um PODER oficial (dados de /api/poder/<slug>).
+// Em cima: como se obtém (a pergunta que mais importa) e o pré-requisito; embaixo: o que ele exige e o que ele libera
+// (links que abrem a outra carta) e os temas (links pro filtro).
 export function cartaPoderHtml(t) {
-  const stats = [t.divindade && `<b>Divindade:</b> ${esc(t.divindade)}`, t.raca && `<b>Raça:</b> ${esc(t.raca)}`,
-    t.prereq && `<b>Pré-requisito:</b> ${esc(t.prereq)}`, t.custo && `<b>Custo:</b> ${esc(t.custo)}`].filter(Boolean);
+  const stats = [t.prereq && `<b>Pré-requisito:</b> ${esc(t.prereq)}`, t.custo && `<b>Custo:</b> ${esc(t.custo)}`, t.execucao && `<b>Ação:</b> ${esc(t.execucao)}`, t.magica && "habilidade mágica"].filter(Boolean);
+  const link = (x) => `<a class="q-link" data-carta="d:${esc(x.slug)}" href="/d/${esc(x.slug)}">${esc(x.nome)}</a>`;
   return `
     <h2>${esc(t.nome)}</h2>
     <div class="tipo-linha">${esc(t.linha)}</div>
     <div class="miolo">
     ${stats.length ? `<div class="stats">${stats.join("; ")}</div>` : ""}
+    ${t.comoObter ? `<div class="como-obter"><b>Como se obtém:</b> ${esc(t.comoObter)}</div>` : ""}
     <div class="desc">${esc(t.descricao).replace(/\n/g, "<br>")}</div>
+    ${t.exige?.length ? `<div class="q-rel"><b>Exige:</b> ${t.exige.map(link).join(", ")}</div>` : ""}
+    ${t.libera?.length ? `<div class="q-rel"><b>Abre caminho para:</b> ${t.libera.map(link).join(", ")}</div>` : ""}
+    ${t.tags?.length ? `<div class="q-temas">${t.tags.map((x) => `<a class="q-tema" href="/poderes?tema=${esc(x)}">${esc(TEMA_ROTULO[x] || x)}</a>`).join("")}</div>` : ""}
     <div class="assina">${esc(t.publicacao || "")}</div>
     </div>`;
 }
@@ -172,6 +179,7 @@ export function cartaOficialHtml(t) {
     <div class="desc">${esc(t.descricao).replace(/\n/g, "<br>")}</div>
     ${aprs ? `<div class="apr">${aprs}</div>` : ""}
     ${linhaPocao(tipoDePocao(t.stats?.["Alvo/Área"]), t.nome)}
+    ${t.tags?.length ? `<div class="q-temas">${t.tags.map((x) => `<a class="q-tema" href="/?tema=${esc(x)}">${esc(TEMA_ROTULO[x] || x)}</a>`).join("")}</div>` : ""}
     <div class="assina">${esc(t.publicacao || "")}</div>
     </div>`;
 }

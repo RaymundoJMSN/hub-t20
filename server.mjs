@@ -13,6 +13,10 @@ import { esc, htmlParaTexto, ROTULOS } from "./static/carta.mjs";
 import { tipoDePocao, tipoDePocaoDosEixos } from "./static/pocao.mjs";
 import { eixosDe } from "./static/eixos.mjs";
 import { paraFoundry, normalizar as normalizarAmeaca, ND_ORDEM, tipoLinha } from "./static/ameaca.mjs";
+import { gzipSync } from "node:zlib";
+import { TEMA_IDS, TEMA_ROTULO, temasDaConsulta } from "./static/temas.mjs";
+import { criarVetores, fundir, LONGO } from "./lib/vetores.mjs";
+import { criarArauto } from "./lib/arauto.mjs";
 
 // a magia da mesa vira a mesma linha técnica das oficiais, pra cair no mesmo parser
 function eixosDaMesa(e = {}) {
@@ -267,8 +271,11 @@ function validarMagia(m) {
 }
 
 function json(res, code, obj, extra = {}) {
-  const b = JSON.stringify(obj);
-  res.writeHead(code, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", ...extra });
+  let b = JSON.stringify(obj);
+  const h = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", ...extra };
+  // lista grande (os 2.600 poderes com resumo passam de 1 MB) vai comprimida: no celular é a diferença entre abrir e esperar
+  if (b.length > 16_384 && /\bgzip\b/.test(res.req?.headers["accept-encoding"] || "")) { b = gzipSync(b); h["content-encoding"] = "gzip"; h.vary = "accept-encoding"; }
+  res.writeHead(code, h);
   res.end(b);
 }
 
@@ -313,9 +320,10 @@ function alvoDaRota(p) {
   return null;
 }
 const PAGINAS = { "/": "grimorio.html", "/poderes": "grimorio.html", "/criar": "index.html", "/criar-ameaca": "ameacas.html", "/bestiario": "colecao.html", "/itens": "colecao.html", "/regras": "colecao.html", "/compendio": "colecao.html",
-  "/missoes": "missoes.html", "/agenda": "agenda.html", "/links": "links.html", "/mestre": "mestre.html" };
+  "/missoes": "missoes.html", "/agenda": "agenda.html", "/links": "links.html", "/mestre": "mestre.html", "/arauto": "arauto.html" };
 // sem sessão só passa: login, a API de login e arquivos estáticos (css/js/fontes/ícones/manifest/sw — código e enfeite, não dados)
-const livre = (p) => p === "/login" || p === "/api/login" || /\.(css|js|mjs|png|svg|ico|ttf|otf|woff2|webmanifest)$/.test(p);
+// /api/arauto/bot é do bot do Papinho: sem sessão de site, mas com token próprio (conferido na rota)
+const livre = (p) => p === "/login" || p === "/api/login" || p === "/api/arauto/bot" || /\.(css|js|mjs|png|svg|ico|ttf|otf|woff2|webmanifest)$/.test(p);
 
 async function tratar(req, res) {
   const url = new URL(req.url, "http://x");
@@ -342,6 +350,22 @@ async function tratar(req, res) {
     let html = htmlComOg("login.html", og?.[0], og?.[1], og?.[2] || "Hub T20");
     html = html.replace("</head>", `<script>window.VOLTAR=${JSON.stringify(p + url.search)}</script></head>`);
     return responderHtml(res, html, 200);
+  }
+  // ---- Arauto no Papinho: o bot do Matrix pergunta aqui (token próprio em dados/arauto.json) e recebe a resposta pronta
+  if (p === "/api/arauto/bot") {
+    const ip = ipDe(req);
+    if (req.method !== "POST") return json(res, 405, { erro: "use POST" });
+    if (bloqueado(ip)) return json(res, 429, { erro: "muitas tentativas — espere um minuto" });
+    if (!arauto.botAutorizado(req.headers.authorization)) { errou(ip); return json(res, 401, { erro: "token do bot inválido" }); }
+    let b;
+    try { b = await corpo(req); } catch { return json(res, 400, { erro: "corpo inválido" }); }
+    // a resposta pode levar mais que o minuto que o nginx espera calado: um espaço a cada 10 s segura a conexão
+    // (espaço antes do JSON não muda o JSON)
+    res.writeHead(200, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-accel-buffering": "no" });
+    const pulso = setInterval(() => res.write(" "), 10_000);
+    const r = await arauto.responder({ pergunta: b.pergunta, historico: b.historico, quem: String(b.autor || "papinho").slice(0, 80), canal: "papinho" });
+    clearInterval(pulso);
+    return res.end(JSON.stringify({ resposta: r.resposta, itens: r.itens || [], erro: r.erro, ms: r.ms }));
   }
   if (p === "/api/sair" && req.method === "POST") return json(res, 200, { ok: true }, { "set-cookie": cookieSessao(req, "x", 0) });
   if (p === "/api/eu") return json(res, 200, { ...publico(eu), mestre: eu.papel === "mestre" });
@@ -464,16 +488,13 @@ async function tratar(req, res) {
     const t = carregarTextos()[p.slice("/api/texto/".length).replace(/[^\w-]/g, "")];
     return t ? json(res, 200, t) : json(res, 404, { erro: "sem texto no servidor" });
   }
-  // grimório: lista leve (oficiais + publicadas). Busca = toda palavra precisa bater (AND), cada uma com sinônimos (OR)
+  // grimório: lista leve (oficiais + publicadas). As oficiais passam pela busca v2 (palavra + tema + sentido);
+  // as publicadas da mesa, só por palavra (não têm vetor)
   if (p === "/api/grimorio" && req.method === "GET") {
     const textos = carregarTextos();
     const q = norm(url.searchParams.get("q")).trim();
+    const oficiais = (await procurarMagias(q)).map(({ id, t, rel, sem }) => ({ ...itemMagia(id, t), rel, sem }));
     const termos = await comIA(termosBusca(q, vocabDe(textos, () => Object.values(textos).map(blobDe))));
-    const aprsDe = (t) => (t.aprimoramentos || []).map((a) => a.texto || a).join(" ");
-    const oficiais = filtrar(Object.entries(textos), ([, t]) => blobDe(t), termos)
-      .map(([slug, t]) => ({ slug, nome: t.nome, escola: t.escola, grupo: t.grupo, circulo: t.circulo, pocao: tipoDePocao(t.stats?.["Alvo/Área"]),
-        rel: relevancia([t.nome, [t.linha, t.escola, t.grupo, t.descricao, Object.values(t.stats || {}).join(" ")].join(" "), aprsDe(t)], termos, q),
-        ...eixosDe(t.stats?.["Execução"], t.stats?.["Alcance"], t.stats?.["Resistência"]) }));
     const publicadasPartes = Object.entries(estado.publicadas)
       .map(([id, m]) => [id, m, m.nome, [m.escola, m.tipo, htmlParaTexto(m.descricao), JSON.stringify(m.eixos || {})].join(" "), aprsDe(m)]);
     const publicadas = filtrar(publicadasPartes, ([, , ...partes]) => norm(partes.join(" ")), termos)
@@ -485,16 +506,14 @@ async function tratar(req, res) {
     let q = norm(url.searchParams.get("q")).trim(), soPre = url.searchParams.get("em") === "pre";
     const prefixo = q.match(/^(?:pre[\s-]*)?requisitos?\b[\s:]*/); // "pré-requisito: esgrima" = buscar só no pré-requisito
     if (prefixo && q.length > prefixo[0].length) { soPre = true; q = q.slice(prefixo[0].length); }
-    const todos = carregarPoderes();
-    const termos = await comIA(termosBusca(q, vocabDe(todos, () => Object.values(todos).map(blobDe))));
-    const poderes = filtrar(Object.entries(todos).filter(([, t]) => !soPre || t.prereq), ([, t]) => soPre ? norm(t.prereq) : blobDe(t), termos)
-      .map(([slug, t]) => ({ slug, nome: t.nome, categoria: t.categoria, sub: t.sub, livro: t.livro, custo: t.custo, divindade: t.divindade,
-        rel: relevancia([t.nome, [t.categoria, t.sub, t.livro, t.prereq].join(" "), t.descricao], termos, q) }));
-    return json(res, 200, { poderes });
+    const poderes = (await procurarPoderes(q, { soPre })).map(({ id, t, rel, sem }) => ({ ...itemPoder(id, t), rel, sem }));
+    // variante → classe base: quem filtra por "Duelista" também quer ver os poderes de bucaneiro (a variante usa a lista da base)
+    const variantes = Object.fromEntries(carregarBase().classes.filter((c) => c.varianteDe).map((c) => [c.nome, c.varianteDe]));
+    return json(res, 200, { poderes, variantes });
   }
   if (p.startsWith("/api/poder/") && req.method === "GET") {
-    const t = carregarPoderes()[p.slice("/api/poder/".length).replace(/[^\w-]/g, "")];
-    return t ? json(res, 200, t) : json(res, 404, { erro: "sem texto no servidor" });
+    const [slug, t] = poderPorSlug(p.slice("/api/poder/".length).replace(/[^\w-]/g, ""));
+    return t ? json(res, 200, poderCompleto(slug, t)) : json(res, 404, { erro: "sem texto no servidor" });
   }
   if (p === "/api/sugestoes-apr" && req.method === "POST") {
     if (!tratar.aprs) tratar.aprs = lerJson(join(DADOS, "aprimoramentos.json"), []);
@@ -504,28 +523,20 @@ async function tratar(req, res) {
   }
 
   // ---- busca em tudo (caixa do topo): as 5 melhores de cada fonte, fontes ordenadas pela melhor nota.
-  // Mesmas chaves de vocabulário das rotas de cada fonte, então o cache de correção é dividido com elas.
+  // Usa as mesmas funções das páginas (palavra + tema + sentido); o vetor da consulta é calculado uma vez e vale pra todas.
   if (p === "/api/busca" && req.method === "GET") {
     const q = norm(url.searchParams.get("q")).trim();
     if (q.length < 2) return json(res, 200, { grupos: [] });
-    const textos = carregarTextos(), poderes = carregarPoderes();
-    const fontes = [
-      [{ titulo: "Magias", pagina: "/" }, textos, Object.entries(textos), ([, t]) => blobDe(t),
-        ([s, t]) => [t.nome, t.linha, "/o/" + s, [t.nome, [t.linha, t.escola, t.grupo].join(" "), t.descricao]]],
-      [{ titulo: "Poderes", pagina: "/poderes" }, poderes, Object.entries(poderes), ([, t]) => blobDe(t),
-        ([s, t]) => [t.nome, t.linha, "/d/" + s, [t.nome, [t.categoria, t.sub, t.livro, t.prereq].join(" "), t.descricao]]],
-    ];
+    const grupos = [];
+    const junta = (cab, achados, info) => {
+      achados.sort(porRel);
+      if (achados.length) grupos.push({ ...cab, total: achados.length, itens: achados.slice(0, 5).map((a) => ({ ...info(a), rel: a.rel, sem: a.sem })) });
+    };
+    junta({ titulo: "Magias", pagina: "/" }, await procurarMagias(q), ({ id, t }) => ({ nome: t.nome, linha: t.linha, href: "/o/" + id }));
+    junta({ titulo: "Poderes", pagina: "/poderes" }, await procurarPoderes(q), ({ id, t }) => ({ nome: t.nome, linha: t.linha, href: "/d/" + id }));
     for (const nome of new Set([...Object.keys(lerJson(join(DADOS, "colecoes", "INDEX.json"), { contagem: {} }).contagem), ...Object.keys(colecoes.cache)])) {
       const col = carregarColecao(nome);
-      if (col) fontes.push([{ titulo: col.meta.titulo || nome, col: nome }, col, col.itens, (i) => i.t,
-        (i) => [i.nome, i.linha, `/c/${nome}/${i.id}`, [i.nome, [i.linha, ...Object.values(i.f || {})].join(" "), i.t]]]);
-    }
-    const grupos = [];
-    for (const [cab, chave, lista, blob, info] of fontes) {
-      const termos = await comIA(termosBusca(q, vocabDe(chave, () => lista.map(blob))));
-      const achados = filtrar(lista, blob, termos).map((x) => { const [nome, linha, href, partes] = info(x); return { nome, linha, href, rel: relevancia(partes, termos, q) }; })
-        .sort((a, b) => b.rel - a.rel);
-      if (achados.length) grupos.push({ ...cab, total: achados.length, itens: achados.slice(0, 5) });
+      if (col) junta({ titulo: col.meta.titulo || nome, col: nome }, await procurarColecao(nome, q), ({ t }) => ({ nome: t.nome, linha: t.linha, href: `/c/${nome}/${t.id}` }));
     }
     grupos.sort((a, b) => b.itens[0].rel - a.itens[0].rel);
     return json(res, 200, { grupos });
@@ -538,14 +549,25 @@ async function tratar(req, res) {
     if (!col) return json(res, 404, { erro: "coleção não existe no servidor" });
     if (c[2]) { const it = col.porId.get(c[2]); return it ? json(res, 200, it) : json(res, 404, { erro: "não existe" }); }
     const q = norm(url.searchParams.get("q")).trim();
-    const termos = await comIA(termosBusca(q, vocabDe(col, () => col.itens.map((i) => i.t))));
-    const itens = termos.length
-      ? filtrar(col.itens, (i) => i.t, termos).map((i) => ({ ...resumo(i), rel: relevancia([i.nome, [i.linha, ...Object.values(i.f || {})].join(" "), i.t], termos, q) }))
-      : col.itens.map(resumo);
+    const itens = q ? (await procurarColecao(c[1], q)).map(({ t, rel, sem }) => ({ ...resumo(t), rel, sem })) : col.itens.map(resumo);
     return json(res, 200, { meta: col.meta, itens });
   }
   if (p === "/api/colecoes") return json(res, 200, lerJson(join(DADOS, "colecoes", "INDEX.json"), { contagem: {} }));
 
+  // ---- Arauto no site: a resposta vem em eventos (text/event-stream) — o andamento das buscas chega antes do texto
+  if (p === "/api/arauto" && req.method === "POST") {
+    let b;
+    try { b = await corpo(req); } catch { return json(res, 400, { erro: "corpo inválido" }); }
+    res.writeHead(200, { "content-type": "text/event-stream; charset=utf-8", "cache-control": "no-store", "x-accel-buffering": "no" });
+    const evento = (tipo, dado) => res.write(`event: ${tipo}\ndata: ${JSON.stringify(dado)}\n\n`);
+    evento("status", "🪶 o Arauto está pensando…");
+    const pulso = setInterval(() => res.write(": pulso\n\n"), 15_000); // comentário de SSE: mantém a conexão viva no proxy enquanto o modelo escreve
+    const r = await arauto.responder({ pergunta: b.pergunta, historico: b.historico, quem: eu.nome, canal: "site", avisar: (t) => evento("status", t) });
+    clearInterval(pulso);
+    evento("fim", { resposta: r.resposta, itens: r.itens || [], erro: r.erro, ms: r.ms });
+    return res.end();
+  }
+  if (p === "/api/arauto" && req.method === "GET") return json(res, 200, { pronto: arauto.pronto(), modelo: arauto.modelo() });
   // ---- missões (quadro da guilda): voto = personagem de quem está logado (ou o nome)
   if (p === "/api/missoes" && req.method === "GET") return json(res, 200, { ...missoes, eu: eu.personagem || eu.nome });
   if (p === "/api/missoes" && req.method === "PUT") {
@@ -730,68 +752,83 @@ function carregarTextos() {
         a.texto = `muda a resistência para ${teste} parcial. Se falha, a criatura fica ${cond} (${tem[0]}). (DB #219)`;
       }
     }
+    // livro e página (do compêndio) e o que a revisão 1 a 1 leu: resumo, temas e papel na mesa
+    const extras = carregarBase().magias || {};
+    for (const [slug, m] of Object.entries(t)) {
+      const x = extras[slug];
+      if (!x) continue;
+      Object.assign(m, { livro: x.livro, pagina: x.pagina, tags: x.tags || [], resumo: x.resumo, papel: x.papel || [] });
+      if (x.livro && !m.publicacao) m.publicacao = x.livro + (x.pagina ? `, p. ${x.pagina}` : "");
+    }
     carregarTextos.cache = t;
   }
   return carregarTextos.cache;
 }
+// poderes.json e base.json saem de tools/construir-base.mjs: compêndios do Foundry + dados do criador de fichas +
+// revisão 1 a 1 (resumo e temas). Cada poder diz COMO SE OBTÉM (acesso) e de quem é (donos); a base liga raças,
+// classes, divindades, origens e distinções aos seus poderes.
 function carregarPoderes() {
   if (!carregarPoderes.cache) {
     const p = lerJson(join(DADOS, "poderes.json"), {});
-    // nome do poder → deuses que o concedem (lista "Poderes Concedidos" de cada deus na coleção)
-    const porPoder = {};
-    for (const d of carregarColecao("deuses")?.itens || [])
-      for (const n of (d.html.match(/Poderes Concedidos:<\/b>\s*([^<]+)/i)?.[1] || "").replace(/\.\s*$/, "").split(/,\s*/)) if (n.trim()) (porPoder[norm(n.trim())] ??= []).push(d.nome);
-    for (const [slug, t] of Object.entries(p)) {
-      // índice de raça do Heróis de Arton ("Anão: Arma Amada, Atração pela Pólvora, …") que o minerador leu como poder
-      if (t.categoria === "Racial" && !t.sub && (t.nome === "Várias" || /^(?:[^,.\n]{3,45}, ){2,}[^,.\n]{3,45}\.?$/.test(t.descricao.trim()))) { delete p[slug]; continue; }
-      consertarPrereq(t);
-      origemDoPoder(t, porPoder);
-      if (t.categoria === "Classe" && t.sub === "Geral") { t.sub = "Qualquer classe"; t.linha = t.linha.replace("· Geral ·", "· Qualquer classe ·"); } // Aumento de Atributo
-      // pack "poderes que faltam": "Escolhido de X" da aventura Libertação de Valkaria vem como "Geral" do LB com links @UUID no texto
-      if (/Liberta[çc][ãa]o de Valkaria/.test(t.publicacao || "")) {
-        t.livro = "Libertação de Valkaria";
-        if (t.categoria === "Geral") { t.categoria = "Destino"; const d = t.nome.match(/^Escolhido de (.+)$/)?.[1]; if (d) { t.divindade = d; t.sub = d; } }
-        t.descricao = t.descricao.replace(/@UUID\[[^\]]*\]\{([^}]*)\}/g, "$1");
-        t.linha = ["Poder de " + t.categoria.toLowerCase(), t.sub, t.livro].filter(Boolean).join(" · ");
-      }
-    }
+    for (const t of Object.values(p)) { t.donos ??= []; t.tags ??= []; t.acesso ??= "geral"; }
     carregarPoderes.cache = p;
   }
   return carregarPoderes.cache;
 }
-// "Raça: Anão, Hobgoblin" / "Divindade: Lena, Marah" na 1ª linha (Heróis/Deuses de Arton) vira campo próprio e subtítulo;
-// concedido do Livro Básico vem com o domínio ("Paz") → nome do deus pela lista de Poderes Concedidos (4 domínios sem lista, na mão)
-const DOMINIO_DEUS = { Honra: "Lin-Wu", Libertadora: "Valkaria", "Goblinóides": "Thwor", Sol: "Azgher" };
-function origemDoPoder(t, porPoder = {}) {
-  const m = (t.descricao || "").match(/^(Raça|Divindade):\s*([^\n]+)\n+/);
-  if (m) { t[m[1] === "Raça" ? "raca" : "divindade"] = m[2].trim(); t.descricao = t.descricao.slice(m[0].length); }
-  if (t.categoria === "Concedido" && !t.divindade) { const ds = porPoder[norm(t.nome)] || (DOMINIO_DEUS[t.sub] ? [DOMINIO_DEUS[t.sub]] : []); if (ds.length) t.divindade = ds.join(", "); }
-  const sub = t.divindade || t.raca;
-  if (sub) { t.sub = sub; t.linha = [String(t.linha || "").split(" · ")[0], sub, t.livro].filter(Boolean).join(" · "); }
-  return t;
+function carregarBase() {
+  return (carregarBase.cache ??= { racas: [], classes: [], divindades: [], origens: [], distincoes: [], aliases: {}, magias: {}, ...lerJson(join(DADOS, "base.json"), {}) });
 }
-// OCR do livro partiu 11 poderes na palavra "pré-requisitos" do MEIO do texto ("um poder cujos | cumpra"): o campo
-// prereq ficou com o resto da frase e o pré-requisito de verdade foi parar numa linha no fim da descrição. Recompõe.
-function consertarPrereq(t) {
-  const m = (t.descricao || "").match(/\s*Pr[eé]-?requisitos?:\s*([^\n]+?)\s*$/i);
-  if (!m || m.index === 0) return t;
-  const resto = t.descricao.slice(0, m.index).trimEnd(), frag = (t.prereq || "").trim();
-  if (frag && frag === m[1].replace(/\.$/, "")) { t.descricao = resto; return t; } // só duplicado no fim
-  const plural = /cujos|demais$/.test(resto) ? "s" : "";
-  t.descricao = resto + " pré-requisito" + plural + (frag ? (/^[,.;]/.test(frag) ? "" : " ") + frag : "") + (/[.!?)]$/.test(frag) ? "" : ".");
-  t.prereq = m[1].replace(/\.$/, "");
-  return t;
+// link antigo (/d/<slug do hub velho>) abre o poder que ficou no lugar
+const poderPorSlug = (s) => { const P = carregarPoderes(); return P[s] ? [s, P[s]] : P[carregarBase().aliases[s]] ? [carregarBase().aliases[s], P[carregarBase().aliases[s]]] : [s, null]; };
+
+const ordinal = (n) => `${n}º`;
+const emLista = (xs) => xs.length < 2 ? xs.join("") : xs.slice(0, -1).join(", ") + " e " + xs.at(-1);
+/** Uma frase dizendo como aquele poder chega na ficha — a pergunta que a taxonomia inteira existe pra responder. */
+function comoObter(p) {
+  const donos = emLista(p.donos || []), lista = p.opcaoDe ? ` É uma das opções de “${p.opcaoDe}”.` : "";
+  switch (p.acesso) {
+    case "raca": return p.opcaoDe
+      ? `Opção de “${p.opcaoDe}” da raça ${donos}: escolhida dentro da própria raça. Só ${donos} tem acesso.`
+      : `Habilidade de raça: todo ${donos} recebe ao escolher a raça. Não pode ser obtida por outras raças.`;
+    case "poder-raca": return `Poder de raça: só ${donos || "as raças indicadas no pré-requisito"}. É um poder geral — escolhido no lugar de um poder de classe, não vem de graça com a raça.`;
+    case "classe-habilidade": {
+      const niveis = Object.entries(p.niveis || {}).map(([c, ns]) => `${c} no ${emLista(ns.map(ordinal))} nível`);
+      return `Habilidade de classe (${donos}): recebida automaticamente${niveis.length ? " — " + niveis.join("; ") : " no nível indicado na tabela da classe"}.${lista}`;
+    }
+    case "classe-poder": return `Poder de ${donos}: escolhido da lista da classe quando ela concede um poder (do 2º nível em diante). Variantes da classe usam a mesma lista.${lista}`;
+    case "geral": return p.categoria === "Tormenta" ? "Poder da Tormenta: qualquer personagem que cumpra os pré-requisitos, no lugar de um poder de classe. Cada poder da Tormenta custa Carisma."
+      : p.categoria === "Grupo" ? "Poder de grupo: qualquer personagem, no lugar de um poder de classe. Só funciona com outro personagem jogador com o mesmo poder na cena."
+      : `Poder geral de ${p.categoria.toLowerCase()}: qualquer personagem que cumpra os pré-requisitos, no lugar de um poder de classe (algumas raças e origens também dão um poder geral).`;
+    case "concedido": return `Poder concedido: só devotos de ${donos || "certa divindade"}. O devoto recebe um ao se devotar (clérigos e frades, dois) e pode pegar outros no lugar de poderes de classe.`;
+    case "origem": return `Benefício de origem${donos ? ` (${donos})` : ""}: só para quem escolheu essa origem na criação do personagem.`;
+    case "distincao": return `Poder da distinção ${donos}: exige a admissão (conquistada em jogo) e 5º nível; é escolhido como um poder geral.${lista}`;
+    case "complicacao": return `Complicação (regra opcional do Heróis de Arton)${donos ? ` de ${donos}` : ""}: desvantagem pega na criação em troca de um poder geral.`;
+    case "aventura": return `Recompensa de aventura (${p.livro}): concedida pela história, não se escolhe ao subir de nível.`;
+  }
+  return "";
+}
+/** O poder como a carta e o Arauto leem: o registro + como se obtém + nomes do que ele libera e do que ele exige. */
+function poderCompleto(slug, p) {
+  const P = carregarPoderes(), porNome = (carregarPoderes.porNome ??= new Map(Object.entries(P).map(([s, x]) => [norm(x.base || x.nome), s])));
+  return { ...p, slug, comoObter: comoObter(p),
+    libera: (p.libera || []).filter((s) => P[s]).map((s) => ({ slug: s, nome: P[s].nome })),
+    exige: (p.pre?.poderes || []).map((n) => ({ nome: n, slug: porNome.get(norm(n)) })).filter((x) => x.slug && x.slug !== slug) };
 }
 const norm = (x) => (x || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 const slug = (s) => norm(s).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80) || randomBytes(3).toString("hex");
 const blobs = new WeakMap();
 function blobDe(t) {
   if (!blobs.has(t)) blobs.set(t, norm([t.nome, t.linha, t.escola, t.grupo, t.descricao,
-    t.categoria, t.sub, t.livro, t.prereq,
+    t.categoria, t.sub, t.livro, t.prereq, t.resumo, t.opcaoDe, (t.donos || []).join(" "), temasDoItem(t),
     Object.entries(t.stats || {}).map(([k, v]) => `${k} ${v}`).join(" "),
     (t.aprimoramentos || []).map((a) => a.texto || a).join(" ")].join(" ")));
   return blobs.get(t);
 }
+// temas do item como "#deslocamento #investida": a palavra digitada ("veloz") vira "#deslocamento" e só casa com quem
+// foi REVISADO como tendo o tema — não com todo texto que cita a palavra de passagem
+const temasDoItem = (t) => (t.tags || []).map((x) => "#" + x).join(" ");
+// o meio da relevância (vale 2): o que o item É — tipo, dono, pré-requisito, temas
+const meioDe = (t) => [t.linha, t.categoria, t.sub, t.livro, t.prereq, t.opcaoDe, temasDoItem(t), (t.tags || []).map((x) => TEMA_ROTULO[x]).join(" ")].join(" ");
 // ---- busca (grimório, poderes e toda coleção): cada palavra vira um grupo de alternativas e o item passa
 // se TODO grupo bate (AND). Alternativas FORTES = a palavra e seus sinônimos; FRACAS = palavras do próprio
 // acervo parecidas por digitação (relampgo → relampago) e, com dados/ia.key, sinônimos pedidos à IA.
@@ -851,6 +888,10 @@ function parecidos(w, vocab) {
   return vocab.parecidos.get(w);
 }
 const VAZIAS = new Set(["de", "do", "da", "dos", "das", "em", "a", "o", "e", "um", "uma", "no", "na", "com"]);
+// palavras de pergunta: numa frase ("poderes que me deixem mais veloz") elas não dizem o que procurar
+const DE_FRASE = new Set(["que", "para", "pra", "por", "ser", "ter", "mais", "como", "quero", "queria", "preciso", "focado", "focada", "relacionado", "relacionados", "relacionada", "relacionadas", "sobre",
+  "algum", "alguma", "alguns", "algumas", "tipo", "fazer", "faz", "me", "meu", "minha", "meus", "minhas", "seu", "sua", "personagem", "personagens", "poder", "poderes", "magia", "magias", "habilidade", "habilidades",
+  "qual", "quais", "tem", "existe", "existem", "dar", "da", "dao", "deem", "deixa", "deixam", "deixe", "deixem", "ficar", "fica", "muito", "bem", "melhor", "melhores", "bom", "boa", "bons", "ou", "os", "as", "ao", "aos", "se", "eu", "isso", "esse", "essa"]);
 // "magias"/"mágicas"/"dragões" → raiz que também casa o singular e o outro gênero
 function raiz(w) {
   if (w.length < 5) return w;
@@ -872,11 +913,15 @@ function termosBusca(q, vocab) {
 }
 function termosSoltos(q, vocab) {
   let ws = q.split(/[^a-z0-9+]+/).filter(Boolean); // hífen, dois-pontos, vírgula viram espaço
-  ws = ws.filter((w) => ws.length === 1 || !VAZIAS.has(w)).flatMap((w) => separar(w, vocab) || [w]);
+  ws = ws.filter((w) => ws.length === 1 || !VAZIAS.has(w));
+  // frase de 3+ palavras: sem as palavras de pergunta, desde que sobre alguma coisa pra procurar
+  const uteis = ws.length >= 3 ? ws.filter((w) => !DE_FRASE.has(w)) : ws;
+  ws = (uteis.length ? uteis : ws).flatMap((w) => separar(w, vocab) || [w]);
   return ws.map((w) => {
     const grupo = SINONIMOS.find((g) => g.some((sin) => w.startsWith(sin) || sin.startsWith(w) && w.length >= 4));
     const alts = grupo ? [...new Set([w, ...grupo])] : [w];
     if (!alts.includes(raiz(w))) alts.push(raiz(w));
+    for (const tema of temasDaConsulta(w)) alts.push("#" + tema); // "veloz" também casa com quem tem o tema deslocamento
     alts.fortes = alts.length;
     for (const p of parecidos(w, vocab)) if (!alts.includes(p)) alts.push(p);
     return alts;
@@ -935,6 +980,193 @@ async function comIA(termos) {
   for (const alts of termos) if (alts[0][0] !== '"') for (const s of await sinonimosIA(alts[0])) if (!alts.includes(s)) alts.push(s);
   return termos;
 }
+
+// ---- busca v2: palavra + tema + SENTIDO. A mesma função serve a página, a busca em tudo e o Arauto. ----
+// Sentido = vetores bge-m3 (lib/vetores.mjs): "ficar mais rápido" acha quem aumenta deslocamento sem usar essas palavras.
+const vetores = criarVetores(join(DADOS, "vetores"), { desligado: CHECK });
+const ehFrase = (q) => q.replace(/"[^"]*"?/g, " ").trim().split(/\s+/).filter(Boolean).length >= 3;
+/** id → cosseno dos itens da fonte mais parecidos com a consulta; null se a consulta é curta, é só aspas, ou o Ollama não respondeu a tempo. */
+async function sentidoDe(fonte, q, ms) {
+  const livre = q.replace(/"[^"]*"?/g, " ").trim();
+  if (livre.length < 4 || !vetores.tem(fonte)) return null;
+  const v = await vetores.embutir(livre, ms);
+  return v ? new Map(vetores.vizinhos(fonte, v, 60, 0.46)) : null;
+}
+
+/** Poderes que casam com a consulta: [{ id, t, rel, sem? }] sem ordem. `soPre` procura só no pré-requisito. */
+async function procurarPoderes(q, { soPre = false, ms } = {}) {
+  const todos = carregarPoderes();
+  const termos = await comIA(termosBusca(q, vocabDe(todos, () => Object.values(todos).map(blobDe))));
+  const lexico = filtrar(Object.entries(todos).filter(([, t]) => !soPre || t.prereq), ([, t]) => soPre ? norm(t.prereq) : blobDe(t), termos)
+    .map(([id, t]) => ({ id, t, rel: relevancia([t.nome, soPre ? t.prereq : meioDe(t), [t.resumo, t.descricao].join(" ")], termos, q) }));
+  if (!termos.length || soPre) return lexico;
+  return fundir(lexico, await sentidoDe("poderes", q, ms), (id) => todos[id] && { id, t: todos[id] }, lexico.length < 12 || ehFrase(q));
+}
+const aprsDe = (t) => (t.aprimoramentos || []).map((a) => a.texto || a).join(" ");
+async function procurarMagias(q, { ms } = {}) {
+  const textos = carregarTextos();
+  const termos = await comIA(termosBusca(q, vocabDe(textos, () => Object.values(textos).map(blobDe))));
+  const lexico = filtrar(Object.entries(textos), ([, t]) => blobDe(t), termos)
+    .map(([id, t]) => ({ id, t, rel: relevancia([t.nome, [meioDe(t), t.escola, t.grupo, t.resumo, t.descricao, Object.values(t.stats || {}).join(" ")].join(" "), aprsDe(t)], termos, q) }));
+  if (!termos.length) return lexico;
+  return fundir(lexico, await sentidoDe("magias", q, ms), (id) => textos[id] && { id, t: textos[id] }, lexico.length < 12 || ehFrase(q));
+}
+async function procurarColecao(nome, q, { ms } = {}) {
+  const col = carregarColecao(nome);
+  if (!col) return null;
+  const termos = await comIA(termosBusca(q, vocabDe(col, () => col.itens.map((i) => i.t))));
+  const lexico = filtrar(col.itens, (i) => i.t, termos).map((i) => ({ id: i.id, t: i, rel: relevancia([i.nome, [i.linha, ...Object.values(i.f || {})].join(" "), i.t], termos, q) }));
+  if (!termos.length) return lexico;
+  return fundir(lexico, await sentidoDe("c-" + nome, q, ms), (id) => col.porId.get(id) && { id, t: col.porId.get(id) }, lexico.length < 12 || ehFrase(q), LONGO);
+}
+const porRel = (a, b) => b.rel - a.rel || a.t.nome.localeCompare(b.t.nome, "pt");
+
+// item da lista de poderes: o que a página precisa pra filtrar e mostrar sem pedir a ficha (r = resumo de uma linha)
+const itemPoder = (slug, t) => ({ slug, nome: t.nome, categoria: t.categoria, acesso: t.acesso, sub: t.sub || undefined, donos: t.donos.length ? t.donos : undefined, racas: t.racas,
+  livro: t.livro, custo: t.custo || undefined, divindade: t.divindade, op: t.opcaoDe, tags: t.tags, r: t.resumo, pre: t.prereq || undefined });
+const itemMagia = (slug, t) => ({ slug, nome: t.nome, escola: t.escola, grupo: t.grupo, circulo: t.circulo, livro: t.livro, tags: t.tags, papel: t.papel, r: t.resumo, pocao: tipoDePocao(t.stats?.["Alvo/Área"]),
+  ...eixosDe(t.stats?.["Execução"], t.stats?.["Alcance"], t.stats?.["Resistência"]) });
+
+// ---- o Arauto: as quatro ferramentas que o modelo usa (lib/arauto.mjs cuida do laço). Saída em texto enxuto, um item por linha. ----
+const COLECOES_ARAUTO = ["itens", "ameacas", "regras", "str", "perigos", "parceiros"];
+const pag = (t) => t.livro ? `${t.livro}${t.pagina ? ", p. " + t.pagina : ""}` : "";
+const linhaPoder = (slug, t) => [`d:${slug}`, t.nome, `${t.linha.split(" · ").slice(0, -1).join(" · ") || t.linha}${t.opcaoDe ? ` (opção de ${t.opcaoDe})` : ""}`, pag(t), t.prereq ? "pré: " + t.prereq : "sem pré-requisito", t.custo, t.resumo].filter(Boolean).join(" | ");
+const linhaMagia = (slug, t) => [`o:${slug}`, t.nome, t.linha, pag(t), t.resumo].filter(Boolean).join(" | ");
+const acha = (lista, nome) => { const n = norm(nome).trim(); return lista.find((x) => norm(x.nome) === n) || lista.find((x) => norm(x.nome).startsWith(n)) || lista.find((x) => norm(x.nome).includes(n)); };
+const semHtml = (h) => String(h || "").replace(/<(br|\/p|\/div|\/li|\/h\d|\/tr)[^>]*>/gi, "\n").replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
+
+const ferramentasArauto = {
+  async buscar({ onde, consulta = "", tema, acesso, dono, circulo, limite }) {
+    const q = norm(consulta).trim(), n = Math.max(1, Math.min(40, Number(limite) || 15)), ms = 4000;
+    const dn = dono ? norm(dono).trim() : "";
+    const cab = (total, o) => `${total} em ${o}${total > n ? ` (os ${n} melhores)` : ""}:`;
+    if (onde === "poderes") {
+      const P = carregarPoderes();
+      let lista = q ? (await procurarPoderes(q, { ms })).sort(porRel) : Object.entries(P).map(([id, t]) => ({ id, t })).sort((a, b) => a.t.nome.localeCompare(b.t.nome, "pt"));
+      lista = lista.filter(({ t }) => (!tema || t.tags.includes(tema)) && (!acesso || t.acesso === acesso) && (!dn || t.donos.some((d) => norm(d).includes(dn)) || (t.racas || []).some((d) => norm(d) === dn)));
+      if (!lista.length) return "Nenhum poder com esses critérios. Tente outras palavras, ou só o tema, ou tire o filtro de dono.";
+      return [cab(lista.length, "poderes"), ...lista.slice(0, n).map(({ id, t }) => linhaPoder(id, t))].join("\n");
+    }
+    if (onde === "magias") {
+      const T = carregarTextos();
+      let lista = q ? (await procurarMagias(q, { ms })).sort(porRel) : Object.entries(T).map(([id, t]) => ({ id, t })).sort((a, b) => a.t.circulo - b.t.circulo || a.t.nome.localeCompare(b.t.nome, "pt"));
+      lista = lista.filter(({ t }) => (!tema || (t.tags || []).includes(tema)) && (!circulo || t.circulo === Number(circulo)));
+      if (!lista.length) return "Nenhuma magia com esses critérios.";
+      return [cab(lista.length, "magias"), ...lista.slice(0, n).map(({ id, t }) => linhaMagia(id, t))].join("\n");
+    }
+    const B = carregarBase(), P = carregarPoderes();
+    const casa = (texto) => !q || termosBusca(q).every((alts) => alts.some((x) => tem(norm(texto), x)));
+    if (onde === "racas") {
+      const lista = B.racas.filter((r) => (!tema || (r.ficha?.tags || []).includes(tema)) && casa([r.nome, r.ficha?.resumo, r.ficha?.deslocamento, r.ficha?.sentidos, r.ficha?.tipo, ...r.habilidades.map((s) => P[s]?.nome + " " + P[s]?.resumo)].join(" ")));
+      if (!lista.length) return "Nenhuma raça com esses critérios (tente só o tema, ou `ficha` com o nome).";
+      return [cab(lista.length, "raças"), ...lista.slice(0, n).map((r) => [`raça ${r.nome}`, r.livro, r.ficha?.atributos, "deslocamento " + (r.ficha?.deslocamento || "?"), r.ficha?.tamanho, r.ficha?.tipo, r.ficha?.resumo].filter(Boolean).join(" | ")), "(use `ficha` tipo=raca para as habilidades de cada uma)"].join("\n");
+    }
+    if (onde === "classes") {
+      const lista = B.classes.filter((c) => casa([c.nome, c.varianteDe, ...c.habilidades.map((h) => h.nome)].join(" ")));
+      return lista.length ? [cab(lista.length, "classes"), ...lista.slice(0, n).map((c) => [`classe ${c.nome}`, c.livro, c.varianteDe && `variante de ${c.varianteDe}`, c.pvPorNivel != null && `${c.pvPorNivel} PV e ${c.pmPorNivel} PM por nível`, `${c.poderes.length || c.poderesDaBase?.length || 0} poderes na lista`].filter(Boolean).join(" | ")), "(use `ficha` tipo=classe para habilidades por nível e poderes)"].join("\n") : "Nenhuma classe com esse nome.";
+    }
+    if (onde === "origens" || onde === "divindades" || onde === "distincoes") {
+      const lista = B[onde].filter((o) => casa([o.nome, ...(o.pericias || []), ...o.poderes.map((s) => P[s]?.nome + " " + P[s]?.resumo)].join(" ")));
+      const rot = { origens: "origem", divindades: "divindade", distincoes: "distinção" }[onde];
+      return lista.length ? [cab(lista.length, onde), ...lista.slice(0, n).map((o) => [`${rot} ${o.nome}`, o.livro, o.pericias?.length && "perícias: " + o.pericias.join(", "), o.poderes.length && "poderes: " + o.poderes.slice(0, 8).map((s) => P[s]?.nome).join(", ")].filter(Boolean).join(" | ")), `(use \`ficha\` para os detalhes)`].join("\n") : `Nada em ${onde} com esses critérios.`;
+    }
+    if (COLECOES_ARAUTO.includes(onde)) {
+      const lista = q ? ((await procurarColecao(onde, q, { ms })) || []).sort(porRel) : [];
+      return lista.length ? [cab(lista.length, onde), ...lista.slice(0, n).map(({ t }) => [`c:${onde}/${t.id}`, t.nome, t.linha].filter(Boolean).join(" | "))].join("\n") : `Nada em ${onde} para “${consulta}” (essa parte do acervo só aceita busca por palavras).`;
+    }
+    if (onde === "tudo") {
+      const partes = [];
+      for (const [o, k] of [["poderes", 8], ["magias", 5], ["racas", 4], ["regras", 4], ["itens", 4], ["ameacas", 3]]) partes.push(await ferramentasArauto.buscar({ onde: o, consulta, tema, limite: k }));
+      return partes.filter((x) => !/^(Nenhum|Nada)/.test(x)).join("\n\n") || "Nada no acervo com essas palavras.";
+    }
+    return "Lugar desconhecido: " + onde;
+  },
+
+  async ver({ ids = [] }) {
+    const out = [];
+    for (const id of [].concat(ids).slice(0, 8)) {
+      const [tipo, resto] = [String(id)[0], String(id).slice(2)];
+      if (tipo === "d") {
+        const [slug, t] = poderPorSlug(resto.replace(/[^\w-]/g, ""));
+        if (!t) { out.push(`${id}: não existe.`); continue; }
+        const c = poderCompleto(slug, t);
+        out.push([`## ${t.nome} [d:${slug}]`, `${t.linha}${t.pagina ? ", p. " + t.pagina : ""}`, "Como se obtém: " + c.comoObter, t.prereq && "Pré-requisito: " + t.prereq, t.custo && "Custo: " + t.custo, t.magica && "Habilidade mágica.",
+          t.descricao, c.libera.length && "É pré-requisito de: " + c.libera.map((x) => `${x.nome} [d:${x.slug}]`).join(", "), t.nota && "Nota: " + t.nota].filter(Boolean).join("\n"));
+      } else if (tipo === "o") {
+        const t = carregarTextos()[resto.replace(/[^\w-]/g, "")];
+        if (!t) { out.push(`${id}: não existe.`); continue; }
+        out.push([`## ${t.nome} [${id}]`, `${t.linha}${pag(t) ? " · " + pag(t) : ""}`, Object.entries(t.stats || {}).map(([k, v]) => `${k}: ${v}`).join("; "), t.descricao,
+          ...(t.aprimoramentos || []).map((a) => `${a.custo}: ${a.texto}`)].filter(Boolean).join("\n"));
+      } else if (tipo === "c") {
+        const [col, cid] = resto.split("/");
+        const it = carregarColecao(col)?.porId.get(cid);
+        out.push(it ? [`## ${it.nome} [${id}]`, it.linha, semHtml(it.html).slice(0, 7000)].filter(Boolean).join("\n") : `${id}: não existe.`);
+      } else out.push(`${id}: id desconhecido (use os ids que vieram de buscar ou ficha).`);
+    }
+    return out.join("\n\n") || "Nenhum id informado.";
+  },
+
+  async ficha({ tipo, nome }) {
+    const B = carregarBase(), P = carregarPoderes();
+    const l = (s) => P[s] ? `- ${P[s].nome} [d:${s}] (${pag(P[s])})${P[s].prereq ? ` (pré: ${P[s].prereq})` : ""}${P[s].custo ? ` (${P[s].custo})` : ""}: ${P[s].resumo || ""}` : null;
+    const nomes = (lista) => `Não achei “${nome}”. Existem: ${lista.map((x) => x.nome).join(", ").slice(0, 1500)}`;
+    if (tipo === "raca") {
+      const r = acha(B.racas, nome);
+      if (!r) return nomes(B.racas);
+      const porLista = {};
+      for (const s of r.opcoes) (porLista[P[s].opcaoDe] ??= []).push(s);
+      return [`# Raça ${r.nome} (${r.livro})`, r.ficha && `Atributos: ${r.ficha.atributos}\nDeslocamento: ${r.ficha.deslocamento} · Tamanho: ${r.ficha.tamanho} · Tipo: ${r.ficha.tipo} · Sentidos: ${r.ficha.sentidos}\nEscolhas dentro da raça: ${r.ficha.escolhas}`,
+        "Habilidades de raça (todo personagem da raça recebe; ninguém de outra raça pega):", ...r.habilidades.map(l),
+        ...(r.linhagens || []).flatMap((x) => [`Linhagem ${x.nome} (escolhe uma linhagem):`, ...x.habilidades.map(l)]),
+        ...Object.entries(porLista).flatMap(([lista, ss]) => [`Opções de “${lista}” (escolhidas dentro da raça):`, ...ss.map(l)]),
+        r.poderesDeRaca.length ? "Poderes de raça (poderes gerais exclusivos; custam uma escolha de poder):" : "", ...r.poderesDeRaca.map(l)].filter(Boolean).join("\n");
+    }
+    if (tipo === "classe") {
+      const c = acha(B.classes, nome);
+      if (!c) return nomes(B.classes);
+      const variantes = B.classes.filter((v) => norm(v.varianteDe) === norm(c.nome)).map((v) => v.nome);
+      const lista = c.poderes.length ? c.poderes : c.poderesDaBase || [];
+      return [`# Classe ${c.nome} (${c.livro})${c.varianteDe ? ` — variante de ${c.varianteDe}: troca habilidades, usa a lista de poderes de ${c.varianteDe}` : ""}`,
+        c.pvPorNivel != null && `${c.pvPorNivel} PV e ${c.pmPorNivel} PM por nível.`, variantes.length && `Variantes: ${variantes.join(", ")}.`,
+        "Habilidades de classe (automáticas, por nível):", ...c.habilidades.map((h) => `- ${ordinal(h.nivel)}: ${h.nome}${h.poder ? ` [d:${h.poder}]` : ""}`),
+        c.habilidadesSoltas?.length ? "Outras habilidades e opções internas da classe:" : "", ...(c.habilidadesSoltas || []).map(l),
+        `Poderes de ${c.varianteDe || c.nome} (um por nível a partir do 2º, à escolha; ${lista.length} na lista):`, ...lista.map(l)].filter(Boolean).join("\n");
+    }
+    if (tipo === "divindade") {
+      const d = acha(B.divindades, nome);
+      if (!d) return nomes(B.divindades);
+      const dev = d.devotos === "qualquer um" ? "qualquer personagem" : d.devotos ? `raças: ${d.devotos.racas.join(", ") || "—"}; classes: ${d.devotos.classes.join(", ") || "—"} (humanos, clérigos e frades servem a qualquer deus)` : "veja `livros`";
+      return [`# ${d.nome}${d.maior ? " (deus maior)" : " (deus menor)"}`, `Devotos aceitos: ${dev}`, "Poderes concedidos (só devotos):", ...d.poderes.map(l), "Obrigações e restrições, símbolo e arma preferida: consulte `livros`."].join("\n");
+    }
+    if (tipo === "origem") {
+      const o = acha(B.origens, nome);
+      if (!o) return nomes(B.origens);
+      return [`# Origem ${o.nome}${o.livro ? ` (${o.livro})` : ""}`, o.itens?.length && "Itens: " + o.itens.join(", "), o.pericias?.length && "Perícias à escolha: " + o.pericias.join(", "),
+        o.poderesAEscolha?.length ? "Poderes à escolha (no Livro Básico: dois benefícios entre perícias e poderes):" : "", ...(o.poderesAEscolha || []).map(l), o.poderes.length ? "Benefício/poder exclusivo da origem:" : "", ...o.poderes.map(l)].filter(Boolean).join("\n");
+    }
+    if (tipo === "distincao") {
+      const d = acha(B.distincoes, nome);
+      if (!d) return nomes(B.distincoes);
+      return [`# Distinção ${d.nome} (${d.livro})`, "Exige admissão conquistada em jogo; os poderes são escolhidos como poderes gerais, do 5º nível em diante. A admissão está descrita no livro (`livros`).", "Poderes:", ...d.poderes.map(l)].join("\n");
+    }
+    return "Tipo de ficha desconhecido.";
+  },
+
+  async livros({ consulta, livro }) {
+    const trechos = (ferramentasArauto.livros.trechos ??= lerJson(join(DADOS, "vetores", "livros-trechos.json"), []));
+    if (!trechos.length) return "Os trechos dos livros não estão carregados neste servidor.";
+    const lv = livro ? norm(livro) : "", doLivro = (i) => !lv || norm(trechos[i].l).includes(lv);
+    const v = await vetores.embutir(String(consulta || ""), 6000);
+    let achados = v ? vetores.vizinhos("livros", v, 40, 0.4).filter(([i]) => doLivro(i)).slice(0, 7) : [];
+    if (!achados.length) { // sem o modelo de sentido: conta palavras da consulta em cada trecho
+      const ws = norm(consulta).split(/[^a-z0-9]+/).filter((w) => w.length > 3 && !DE_FRASE.has(w));
+      achados = trechos.map((t, i) => [i, doLivro(i) ? ws.filter((w) => norm(t.t).includes(w)).length : 0]).filter((x) => x[1] >= Math.min(2, ws.length) && x[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 7);
+    }
+    return achados.length ? achados.map(([i]) => `[${trechos[i].l}, p. ${trechos[i].p}]\n${trechos[i].t.replace(/\s+/g, " ").slice(0, 1300)}`).join("\n\n") : "Nenhum trecho dos livros parecido com isso.";
+  },
+};
+// no self-test o Arauto não lê a configuração de verdade (não fala com a API nem gasta a cota de ninguém)
+const arauto = criarArauto({ dados: DADOS, ferramentas: ferramentasArauto, temas: TEMA_IDS, colecoes: COLECOES_ARAUTO, lerJson: CHECK ? (a, p) => p : lerJson, gravarJson, silencioso: CHECK });
 
 // ---- ranking de aprimoramentos oficiais contra a magia do usuário ----
 const semAcento = (s) => (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
@@ -1089,18 +1321,44 @@ if (CHECK) {
       if (!termosBusca("magias", voc)[0].includes("magia") || !termosBusca("dragoes", voc)[0].includes("draga")) return falha("raiz(): " + termosBusca("dragoes", voc)[0]);
       if (tem("forma primal", "for") || !tem("for 1, sab 2", "for") || !tem("+2 na defesa", "+2")) return falha("palavra curta só casa inteira");
       if (relevancia(["Encouraçado", "", ""], termosBusca("encoracado", voc), "encoracado") < 4) return falha("nome quase igual devia pontuar");
-      const pr = consertarPrereq({ descricao: "Você recebe um poder de cavaleiro cujos\n\nPré-requisito: treinado em Nobreza.", prereq: "cumpra, usando seu nível como nível de cavaleiro" });
-      if (pr.prereq !== "treinado em Nobreza" || pr.descricao !== "Você recebe um poder de cavaleiro cujos pré-requisitos cumpra, usando seu nível como nível de cavaleiro.") return falha("consertarPrereq: " + JSON.stringify(pr));
-      const pr2 = consertarPrereq({ descricao: "que tenha Encouraçado como\n\nPré-requisito: proficiência com armaduras pesadas.", prereq: "" });
-      if (pr2.prereq !== "proficiência com armaduras pesadas" || !pr2.descricao.endsWith("como pré-requisito.")) return falha("consertarPrereq sem campo: " + JSON.stringify(pr2));
-      if (consertarPrereq({ descricao: "Pré-requisito: x no começo não é fim", prereq: "" }).prereq !== "") return falha("consertarPrereq não devia mexer em linha inicial");
-      const o1 = origemDoPoder({ nome: "Dom da Esperança", categoria: "Concedido", sub: "Paz", livro: "Livro Básico", linha: "Poder concedido · Paz · Livro Básico", descricao: "Você soma…" }, { "dom da esperanca": ["Marah"] });
-      if (o1.divindade !== "Marah" || o1.sub !== "Marah" || o1.linha !== "Poder concedido · Marah · Livro Básico") return falha("origemDoPoder LB: " + JSON.stringify(o1));
-      const o2 = origemDoPoder({ nome: "Companheiro Celeste", categoria: "Concedido", sub: "", livro: "Deuses de Arton", linha: "Poder concedido · Deuses de Arton", descricao: "Divindade: Lena, Marah\n\nVocê possui um luminar." });
-      if (o2.divindade !== "Lena, Marah" || o2.descricao !== "Você possui um luminar." || o2.linha !== "Poder concedido · Lena, Marah · Deuses de Arton") return falha("origemDoPoder DdA: " + JSON.stringify(o2));
-      const o3 = origemDoPoder({ nome: "Arma Amada", categoria: "Racial", sub: "", livro: "Heróis de Arton", linha: "Poder racial · Heróis de Arton", descricao: "Raça: Anão, Hobgoblin\n\nEscolha uma arma." });
-      if (o3.raca !== "Anão, Hobgoblin" || o3.sub !== "Anão, Hobgoblin" || o3.descricao !== "Escolha uma arma.") return falha("origemDoPoder raça: " + JSON.stringify(o3));
-      if (origemDoPoder({ nome: "Tradição de Samurai", categoria: "Concedido", sub: "Honra", descricao: "x" }).divindade !== "Lin-Wu") return falha("domínio sem lista devia cair na tabela");
+      // poderes v2 (base inventada: o self-test não lê dados/): como se obtém, tema na busca, frase de pergunta, link antigo
+      carregarPoderes.cache = {
+        atletico: { nome: "Atlético", categoria: "Destino", acesso: "geral", donos: [], tags: ["deslocamento", "pericia"], livro: "Livro Básico", pagina: 130, linha: "Poder de destino · Livro Básico", prereq: "For 2", pre: { poderes: [] }, custo: "", descricao: "Texto de teste: corre mais que os outros.", resumo: "Resumo de teste: corre mais.", libera: ["maratonista"] },
+        maratonista: { nome: "Maratonista", categoria: "Destino", acesso: "geral", donos: [], tags: ["pericia"], livro: "Livro Básico", linha: "Poder de destino · Livro Básico", prereq: "Atlético", pre: { poderes: ["Atlético"] }, custo: "", descricao: "Texto de teste: aguenta a estrada." },
+        graca: { nome: "Graça", categoria: "Racial", acesso: "raca", donos: ["Elfo"], racas: ["Elfo"], tags: ["deslocamento"], livro: "Livro Básico", linha: "Habilidade de raça · Elfo · Livro Básico", prereq: "", custo: "", descricao: "Texto de teste: passo leve." },
+        "ataque-especial": { nome: "Ataque Especial", categoria: "Habilidade", acesso: "classe-habilidade", donos: ["Guerreiro"], niveis: { Guerreiro: [1, 5] }, tags: ["dano"], livro: "Livro Básico", linha: "Habilidade de classe · Guerreiro · Livro Básico", prereq: "", custo: "1 PM", descricao: "Texto de teste: golpe da classe." },
+      };
+      carregarPoderes.porNome = null;
+      carregarBase.cache = { racas: [{ nome: "Elfo", livro: "Livro Básico", habilidades: ["graca"], opcoes: [], poderesDeRaca: [], ficha: { atributos: "Int +2", deslocamento: "12m", tamanho: "Médio", tipo: "humanoide", sentidos: "penumbra", escolhas: "nenhuma", tags: ["deslocamento"], resumo: "Ágil." } }],
+        classes: [{ nome: "Guerreiro", livro: "Livro Básico", varianteDe: "", habilidades: [{ nivel: 1, poder: "ataque-especial", nome: "Ataque Especial" }], poderes: [], habilidadesSoltas: [] }, { nome: "Inovador", varianteDe: "Guerreiro", habilidades: [], poderes: [], poderesDaBase: [] }],
+        divindades: [], origens: [], distincoes: [], aliases: { "atletico-velho": "atletico" }, magias: {} };
+      const pv = await (await fetch(`${base}/api/poderes?q=${encodeURIComponent("poderes que me deixem mais veloz")}`, { headers: H })).json();
+      if (pv.poderes.map((x) => x.slug).sort().join() !== "atletico,graca" || pv.variantes.Inovador !== "Guerreiro") return falha("frase de pergunta + tema: " + JSON.stringify(pv.poderes.map((x) => x.slug)));
+      if (pv.poderes.find((x) => x.slug === "graca").acesso !== "raca" || pv.poderes.find((x) => x.slug === "atletico").r !== "Resumo de teste: corre mais.") return falha("item da lista de poderes: " + JSON.stringify(pv.poderes[0]));
+      const soPre = await (await fetch(`${base}/api/poderes?q=atletico&em=pre`, { headers: H })).json();
+      if (soPre.poderes.map((x) => x.slug).join() !== "maratonista") return falha("busca só no pré-requisito: " + JSON.stringify(soPre.poderes.map((x) => x.slug)));
+      const pd = await (await fetch(`${base}/api/poder/atletico-velho`, { headers: H })).json();
+      if (pd.slug !== "atletico" || pd.libera[0]?.nome !== "Maratonista" || !pd.comoObter.includes("qualquer personagem")) return falha("ficha do poder (link antigo, libera, como obter): " + JSON.stringify(pd).slice(0, 300));
+      if ((await (await fetch(`${base}/api/poder/maratonista`, { headers: H })).json()).exige[0]?.slug !== "atletico") return falha("poder devia apontar o pré-requisito");
+      if (!comoObter(carregarPoderes.cache.graca).includes("todo Elfo recebe") || !comoObter(carregarPoderes.cache["ataque-especial"]).includes("Guerreiro no 1º e 5º nível")) return falha("comoObter: " + comoObter(carregarPoderes.cache["ataque-especial"]));
+      if (termosBusca("o que tem de fogo", vocabDe({}, () => ["fogo"])).length !== 1) return falha("palavras de pergunta deviam sair da frase");
+      // ferramentas do Arauto sobre a mesma base
+      const fb = await ferramentasArauto.buscar({ onde: "poderes", tema: "deslocamento", acesso: "raca" });
+      if (!fb.includes("d:graca") || fb.includes("d:atletico")) return falha("buscar por tema + acesso: " + fb);
+      const fd = await ferramentasArauto.buscar({ onde: "poderes", consulta: "veloz", dono: "elfo" });
+      if (!fd.includes("d:graca") || fd.includes("d:atletico")) return falha("buscar por dono: " + fd);
+      const ff = await ferramentasArauto.ficha({ tipo: "raca", nome: "elfo" });
+      if (!ff.includes("Deslocamento: 12m") || !ff.includes("[d:graca]")) return falha("ficha de raça: " + ff);
+      const fc = await ferramentasArauto.ficha({ tipo: "classe", nome: "inovador" });
+      if (!fc.includes("variante de Guerreiro")) return falha("ficha de classe variante: " + fc);
+      const fv = await ferramentasArauto.ver({ ids: ["d:atletico", "x:1"] });
+      if (!fv.includes("Como se obtém: Poder geral de destino") || !fv.includes("É pré-requisito de: Maratonista [d:maratonista]") || !fv.includes("x:1: id desconhecido")) return falha("ver: " + fv);
+      if (!(await ferramentasArauto.ficha({ tipo: "raca", nome: "zzz" })).includes("Existem: Elfo")) return falha("ficha de nome errado devia listar as opções");
+      // rotas do Arauto: o bot sem token não passa; sem chave configurada o site avisa (o self-test não fala com a API)
+      if ((await fetch(`${base}/api/arauto/bot`, { method: "POST", body: "{}" })).status !== 401) return falha("bot sem token devia dar 401");
+      if ((await fetch(`${base}/api/arauto`, { method: "POST", body: "{}" })).status !== 401) return falha("Arauto do site sem login devia dar 401");
+      const fluxo = await (await fetch(`${base}/api/arauto`, { method: "POST", headers: HJ, body: JSON.stringify({ pergunta: "como ficar veloz?" }) })).text();
+      if (!fluxo.includes("event: status") || !fluxo.includes("event: fim") || !fluxo.includes("sem-chave")) return falha("fluxo do Arauto: " + fluxo.slice(0, 300));
       const urso = await (await fetch(`${base}/api/c/teste/urso`, { headers: H })).json();
       if (urso.html !== "<b>PV</b> 30") return falha("ficha da coleção");
       if ((await fetch(`${base}/api/c/naoexiste`, { headers: H })).status !== 404) return falha("coleção inexistente devia dar 404");
@@ -1213,4 +1471,5 @@ if (CHECK) {
   });
 } else {
   server.listen(PORT, () => console.log(`Hub T20 em http://localhost:${PORT} (${Object.keys(usuarios).length} contas)`));
+  vetores.aquecer().then((v) => console.log(v ? "busca por sentido: modelo acordado" : "busca por sentido: Ollama fora — a busca segue só por palavra e tema")); // a 1ª consulta não paga os ~2,5 s de carga do modelo
 }

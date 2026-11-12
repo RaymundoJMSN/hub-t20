@@ -14,6 +14,7 @@ document.head.append(link);
 // menu lateral em árvore: ["emoji Grupo", [filhos]] ou [rota, "emoji Rótulo", [filhos]?, cargaCompleta?]
 // /ficha/ é um app à parte (recarrega de verdade). Abas de página de coleção são "?aba=<coleção>".
 export const MENU = [
+  ["/arauto", "🪶 Arauto"],
   ["🏛️ Compêndio", [
     ["/", "📖 Grimório", [["/criar", "✦ Criar magia"]]],
     ["/poderes", "⚔️ Poderes"],
@@ -226,17 +227,19 @@ function caixaDeBusca() {
     if (q.length < 2) { res.hidden = true; return; }
     const r = await fetch("/api/busca?q=" + encodeURIComponent(q)).then((x) => x.json()).catch(() => ({ grupos: [] }));
     if (eu !== n) return; // chegou resposta de uma busca velha
-    res.replaceChildren(...(r.grupos?.length ? r.grupos.map((g) => el("div", { className: "hub-res-grupo" },
+    // a primeira linha leva a pergunta ao Arauto (a IA do hub): o que não é nome de coisa, é pergunta
+    res.replaceChildren(el("a", { className: "hub-res-arauto", href: "/arauto?q=" + encodeURIComponent(q), textContent: `🪶 perguntar ao Arauto: “${q.length > 60 ? q.slice(0, 60) + "…" : q}”` }),
+      ...(r.grupos?.length ? r.grupos.map((g) => el("div", { className: "hub-res-grupo" },
       el("a", { className: "hub-res-titulo", href: paginaDe(g, q), textContent: `${g.titulo} · ${g.total}${g.total > g.itens.length ? " — ver todas" : ""}` }),
       ...g.itens.map((i) => el("a", { className: "hub-res-item", href: i.href }, el("b", { textContent: i.nome }), el("span", { textContent: i.linha || "" })))))
-      : [el("div", { className: "hub-res-vazio", textContent: "nada encontrado" })]));
+      : [el("div", { className: "hub-res-vazio", textContent: "nada encontrado com essas palavras" })]));
     res.hidden = false;
   }
   caixa.oninput = () => { clearTimeout(timer); timer = setTimeout(buscar, 250); };
   caixa.onfocus = () => { if (res.childElementCount && caixa.value.trim().length > 1) res.hidden = false; };
   caixa.onkeydown = (e) => {
     if (e.key === "Escape") { res.hidden = true; caixa.blur(); }
-    if (e.key === "Enter") res.querySelector(".hub-res-item")?.click();
+    if (e.key === "Enter") (res.querySelector(".hub-res-item") || res.querySelector(".hub-res-arauto"))?.click(); // nada achado: Enter pergunta ao Arauto
   };
   res.addEventListener("click", (e) => { if (e.target.closest("a")) res.hidden = true; });
   document.addEventListener("pointerdown", (e) => { if (!e.target.closest(".hub-busca-box")) res.hidden = true; });

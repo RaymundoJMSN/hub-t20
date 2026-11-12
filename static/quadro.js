@@ -125,6 +125,8 @@ export function mesaGlobal() {
       carta.addEventListener("pointerup", soltar);
     });
 
+    // link pra outra carta (o que este poder exige ou libera): abre ao lado em vez de sair da página
+    carta.addEventListener("click", (e) => { const a = e.target.closest("a[data-carta]"); if (a) { e.preventDefault(); e.stopPropagation(); abrir(a.dataset.carta, { x: carta.offsetLeft + 36, y: carta.offsetTop + 36 }); } });
     // 2 cliques no título: restaura tamanho e desminimiza
     carta.addEventListener("dblclick", (e) => { if (!e.target.closest(".miolo, button, a")) { carta.classList.remove("q-min"); carta.style.width = carta.style.height = ""; salvar(); } });
     raiz.append(carta);

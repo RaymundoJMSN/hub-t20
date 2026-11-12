@@ -137,3 +137,6 @@ html.lado-fixo .hub-fixar { opacity: 1; background: var(--hn-painel); border-col
 /* barra de rolagem invisível em todo lugar (rola normal, só não aparece) */
 * { scrollbar-width: none; }
 *::-webkit-scrollbar { display: none; width: 0; height: 0; }
+/* primeira linha da busca em tudo: levar a pergunta ao Arauto (a IA do hub) */
+.hub-res-arauto { display: block; padding: 8px 10px; margin-bottom: 4px; border-radius: 8px; border: 1px dashed rgba(201, 162, 39, .45); color: var(--hn-ouro-claro); text-decoration: none; font-style: italic; }
+.hub-res-arauto:hover { background: rgba(201, 162, 39, .12); }
