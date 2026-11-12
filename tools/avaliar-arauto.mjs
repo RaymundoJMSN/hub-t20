@@ -19,7 +19,7 @@ const DADOS = join(dirname(fileURLToPath(import.meta.url)), "..", "dados");
 const PERGUNTAS = [
   { q: "to tentando fazer um personagem focado em ser veloz, me fale poderes ou raças que me dariam mais movimentação, ou poderes relacionados a investidas",
     espera: [/atletico/, /elfo/, /12 ?m/, /investida/, /\(d:[\w-]+\)/, /p\. ?\d+/], nota: "a pergunta do Ray: raças 12m, Atlético (+3m), poderes de investida, com fonte e links" },
-  { q: "O que faz o poder Ataque Poderoso e qual o pré-requisito?", espera: [/for(ca|ça)? 1/, /(–|-) ?2/, /\+ ?5/, /livro basico/], nota: "pergunta direta: –2 no ataque, +5 no dano, For 1" },
+  { q: "O que faz o poder Ataque Poderoso e qual o pré-requisito?", espera: [/for(ca|ça)? 1/, /[–−-] ?2/, /\+ ?5/, /livro basico/], nota: "pergunta direta: –2 no ataque, +5 no dano, For 1" },
   { q: "Sou anão. Tem como eu pegar a habilidade Graça do elfo?", espera: [/n[aã]o/, /(ra[cç]a|elfo)/], proibe: [/pode pegar gra[cç]a como poder geral/], nota: "habilidade de raça é exclusiva" },
   { q: "Qual a diferença entre habilidade de raça e poder de raça?", espera: [/autom/, /(poder geral|no lugar de um poder|escolh)/, /herois de arton/], nota: "taxonomia" },
   { q: "Como funciona a ação de investida?", espera: [/acao completa/, /dobro/, /\+ ?2/, /(–|-) ?2 na defesa/], nota: "regra: completa, dobro do deslocamento, +2 ataque, –2 Defesa" },
