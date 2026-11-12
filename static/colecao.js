@@ -200,7 +200,7 @@ function render() {
       el("span", { className: "circ", textContent: badge(it) }),
       el("h3", { textContent: it.nome }),
       el("div", { className: "meta", textContent: it.linha || "" }),
-      it.trecho ? el("div", { className: "trecho" }, it.trecho[0], el("mark", { textContent: it.trecho[1] }), it.trecho[2]) : null));
+      it.trecho ? el("div", { className: "trecho" }, it.trecho[0], el("mark", { textContent: it.trecho[1] }), it.trecho[2]) : it.r ? el("div", { className: "resumo", textContent: it.r }) : null));
   }
 }
 

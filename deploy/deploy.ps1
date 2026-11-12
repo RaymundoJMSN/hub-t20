@@ -28,7 +28,7 @@ scp -r (Join-Path $proj 'data') "$dest/"
 scp (Join-Path $proj 'deploy/hub-t20.service') (Join-Path $proj 'deploy/instalar-servidor.sh') "$dest/deploy/"
 scp -r (Join-Path $proj 'tools') "$dest/"
 # poderes.json + base.json = a base de conhecimento (tools/construir-base.mjs); arauto-primer.md = o mapa do sistema que o Arauto lê
-foreach ($f in 'dados/textos.json', 'dados/aprimoramentos.json', 'dados/poderes.json', 'dados/base.json', 'dados/arauto-primer.md', 'dados/ameacas-regras.json') {
+foreach ($f in 'dados/textos.json', 'dados/aprimoramentos.json', 'dados/poderes.json', 'dados/base.json', 'dados/revisao-colecoes.json', 'dados/arauto-primer.md', 'dados/ameacas-regras.json') {
   if (Test-Path (Join-Path $proj $f)) { scp (Join-Path $proj $f) "$dest/dados/" }
 }
 scp (Join-Path $proj 'dados/colecoes/*.json') "$dest/dados/colecoes/"

@@ -185,12 +185,17 @@ function carregarColecao(nome) {
   nome = String(nome).replace(/[^\w-]/g, "");
   if (!(nome in colecoes.cache)) {
     const c = lerJson(join(DADOS, "colecoes", `${nome}.json`), null);
-    if (c) c.porId = new Map(c.itens.map((i) => [i.id, i]));
+    if (c) {
+      c.porId = new Map(c.itens.map((i) => [i.id, i]));
+      // resumo de uma linha e temas da revisão 1 a 1 (tools/revisar-colecoes.mjs): entram no texto de busca como "#tema", igual aos poderes
+      const rev = (colecoes.revisao ??= lerJson(join(DADOS, "revisao-colecoes.json"), {}))[nome];
+      if (rev) for (const i of c.itens) { const x = rev[i.id]; if (x) { i.r = x.r; i.tags = x.tags; i.t = `${i.t || ""} ${norm(x.r)} ${x.tags.map((t) => "#" + t).join(" ")}`; } }
+    }
     colecoes.cache[nome] = c;
   }
   return colecoes.cache[nome];
 }
-const resumo = ({ id, nome, linha, grupo, f }) => ({ id, nome, linha, grupo, f });
+const resumo = ({ id, nome, linha, grupo, f, r }) => ({ id, nome, linha, grupo, f, r });
 
 // ---------------------------------------------------------------- missões, agenda, links (json simples em dados/)
 const ARQ_MIS = join(DADOS, "missoes.json"), ARQ_AGE = join(DADOS, "agenda.json"), ARQ_LINKS = join(DADOS, "links.json");
@@ -366,7 +371,7 @@ async function tratar(req, res) {
     const pulso = setInterval(() => res.write(" "), 10_000);
     const r = await arauto.responder({ pergunta: b.pergunta, historico: b.historico, quem: String(b.autor || "papinho").slice(0, 80), canal: "papinho" });
     clearInterval(pulso);
-    return res.end(JSON.stringify({ resposta: r.resposta, itens: r.itens || [], erro: r.erro, ms: r.ms }));
+    return res.end(JSON.stringify({ resposta: r.resposta, itens: r.itens || [], erro: r.erro, ms: r.ms, modo: r.modo, modelo: r.modelo, uso: r.uso }));
   }
   if (p === "/api/sair" && req.method === "POST") return json(res, 200, { ok: true }, { "set-cookie": cookieSessao(req, "x", 0) });
   if (p === "/api/eu") return json(res, 200, { ...publico(eu), mestre: eu.papel === "mestre" });
@@ -566,10 +571,10 @@ async function tratar(req, res) {
     const pulso = setInterval(() => res.write(": pulso\n\n"), 15_000); // comentário de SSE: mantém a conexão viva no proxy enquanto o modelo escreve
     const r = await arauto.responder({ pergunta: b.pergunta, historico: b.historico, quem: eu.nome, canal: "site", avisar: (t) => evento("status", t) });
     clearInterval(pulso);
-    evento("fim", { resposta: r.resposta, itens: r.itens || [], erro: r.erro, ms: r.ms });
+    evento("fim", { resposta: r.resposta, itens: r.itens || [], erro: r.erro, ms: r.ms, modo: r.modo });
     return res.end();
   }
-  if (p === "/api/arauto" && req.method === "GET") return json(res, 200, { pronto: arauto.pronto(), modelo: arauto.modelo() });
+  if (p === "/api/arauto" && req.method === "GET") return json(res, 200, { pronto: arauto.pronto(), modelo: arauto.modelo(), modeloProfundo: arauto.modeloProfundo() });
   // ---- missões (quadro da guilda): voto = personagem de quem está logado (ou o nome)
   if (p === "/api/missoes" && req.method === "GET") return json(res, 200, { ...missoes, eu: eu.personagem || eu.nome });
   if (p === "/api/missoes" && req.method === "PUT") {
@@ -1103,9 +1108,10 @@ const semHtml = (h) => String(h || "").replace(/<(br|\/p|\/div|\/li|\/h\d|\/tr|\
 
 const ferramentasArauto = {
   async buscar({ onde, consulta = "", tema, acesso, dono, circulo, limite }) {
-    const q = norm(consulta).trim(), n = Math.max(1, Math.min(40, Number(limite) || 15)), ms = 4000;
+    const q = norm(consulta).trim(), n = Math.max(1, Math.min(60, Number(limite) || 20)), ms = 4000;
     const dn = dono ? norm(dono).trim() : "";
-    const cab = (total, o) => `${total} em ${o}${total > n ? ` (os ${n} melhores)` : ""}:`;
+    // sem consulta a lista sai em ordem alfabética: chamar o corte de "os melhores" fez o modelo recomendar só o que começava com A, B e C
+    const cab = (total, o) => `${total} em ${o}${total <= n ? "" : q ? ` (os ${n} mais relevantes; peça \`limite\` maior para ver mais)` : ` (ATENÇÃO: só os ${n} primeiros em ordem alfabética, não os melhores — para ver TODOS de um tema use \`panorama\`)`}:`;
     if (onde === "poderes") {
       const P = carregarPoderes();
       let lista = q ? (await procurarPoderes(q, { ms })).sort(porRel) : Object.entries(P).map(([id, t]) => ({ id, t })).sort((a, b) => a.t.nome.localeCompare(b.t.nome, "pt"));
@@ -1137,8 +1143,11 @@ const ferramentasArauto = {
       return lista.length ? [cab(lista.length, onde), ...lista.slice(0, n).map((o) => [`${rot} ${o.nome}`, o.livro, o.pericias?.length && "perícias: " + o.pericias.join(", "), o.poderes.length && "poderes: " + o.poderes.slice(0, 8).map((s) => P[s]?.nome).join(", ")].filter(Boolean).join(" | ")), `(use \`ficha\` para os detalhes)`].join("\n") : `Nada em ${onde} com esses critérios.`;
     }
     if (COLECOES_ARAUTO.includes(onde)) {
-      const lista = q ? ((await procurarColecao(onde, q, { ms })) || []).sort(porRel) : [];
-      return lista.length ? [cab(lista.length, onde), ...lista.sort(porNum).slice(0, n).map(({ t, trecho }) => [`c:${onde}/${t.id}`, t.nome, t.linha].filter(Boolean).join(" | ") + citar(trecho))].join("\n") : `Nada em ${onde} para “${consulta}” (essa parte do acervo só aceita busca por palavras).`;
+      // itens e parceiros têm tema e resumo (revisão 1 a 1); as outras coleções só aceitam palavras
+      let lista = q ? ((await procurarColecao(onde, q, { ms })) || []).sort(porRel) : tema ? (carregarColecao(onde)?.itens || []).map((t) => ({ id: t.id, t })).sort((a, b) => a.t.nome.localeCompare(b.t.nome, "pt")) : [];
+      if (tema) lista = lista.filter(({ t }) => (t.tags || []).includes(tema));
+      return lista.length ? [cab(lista.length, onde), ...lista.sort(porNum).slice(0, n).map(({ t, trecho }) => [`c:${onde}/${t.id}`, t.nome, t.linha, t.r].filter(Boolean).join(" | ") + citar(trecho))].join("\n")
+        : `Nada em ${onde} ${consulta ? `para “${consulta}”` : "com esses critérios"}${tema && !["itens", "parceiros"].includes(onde) ? " (só itens e parceiros têm tema; nesta parte use palavras)" : ""}.`;
     }
     if (onde === "tudo") {
       const partes = [];
@@ -1148,9 +1157,53 @@ const ferramentasArauto = {
     return "Lugar desconhecido: " + onde;
   },
 
-  async ver({ ids = [] }) {
+  /**
+   * Tudo o que o acervo tem sobre 1 a 4 temas, de uma vez e SEM corte, agrupado por como se obtém. É a base das respostas de construção:
+   * o `buscar` devolve um pedaço da lista, e com um pedaço o modelo recomenda o que viu em vez do que é melhor.
+   */
+  async panorama({ temas = [] }) {
+    const ts = [...new Set([].concat(temas).filter((t) => TEMA_IDS.includes(t)))].slice(0, 4);
+    if (!ts.length) return "Informe de 1 a 4 temas da lista (ex.: deslocamento, movimento-extra, investida).";
+    const P = carregarPoderes(), B = carregarBase(), T = carregarTextos();
+    const quais = (tags) => ts.filter((t) => (tags || []).includes(t));
+    const marca = (q) => (ts.length > 1 ? ` [${q.join("+")}]` : ""); // com vários temas, diz por qual cada linha entrou
     const out = [];
-    for (const id of [].concat(ids).slice(0, 8)) {
+    let total = 0;
+    const secao = (titulo, linhas, nota) => { if (linhas.length) { total += linhas.length; out.push(`\n## ${titulo} (${linhas.length})${nota ? " — " + nota : ""}`, ...linhas); } };
+    // quem casa com mais temas pedidos vem primeiro; depois por dono e nome
+    const ordem = (dono) => (a, b) => b.q.length - a.q.length || dono(a).localeCompare(dono(b), "pt") || a.nome.localeCompare(b.nome, "pt");
+
+    const racas = B.racas.map((r) => ({ r, nome: r.nome, q: quais(r.ficha?.tags) })).filter((x) => x.q.length).sort(ordem(() => ""));
+    secao("Raças", racas.map(({ r, q }) => [`raça ${r.nome}`, r.livro, "deslocamento " + (r.ficha?.deslocamento || "?"), r.ficha?.tamanho, r.ficha?.resumo].filter(Boolean).join(" | ") + marca(q)), "a ficha completa sai de `ficha` tipo=raca");
+
+    const pods = Object.entries(P).map(([id, t]) => ({ id, t, nome: t.nome, q: quais(t.tags) })).filter((x) => x.q.length);
+    const GRUPOS = [["raca", "Habilidades de raça", "vêm com a raça ou a linhagem; ninguém de fora pega"], ["origem", "Origens", "benefício da origem, escolhida na criação"],
+      ["geral", "Poderes gerais", "qualquer personagem que cumpra o pré-requisito"], ["poder-raca", "Poderes de raça", "poder geral exclusivo da raça"],
+      ["classe-habilidade", "Habilidades de classe", "automáticas, no nível indicado"], ["classe-poder", "Poderes de classe", "escolhidos da lista da classe"],
+      ["concedido", "Poderes concedidos", "só devotos da divindade"], ["distincao", "Distinções", "exigem admissão em jogo"], ["aventura", "Recompensas de aventura", ""], ["complicacao", "Complicações", "desvantagens"]];
+    for (const [acesso, titulo, nota] of GRUPOS)
+      secao(titulo, pods.filter((x) => x.t.acesso === acesso).sort(ordem((x) => x.t.donos[0] || x.t.categoria || "")).map(({ id, t, q }) => linhaPoder(id, t) + marca(q)), nota);
+
+    const mags = Object.entries(T).map(([id, t]) => ({ id, t, nome: t.nome, q: quais(t.tags) })).filter((x) => x.q.length).sort((a, b) => a.t.circulo - b.t.circulo || b.q.length - a.q.length || a.nome.localeCompare(b.nome, "pt"));
+    secao("Magias", mags.map(({ id, t, q }) => { const frasco = tipoDePocao(t.stats?.["Alvo/Área"]); return linhaMagia(id, t) + (frasco ? ` | pode virar ${frasco}` : "") + marca(q); }), "quem não conjura usa por poção, pergaminho ou item que lança a magia");
+
+    for (const [col, titulo, nota] of [["itens", "Itens", "equipamento, itens mágicos, encantos, pratos, animais e veículos à venda"], ["parceiros", "Parceiros e montarias", ""]]) {
+      const ls = (carregarColecao(col)?.itens || []).map((i) => ({ i, nome: i.nome, q: quais(i.tags) })).filter((x) => x.q.length).sort(ordem((x) => String(x.i.linha || "")));
+      // montarias entram em quase todo tema de movimento (cada uma tem o próprio deslocamento): fora dos temas delas vão só os nomes, pra lista não dobrar de tamanho
+      if (col === "parceiros" && ls.length > 12 && !ts.some((t) => t === "montaria" || t === "parceiro")) {
+        total += ls.length;
+        out.push(`\n## ${titulo} (${ls.length}) — só os nomes; para os detalhes use \`buscar\` onde=parceiros com o tema`, ls.map(({ nome }) => nome).join(", "));
+        continue;
+      }
+      secao(titulo, ls.map(({ i, q }) => [`c:${col}/${i.id}`, i.nome, i.linha, i.r].filter(Boolean).join(" | ") + marca(q)), nota);
+    }
+    return [`PANORAMA de ${ts.map((t) => TEMA_ROTULO[t] || t).join(" + ")}: ${total} opções no acervo, TODAS listadas abaixo (id | nome | de quem é | página | pré-requisito | custo | o que faz).`,
+      "Leia a lista inteira antes de escolher: a melhor opção pode estar em qualquer seção. Use `ver` no que for recomendar e `livros` para a regra da mecânica.", ...out].join("\n");
+  },
+
+  async ver({ ids = [] }) {
+    const out = [], muitos = [].concat(ids).length > 8;
+    for (const id of [].concat(ids).slice(0, 20)) {
       const [tipo, resto] = [String(id)[0], String(id).slice(2)];
       if (tipo === "d") {
         const [slug, t] = poderPorSlug(resto.replace(/[^\w-]/g, ""));
@@ -1166,7 +1219,7 @@ const ferramentasArauto = {
       } else if (tipo === "c") {
         const [col, cid] = resto.split("/");
         const it = carregarColecao(col)?.porId.get(cid);
-        out.push(it ? [`## ${it.nome} [${id}]`, it.linha, semHtml(it.html).slice(0, 7000)].filter(Boolean).join("\n") : `${id}: não existe.`);
+        out.push(it ? [`## ${it.nome} [${id}]`, it.linha, semHtml(it.html).slice(0, muitos ? 2500 : 7000)].filter(Boolean).join("\n") : `${id}: não existe.`);
       } else out.push(`${id}: id desconhecido (use os ids que vieram de buscar ou ficha).`);
     }
     return out.join("\n\n") || "Nenhum id informado.";
@@ -1293,6 +1346,14 @@ if (iUsu > 0) {
   if (!nomeOk(nome || "") || !senha) { console.error('uso: node server.mjs --usuario "Nome" senha [jogador|mestre] ["Personagem"]'); process.exit(1); }
   const u = definirUsuario({ nome, senha, papel, personagem });
   console.log(`conta "${u.nome}" (${u.papel}${u.personagem ? ", " + u.personagem : ""}) gravada em ${ARQ_USU}`);
+  process.exit(0);
+}
+// CLI: --ferramenta <nome> chave=valor …  → o que o Arauto recebe dessa ferramenta (ex.: --ferramenta panorama temas=deslocamento,investida)
+const iFer = process.argv.indexOf("--ferramenta");
+if (iFer > 0) {
+  const [nome, ...pares] = process.argv.slice(iFer + 1);
+  const entrada = Object.fromEntries(pares.map((p) => { const [k, ...v] = p.split("="); const s = v.join("="); return [k, ["temas", "ids"].includes(k) ? s.split(",") : s]; }));
+  console.log(ferramentasArauto[nome] ? await ferramentasArauto[nome](entrada) : `ferramentas: ${Object.keys(ferramentasArauto).join(", ")}`);
   process.exit(0);
 }
 
@@ -1438,6 +1499,16 @@ if (CHECK) {
       if (!fb.includes("d:graca") || fb.includes("d:atletico")) return falha("buscar por tema + acesso: " + fb);
       const fd = await ferramentasArauto.buscar({ onde: "poderes", consulta: "veloz", dono: "elfo" });
       if (!fd.includes("d:graca") || fd.includes("d:atletico")) return falha("buscar por dono: " + fd);
+      // panorama: tudo de um tema, de todas as partes do acervo, sem corte; tema que não existe é ignorado
+      colecoes.cache.itens = { meta: { filtros: [], ordem: {} }, itens: [{ id: "bota", nome: "Bota de Teste", linha: "Itens gerais · T$ 1", f: {}, t: "bota #deslocamento", html: "<p>Anda mais.</p>", r: "Dá +2m de deslocamento.", tags: ["deslocamento"] },
+        { id: "corda", nome: "Corda de Teste", linha: "Itens gerais · T$ 1", f: {}, t: "corda", html: "<p>Amarra.</p>", r: "Amarra coisas.", tags: ["exploracao"] }] };
+      colecoes.cache.itens.porId = new Map(colecoes.cache.itens.itens.map((i) => [i.id, i]));
+      const pn = await ferramentasArauto.panorama({ temas: ["deslocamento", "inventado"] });
+      if (!pn.includes("d:graca") || !pn.includes("d:atletico") || !pn.includes("c:itens/bota | Bota de Teste") || pn.includes("corda") || !pn.includes("## Poderes gerais (")) return falha("panorama: " + pn.slice(0, 900));
+      if (!(await ferramentasArauto.panorama({ temas: ["inventado"] })).startsWith("Informe")) return falha("panorama sem tema válido devia pedir um");
+      const fi = await ferramentasArauto.buscar({ onde: "itens", tema: "deslocamento" });
+      if (!fi.includes("c:itens/bota | Bota de Teste") || fi.includes("corda")) return falha("buscar itens por tema: " + fi);
+      if (!(await ferramentasArauto.buscar({ onde: "poderes", tema: "deslocamento", limite: 1 })).includes("ordem alfabética")) return falha("lista cortada sem consulta devia avisar que é alfabética");
       const ff = await ferramentasArauto.ficha({ tipo: "raca", nome: "elfo" });
       if (!ff.includes("Deslocamento: 12m") || !ff.includes("[d:graca]")) return falha("ficha de raça: " + ff);
       const fc = await ferramentasArauto.ficha({ tipo: "classe", nome: "inovador" });
