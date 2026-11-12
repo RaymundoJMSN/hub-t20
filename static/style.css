@@ -681,3 +681,6 @@ select.a-cat { font-size: .74rem; padding: 2px 4px; width: 100%; }
 .g-dica b { color: var(--ouro-claro); font-family: ui-monospace, Consolas, monospace; }
 .g-exemplo { background: none; border: 0; padding: 0 5px; color: var(--ouro-claro); font: inherit; font-family: ui-monospace, Consolas, monospace; cursor: pointer; text-decoration: underline dotted; }
 .g-exemplo:hover { color: #fff; }
+
+/* ---- "limpar filtros": um bloco de um botão só, no fim dos filtros (quem mostra e esconde é o JS, com display no próprio nó) ---- */
+.g-abas.g-seg.g-limpar .g-aba { color: var(--ouro-claro); }

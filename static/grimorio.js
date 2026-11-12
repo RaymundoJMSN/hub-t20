@@ -42,8 +42,12 @@ const ORDENS = {
 const PADRAO_ORD = { magias: "circulo", poderes: "tipo" };
 // filtros ⇄ URL (?q=fogo&c=1,2&t=Arcana&e=Evocação&f=mesa&tp=geral&cat=Combate&tema=deslocamento&liv=…&ord=nome)
 // valor com "-" na frente = excluído (botão direito no chip): ?tp=-distincao
-const URL_CHAVES = { circulo: "c", tipo: "t", escola: "e", fonte: "f", pocao: "poc", exec: "ex", alc: "al", res: "res", resEf: "ref",
-  acesso: "tp", categoria: "cat", raca: "raca", classe: "cls", divindade: "deus", distincao: "dist", tema: "tema", livro: "liv" };
+// separados por aba (tema e livro valem nas duas): é a lista que o "limpar filtros" zera, sem tocar no que a outra aba guarda
+const CHAVES_MAGIAS = { circulo: "c", tipo: "t", escola: "e", fonte: "f", pocao: "poc", exec: "ex", alc: "al", res: "res", resEf: "ref" };
+const CHAVES_PODERES = { acesso: "tp", categoria: "cat", raca: "raca", classe: "cls", divindade: "deus", distincao: "dist" };
+const CHAVES_COMUNS = { tema: "tema", livro: "liv" };
+const URL_CHAVES = { ...CHAVES_MAGIAS, ...CHAVES_PODERES, ...CHAVES_COMUNS };
+const CHAVES_ABA = { magias: Object.keys({ ...CHAVES_MAGIAS, ...CHAVES_COMUNS }), poderes: Object.keys({ ...CHAVES_PODERES, ...CHAVES_COMUNS }) };
 // facetas filhas dos poderes: [filtro, tipos a que se aplica, valores do item]
 const classesDe = (p, variantes) => p.acesso === "classe-poder" ? [...(p.donos || []), ...Object.entries(variantes).filter(([, b]) => (p.donos || []).includes(b)).map(([v]) => v)] : p.donos || [];
 const deusesDe = (p) => (p.donos || []).flatMap((d) => DEUSES.includes(d) ? [d] : [d, MENORES]);
@@ -104,6 +108,10 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
   const numBox = el("div", { className: "g-abas g-ordem", title: "ordenar pelo número que casou com o #", hidden: true }, el("span", { className: "g-ordem-rotulo", textContent: "Número" }),
     ...[["maior", "Maior"], ["menor", "Menor"], ["rel", "Relevância"]].map(([v, t]) => el("button", { type: "button", className: "chip g-aba" + (v === filtro.num ? " on" : ""), textContent: t,
       onclick: (e) => { filtro.num = v; for (const b of numBox.querySelectorAll(".g-aba")) b.classList.toggle("on", b === e.currentTarget); render(); } })));
+  // "limpar filtros": tira de uma vez tudo que está marcado ou excluído na aba (o texto da busca e a ordem ficam).
+  // Fica no fim dos filtros e só aparece quando há o que limpar (como o "Reset" da barra de filtros do shadcn).
+  const limpar = el("div", { className: "g-abas g-seg g-limpar" },
+    el("button", { type: "button", className: "chip g-aba", textContent: "✕ Limpar filtros", title: "tira todos os filtros marcados e excluídos · o texto da busca fica", onclick: limparFiltros }));
   // a busca aceita trecho exato com variáveis; os exemplos são clicáveis
   const EXEMPLOS = { poderes: ['"+#m"', '"+# na Defesa"', '"+# em %"', '"#d# de dano"'], magias: ['"#d# pontos de dano de fogo"', '"+# na Defesa"', '"# rodadas"', '"imune a %"'] };
   const dica = el("div", { className: "explica g-dica" });
@@ -213,7 +221,7 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
       if (fac) { chipsTema(fac.temas); if (fac.livros.length > 1) chips(fac.livros, "livro", undefined, "Livro"); }
     } else {
       // onde a busca procura: tudo, ou só no pré-requisito ("quem exige Ataque Furtivo?")
-      seletor("Buscar em", [["", "Tudo"], ["pre", "Pré-requisito"]], filtro.em, (v) => { filtro.em = v; buscar(); });
+      seletor("Buscar em", [["", "Tudo"], ["pre", "Pré-requisito"]], filtro.em, (v) => { filtro.em = v; acertarLimpar(); buscar(); });
       chips(ACESSOS, "acesso", undefined, "Tipo", montarChips);
       if (fac) {
         if (mostra(["raca", "poder-raca"], "raca")) chips(fac.racas, "raca", undefined, "Raça");
@@ -226,6 +234,22 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
       }
       seletor("Pré-requisito", [["", "Tanto faz"], ["sem", "Sem"], ["com", "Com"]], filtro.pre, (v) => { filtro.pre = v; render(); });
     }
+    acertarLimpar();
+    boxFiltros.append(limpar); // o mesmo nó volta pro fim a cada remontagem
+  }
+  // "Buscar em" e "Pré-requisito" só existem nos poderes
+  const temFiltro = () => CHAVES_ABA[filtro.aba].some((k) => filtro[k].size || filtro.ex[k].size) || (filtro.aba === "poderes" && !!(filtro.em || filtro.pre));
+  // display direto no nó, e não o atributo hidden: o inline-flex do bloco vence o hidden, e assim não depende de regra nova no CSS
+  function acertarLimpar() { limpar.style.display = temFiltro() ? "" : "none"; }
+  function limparFiltros(e) {
+    const tinhaEm = filtro.aba === "poderes" && filtro.em;
+    for (const k of CHAVES_ABA[filtro.aba]) { filtro[k].clear(); filtro.ex[k].clear(); }
+    if (filtro.aba === "poderes") filtro.em = filtro.pre = "";
+    temaAberto = null;
+    montarChips();
+    render();
+    if (tinhaEm) buscar(); // "Buscar em" muda o que o servidor procura; o resto é filtro feito aqui
+    if (e && !e.detail) busca.focus(); // acionado pelo teclado: o botão some e o foco não pode cair no vazio (no toque não, pra não abrir o teclado)
   }
   // valores dos chips: saem da lista COMPLETA da aba (a busca só devolve o que casou)
   function facetas(aba, d) {
@@ -242,13 +266,14 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
   }
 
   async function buscar() {
-    const q = filtro.q.trim(), aba = filtro.aba;
+    const q = filtro.q.trim(), aba = filtro.aba, em = filtro.em;
     const qs = q ? `?q=${encodeURIComponent(q)}` : "";
     gravarUrl();
     try {
       // sem busca, a lista completa é a mesma que alimenta os chips: um pedido só
-      const d = !q ? await completa(aba) : await (await fetch((aba === "magias" ? "/api/grimorio" : "/api/poderes") + qs + (aba === "poderes" && filtro.em ? "&em=" + filtro.em : ""))).json();
-      if (aba !== filtro.aba || q !== filtro.q.trim()) return; // chegou atrasada: já tem outra busca no ar
+      const d = !q ? await completa(aba) : await (await fetch((aba === "magias" ? "/api/grimorio" : "/api/poderes") + qs + (aba === "poderes" && em ? "&em=" + em : ""))).json();
+      // chegou atrasada: já tem outra busca no ar (toda troca de aba, de texto ou do "Buscar em" dispara uma busca nova)
+      if (aba !== filtro.aba || q !== filtro.q.trim() || em !== filtro.em) return;
       TUDO = { oficiais: [], publicadas: [], poderes: [], ...d };
     } catch { TUDO = { oficiais: [], publicadas: [], poderes: [] }; }
     if (!FAC[aba]) completa(aba).then((d) => { if (!FAC[aba]) { FAC[aba] = facetas(aba, d); if (filtro.aba === aba) { montarChips(); render(); } } });
@@ -309,7 +334,7 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
     gravarUrl();
     // com busca, os botões de ordem não valem (manda a relevância); se a busca tem # ("+#m"), dá pra ordenar pelo número achado
     const buscando = !!filtro.q.trim(), comNumero = buscando && itens.some((m) => m.num != null);
-    ordem.hidden = buscando; numBox.hidden = !comNumero;
+    ordem.hidden = buscando; numBox.hidden = !comNumero; acertarLimpar();
     if (comNumero && filtro.num !== "rel") {
       const v = (m) => m.num ?? (filtro.num === "menor" ? Infinity : -Infinity);
       itens.sort((a, b) => (filtro.num === "menor" ? v(a) - v(b) : v(b) - v(a)));

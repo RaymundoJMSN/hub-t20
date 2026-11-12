@@ -38,6 +38,14 @@ function desenharDica() {
   dica.replaceChildren('"entre aspas" = texto exato · ', el("b", { textContent: "#" }), " = qualquer número · ", el("b", { textContent: "%" }), " = qualquer palavra · ex.: ",
     ...exs.map((ex) => el("button", { type: "button", className: "g-exemplo", textContent: ex, title: "pesquisar este trecho", onclick: () => { busca.value = filtro.q = ex; buscar(); } })));
 }
+// "limpar filtros": tira de uma vez o que está marcado, excluído ou estreitado na faixa (o texto da busca e o "Agrupar" ficam);
+// fica no fim dos filtros e só aparece quando há o que limpar — igual ao do grimório
+const limpar = el("div", { className: "g-abas g-seg g-limpar" },
+  el("button", { type: "button", className: "chip g-aba", textContent: "✕ Limpar filtros", title: "tira todos os filtros marcados e excluídos · o texto da busca fica",
+    // teclado (detail 0): o botão some e o foco não pode cair no vazio; no toque não, pra não abrir o teclado do celular
+    onclick: (e) => { filtro.sel = {}; filtro.ex = {}; filtro.faixa = {}; montarFiltros(); render(); if (!e.detail) busca.focus(); } }));
+const temFiltro = () => [...Object.values(filtro.sel), ...Object.values(filtro.ex)].some((s) => s.size)
+  || Object.entries(filtro.faixa).some(([k, [a, b]]) => a > 0 || b < valoresDe(k).length - 1);
 raiz.append(barraAbas, busca, dica, boxFiltros, el("div", { className: "g-conta-linha" }, conta, ordem), lista);
 
 for (const [col, rot] of pagina.abas) {
@@ -134,6 +142,7 @@ function montarFiltros() {
     const tipo = f.tipo === "chips" || f.tipo === "select" ? f.tipo : valores.length > MAX_CHIPS ? "select" : "chips";
     boxFiltros.append(tipo === "select" ? seletor(f, valores) : chips(f, valores));
   }
+  boxFiltros.append(limpar); // o mesmo nó volta pro fim a cada remontagem; quem mostra ou esconde é o render(), chamado logo depois
   const ords = [["", "Por nome"], ...(META.filtros || []).map((f) => [f.k, "Por " + f.rotulo])];
   if (filtro.ord === null) filtro.ord = META.ordemPadrao ?? (META.filtros?.[0]?.k || "");
   if (!ords.some(([k]) => k === filtro.ord)) filtro.ord = "";
@@ -156,6 +165,7 @@ function render() {
   // com busca, quem mais se parece com o que foi digitado vem primeiro, sem separar por grupo (e o "Agrupar" some: não faria nada)
   const k = buscando ? "" : filtro.ord;
   ordem.hidden = acordeao || buscando;
+  limpar.style.display = temFiltro() ? "" : "none"; // display direto no nó: o inline-flex do bloco vence o atributo hidden
   const chave = (it) => String(it.f?.[k] ?? "").split("|")[0];
   if (k) itens.sort((a, b) => posicao(k, chave(a)) - posicao(k, chave(b)) || a.nome.localeCompare(b.nome));
   else if (buscando) itens.sort((a, b) => (b.rel || 0) - (a.rel || 0) || (acordeao ? 0 : a.nome.localeCompare(b.nome)));
