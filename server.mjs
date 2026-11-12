@@ -948,7 +948,13 @@ function relevancia(partes, termos, q) {
   q = q.replace(/"/g, "").trim();
   const [nome, meio, corpo] = partes.map(norm), n = nome.trim(), frase = termos.map((a) => a[0].replace(/"/g, "")).join(" ");
   let r = n === q ? 6 : n.startsWith(q) ? 3 : q.length >= 6 && Math.abs(n.length - q.length) <= 2 && distancia(n, q, 2) <= 2 ? 4 : 0; // "encoracado" ≈ Encouraçado
-  if (termos.length > 1 && (meio.includes(frase) || corpo.includes(frase))) r += 2; // "treinado em luta" na ordem
+  // a frase na ordem em que foi digitada ("treinado em luta", com o "em" que os termos descartam) pesa mais que as palavras soltas:
+  // +4 no que o item É (pré-requisito, tipo), +2 no corpo; no nome ("Golpe de Raspão" em "golpe de raspão aprimorado"), +2
+  if (termos.length > 1) {
+    const frases = [...new Set([frase, q])].filter((f) => f.length > 5);
+    r += frases.some((f) => meio.includes(f)) ? 4 : frases.some((f) => corpo.includes(f)) ? 2 : 0;
+    if (r < 3 && n !== q && frases.some((f) => n.includes(f))) r += 2;
+  }
   for (const alts of termos) {
     let melhor = 0;
     alts.forEach((x, i) => { const p = (tem(nome, x) ? 3 : tem(meio, x) ? 2 : tem(corpo, x) ? 1 : 0) * (i < alts.fortes ? 1 : 0.5); if (p > melhor) melhor = p; });
@@ -993,31 +999,52 @@ async function sentidoDe(fonte, q, ms) {
   return v ? new Map(vetores.vizinhos(fonte, v, 60, 0.46)) : null;
 }
 
-/** Poderes que casam com a consulta: [{ id, t, rel, sem? }] sem ordem. `soPre` procura só no pré-requisito. */
+/**
+ * O miolo da busca v2, igual pra toda fonte. `itens`: [[id, t]]; `blob(t)`: o texto inteiro normalizado; `partes(t)`: [nome, meio, corpo].
+ *  1. palavra: quem tem TODAS as palavras (+3 na nota). Se forem poucos (< 6), entra também quem tem só parte delas;
+ *  2. sentido: soma pontos em quem já casou e resgata quem só o sentido achou (lib/vetores.mjs);
+ *  3. corte: o que entrou por ter só parte das palavras, ou só pelo sentido, sai se ficou muito abaixo do melhor
+ *     (senão "arma que volta pra mão depois de arremessada" devolve 500 itens). Quem tem todas as palavras nunca é cortado.
+ */
+async function procurar({ fonte, chave, itens, blob, partes, q, ms, limiares }) {
+  const termos = await comIA(termosBusca(q, vocabDe(chave, () => itens.map(([, t]) => blob(t)))));
+  if (!termos.length) return itens.map(([id, t]) => ({ id, t, rel: 0 }));
+  const n = termos.length, casados = [];
+  for (const [id, t] of itens) {
+    const b = blob(t);
+    let k = 0;
+    for (const alts of termos) if (alts.some((x) => tem(b, x))) k++;
+    if (k) casados.push([id, t, k]);
+  }
+  const cheios = casados.filter((c) => c[2] === n), parcial = n >= 2 && cheios.length < 6;
+  const lexico = (parcial ? casados : cheios).map(([id, t, k]) => ({ id, t, cheio: k === n, rel: relevancia(partes(t), termos, q) + (k === n && n > 1 ? 3 : 0) }));
+  const porId = new Map(itens);
+  const out = fundir(lexico, await sentidoDe(fonte, q, ms), (id) => porId.has(id) && { id, t: porId.get(id) }, cheios.length < 12 || ehFrase(q), limiares);
+  const corte = Math.max(1, 0.3 * Math.max(0, ...out.map((x) => x.rel)));
+  return out.filter((x) => x.cheio || x.rel >= corte);
+}
+
+/** Poderes que casam com a consulta: [{ id, t, rel, sem? }] sem ordem. `soPre` procura só no pré-requisito (aí vale a palavra exata). */
 async function procurarPoderes(q, { soPre = false, ms } = {}) {
   const todos = carregarPoderes();
-  const termos = await comIA(termosBusca(q, vocabDe(todos, () => Object.values(todos).map(blobDe))));
-  const lexico = filtrar(Object.entries(todos).filter(([, t]) => !soPre || t.prereq), ([, t]) => soPre ? norm(t.prereq) : blobDe(t), termos)
-    .map(([id, t]) => ({ id, t, rel: relevancia([t.nome, soPre ? t.prereq : meioDe(t), [t.resumo, t.descricao].join(" ")], termos, q) }));
-  if (!termos.length || soPre) return lexico;
-  return fundir(lexico, await sentidoDe("poderes", q, ms), (id) => todos[id] && { id, t: todos[id] }, lexico.length < 12 || ehFrase(q));
+  if (soPre) {
+    const termos = await comIA(termosBusca(q, vocabDe(todos, () => Object.values(todos).map(blobDe))));
+    return filtrar(Object.entries(todos).filter(([, t]) => t.prereq), ([, t]) => norm(t.prereq), termos).map(([id, t]) => ({ id, t, rel: relevancia([t.nome, t.prereq, ""], termos, q) }));
+  }
+  return procurar({ fonte: "poderes", chave: todos, itens: Object.entries(todos), blob: blobDe, partes: (t) => [t.nome, meioDe(t), [t.resumo, t.descricao].join(" ")], q, ms });
 }
 const aprsDe = (t) => (t.aprimoramentos || []).map((a) => a.texto || a).join(" ");
 async function procurarMagias(q, { ms } = {}) {
   const textos = carregarTextos();
-  const termos = await comIA(termosBusca(q, vocabDe(textos, () => Object.values(textos).map(blobDe))));
-  const lexico = filtrar(Object.entries(textos), ([, t]) => blobDe(t), termos)
-    .map(([id, t]) => ({ id, t, rel: relevancia([t.nome, [meioDe(t), t.escola, t.grupo, t.resumo, t.descricao, Object.values(t.stats || {}).join(" ")].join(" "), aprsDe(t)], termos, q) }));
-  if (!termos.length) return lexico;
-  return fundir(lexico, await sentidoDe("magias", q, ms), (id) => textos[id] && { id, t: textos[id] }, lexico.length < 12 || ehFrase(q));
+  return procurar({ fonte: "magias", chave: textos, itens: Object.entries(textos), blob: blobDe, q, ms,
+    partes: (t) => [t.nome, [meioDe(t), t.escola, t.grupo, t.resumo, t.descricao, Object.values(t.stats || {}).join(" ")].join(" "), aprsDe(t)] });
 }
 async function procurarColecao(nome, q, { ms } = {}) {
   const col = carregarColecao(nome);
   if (!col) return null;
-  const termos = await comIA(termosBusca(q, vocabDe(col, () => col.itens.map((i) => i.t))));
-  const lexico = filtrar(col.itens, (i) => i.t, termos).map((i) => ({ id: i.id, t: i, rel: relevancia([i.nome, [i.linha, ...Object.values(i.f || {})].join(" "), i.t], termos, q) }));
-  if (!termos.length) return lexico;
-  return fundir(lexico, await sentidoDe("c-" + nome, q, ms), (id) => col.porId.get(id) && { id, t: col.porId.get(id) }, lexico.length < 12 || ehFrase(q), LONGO);
+  col.pares ??= col.itens.map((i) => [i.id, i]);
+  return procurar({ fonte: "c-" + nome, chave: col, itens: col.pares, blob: (i) => i.t, q, ms, limiares: LONGO,
+    partes: (i) => [i.nome, [i.linha, ...Object.values(i.f || {})].join(" "), i.t] });
 }
 const porRel = (a, b) => b.rel - a.rel || a.t.nome.localeCompare(b.t.nome, "pt");
 
@@ -1337,6 +1364,8 @@ if (CHECK) {
       if (pv.poderes.find((x) => x.slug === "graca").acesso !== "raca" || pv.poderes.find((x) => x.slug === "atletico").r !== "Resumo de teste: corre mais.") return falha("item da lista de poderes: " + JSON.stringify(pv.poderes[0]));
       const soPre = await (await fetch(`${base}/api/poderes?q=atletico&em=pre`, { headers: H })).json();
       if (soPre.poderes.map((x) => x.slug).join() !== "maratonista") return falha("busca só no pré-requisito: " + JSON.stringify(soPre.poderes.map((x) => x.slug)));
+      const parc = await (await fetch(`${base}/api/poderes?q=${encodeURIComponent("golpe estrada")}`, { headers: H })).json(); // ninguém tem as duas palavras
+      if (parc.poderes.map((x) => x.slug).sort().join() !== "ataque-especial,maratonista") return falha("sem ninguém com todas as palavras, vale quem tem parte: " + JSON.stringify(parc.poderes.map((x) => x.slug)));
       const pd = await (await fetch(`${base}/api/poder/atletico-velho`, { headers: H })).json();
       if (pd.slug !== "atletico" || pd.libera[0]?.nome !== "Maratonista" || !pd.comoObter.includes("qualquer personagem")) return falha("ficha do poder (link antigo, libera, como obter): " + JSON.stringify(pd).slice(0, 300));
       if ((await (await fetch(`${base}/api/poder/maratonista`, { headers: H })).json()).exige[0]?.slug !== "atletico") return falha("poder devia apontar o pré-requisito");
