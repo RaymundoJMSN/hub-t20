@@ -62,7 +62,7 @@ const completa = (aba) => (completas[aba] ??= fetch(aba === "poderes" ? "/api/po
 export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = false, aba = "magias", soAba = false } = {}) {
   const mesa = mesaGlobal();
   // filtros multi-seleção (vazio = todos); Arcana e Divina são exclusivas entre si
-  const filtro = { em: "", pre: "", q: qInicial, ord: PADRAO_ORD[aba], aba, ex: {} };
+  const filtro = { em: "", pre: "", num: "maior", q: qInicial, ord: PADRAO_ORD[aba], aba, ex: {} };
   for (const k of Object.keys(URL_CHAVES)) { filtro[k] = new Set(); filtro.ex[k] = new Set(); }
   if (naUrl) {
     const ps = new URLSearchParams(location.search);
@@ -100,8 +100,15 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
   const boxFiltros = el("div", { className: "g-filtros" });
   const conta = el("div", { className: "explica" });
   const ordem = el("div", { className: "g-abas g-ordem", title: "ordenar" }); // botões num bloco só, como as abas
+  // busca com número variável ("+#m"): ordena pelo número achado em cada item
+  const numBox = el("div", { className: "g-abas g-ordem", title: "ordenar pelo número que casou com o #", hidden: true }, el("span", { className: "g-ordem-rotulo", textContent: "Número" }),
+    ...[["maior", "Maior"], ["menor", "Menor"], ["rel", "Relevância"]].map(([v, t]) => el("button", { type: "button", className: "chip g-aba" + (v === filtro.num ? " on" : ""), textContent: t,
+      onclick: (e) => { filtro.num = v; for (const b of numBox.querySelectorAll(".g-aba")) b.classList.toggle("on", b === e.currentTarget); render(); } })));
+  // a busca aceita trecho exato com variáveis; os exemplos são clicáveis
+  const EXEMPLOS = { poderes: ['"+#m"', '"+# na Defesa"', '"+# em %"', '"#d# de dano"'], magias: ['"#d# pontos de dano de fogo"', '"+# na Defesa"', '"# rodadas"', '"imune a %"'] };
+  const dica = el("div", { className: "explica g-dica" });
   const lista = el("div", { className: "grimorio-lista" });
-  raiz.append(barraAbas, busca, boxFiltros, el("div", { className: "g-conta-linha" }, conta, ordem), lista);
+  raiz.append(barraAbas, busca, dica, boxFiltros, el("div", { className: "g-conta-linha" }, conta, numBox, ordem), lista);
   barraAbas.hidden = soAba;
 
   for (const [valor, rotulo] of ABAS) {
@@ -119,10 +126,12 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
     if (!ORDENS[valor].some(([o]) => o === filtro.ord)) filtro.ord = PADRAO_ORD[valor];
     for (const b of barraAbas.children) b.classList.toggle("on", b.dataset.aba === valor);
     busca.placeholder = valor === "magias"
-      ? "pesquisar magias… (fogo, proteger aliados, ficar invisível · \"entre aspas\" = exato)"
-      : "pesquisar poderes… (fúria, mais deslocamento, atacar duas vezes · \"+2 na Defesa\" = exato)";
+      ? "pesquisar magias… (fogo, proteger aliados, ficar invisível)"
+      : "pesquisar poderes… (fúria, mais deslocamento, atacar duas vezes)";
     ordem.replaceChildren(el("span", { className: "g-ordem-rotulo", textContent: "Ordem" }), ...ORDENS[valor].map(([v, t]) => el("button", { type: "button", className: "chip g-aba" + (v === filtro.ord ? " on" : ""), textContent: capitalizar(t),
       onclick: (e) => { filtro.ord = v; for (const b of ordem.querySelectorAll(".g-aba")) b.classList.toggle("on", b === e.currentTarget); render(); } })));
+    dica.replaceChildren('"entre aspas" = texto exato · ', el("b", { textContent: "#" }), " = qualquer número · ", el("b", { textContent: "%" }), " = qualquer palavra · ex.: ",
+      ...EXEMPLOS[valor].map((ex) => el("button", { type: "button", className: "g-exemplo", textContent: ex, title: "pesquisar este trecho", onclick: () => { busca.value = filtro.q = ex; if (filtro.em) { filtro.em = ""; montarChips(); } buscar(); } })));
     temaAberto = null;
     montarChips();
     return buscar();
@@ -298,6 +307,13 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
     const poderes = filtro.aba === "poderes";
     const itens = poderes ? itensPoderes() : itensMagias();
     gravarUrl();
+    // com busca, os botões de ordem não valem (manda a relevância); se a busca tem # ("+#m"), dá pra ordenar pelo número achado
+    const buscando = !!filtro.q.trim(), comNumero = buscando && itens.some((m) => m.num != null);
+    ordem.hidden = buscando; numBox.hidden = !comNumero;
+    if (comNumero && filtro.num !== "rel") {
+      const v = (m) => m.num ?? (filtro.num === "menor" ? Infinity : -Infinity);
+      itens.sort((a, b) => (filtro.num === "menor" ? v(a) - v(b) : v(b) - v(a)));
+    }
 
     const porSentido = itens.filter((m) => m.sem).length;
     const quantos = `${itens.length} ${poderes ? "poder" : "magia"}${itens.length === 1 ? "" : poderes ? "es" : "s"}`;
@@ -306,7 +322,8 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
       + (!poderes && TUDO.publicadas.length ? ` · ${itens.filter((m) => m.fonte === "mesa").length} da mesa` : "")
       + " · clique ou arraste pra pôr na mesa";
 
-    if (!itens.length) return lista.append(el("div", { className: "vazio", textContent: `nenhum${poderes ? " poder" : "a magia"} com esses filtros.` }));
+    if (!itens.length) return lista.append(el("div", { className: "vazio", textContent: `nenhum${poderes ? " poder" : "a magia"} com esses filtros.`
+      + (/["#]/.test(filtro.q) ? ' O trecho entre aspas (ou com #) precisa aparecer igualzinho: tente um pedaço menor — "+#m" em vez de "+#m de movimento".' : "") }));
     let grupo = null;
     const frag = document.createDocumentFragment();
     for (const m of itens) {
@@ -329,7 +346,8 @@ export function montarGrimorio(raiz, { qInicial = "", abrir = null, naUrl = fals
           textContent: poderes ? metaPoder(m)
             : [m.escola, m.grupo, m.livro && m.livro !== "Livro Básico" && m.livro, m.pocao && `🧪 ${m.pocao}`, m.autor && `por ${m.autor}`].filter(Boolean).join(" · "),
         }),
-        m.r ? el("div", { className: "resumo", textContent: m.r }) : null,
+        m.trecho ? el("div", { className: "trecho" }, m.trecho[0], el("mark", { textContent: m.trecho[1] }), m.trecho[2]) : null,
+        m.r && !m.trecho ? el("div", { className: "resumo", textContent: m.r }) : null,
         m.pre ? el("div", { className: "pre", textContent: "pré: " + m.pre }) : null,
       ));
     }

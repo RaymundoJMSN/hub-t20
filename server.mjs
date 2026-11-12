@@ -17,6 +17,7 @@ import { gzipSync } from "node:zlib";
 import { TEMA_IDS, TEMA_ROTULO, temasDaConsulta } from "./static/temas.mjs";
 import { criarVetores, fundir, LONGO } from "./lib/vetores.mjs";
 import { criarArauto } from "./lib/arauto.mjs";
+import { padrao, destacar } from "./lib/trecho.mjs";
 
 // a magia da mesa vira a mesma linha técnica das oficiais, pra cair no mesmo parser
 function eixosDaMesa(e = {}) {
@@ -493,20 +494,21 @@ async function tratar(req, res) {
   if (p === "/api/grimorio" && req.method === "GET") {
     const textos = carregarTextos();
     const q = norm(url.searchParams.get("q")).trim();
-    const oficiais = (await procurarMagias(q)).map(({ id, t, rel, sem }) => ({ ...itemMagia(id, t), rel, sem }));
+    const oficiais = (await procurarMagias(q)).map(({ id, t, rel, sem, trecho, num }) => ({ ...itemMagia(id, t), rel, sem, trecho, num }));
     const termos = await comIA(termosBusca(q, vocabDe(textos, () => Object.values(textos).map(blobDe))));
     const publicadasPartes = Object.entries(estado.publicadas)
       .map(([id, m]) => [id, m, m.nome, [m.escola, m.tipo, htmlParaTexto(m.descricao), JSON.stringify(m.eixos || {})].join(" "), aprsDe(m)]);
+    const pTrecho = padraoDaConsulta(termos);
     const publicadas = filtrar(publicadasPartes, ([, , ...partes]) => norm(partes.join(" ")), termos)
       .map(([id, m, ...partes]) => ({ id, nome: m.nome, escola: m.escola, grupo: m.tipo, circulo: m.circulo || 1, autor: m.autor, pontos: m.pontos, pocao: tipoDePocaoDosEixos(m.eixos?.alvo),
-        rel: relevancia(partes, termos, q), ...eixosDaMesa(m.eixos) }));
+        rel: relevancia(partes, termos, q), ...eixosDaMesa(m.eixos), ...(pTrecho && destacar([htmlParaTexto(m.descricao), aprsDe(m), m.nome], pTrecho)) }));
     return json(res, 200, { oficiais, publicadas });
   }
   if (p === "/api/poderes" && req.method === "GET") {
     let q = norm(url.searchParams.get("q")).trim(), soPre = url.searchParams.get("em") === "pre";
     const prefixo = q.match(/^(?:pre[\s-]*)?requisitos?\b[\s:]*/); // "pré-requisito: esgrima" = buscar só no pré-requisito
     if (prefixo && q.length > prefixo[0].length) { soPre = true; q = q.slice(prefixo[0].length); }
-    const poderes = (await procurarPoderes(q, { soPre })).map(({ id, t, rel, sem }) => ({ ...itemPoder(id, t), rel, sem }));
+    const poderes = (await procurarPoderes(q, { soPre })).map(({ id, t, rel, sem, trecho, num }) => ({ ...itemPoder(id, t), rel, sem, trecho, num }));
     // variante → classe base: quem filtra por "Duelista" também quer ver os poderes de bucaneiro (a variante usa a lista da base)
     const variantes = Object.fromEntries(carregarBase().classes.filter((c) => c.varianteDe).map((c) => [c.nome, c.varianteDe]));
     return json(res, 200, { poderes, variantes });
@@ -529,8 +531,8 @@ async function tratar(req, res) {
     if (q.length < 2) return json(res, 200, { grupos: [] });
     const grupos = [];
     const junta = (cab, achados, info) => {
-      achados.sort(porRel);
-      if (achados.length) grupos.push({ ...cab, total: achados.length, itens: achados.slice(0, 5).map((a) => ({ ...info(a), rel: a.rel, sem: a.sem })) });
+      achados.sort(porRel).sort(porNum); // trecho com # ("+# na Defesa"): o maior número de cada fonte vem primeiro
+      if (achados.length) grupos.push({ ...cab, total: achados.length, itens: achados.slice(0, 5).map((a) => ({ ...info(a), rel: a.rel, sem: a.sem, trecho: a.trecho })) });
     };
     junta({ titulo: "Magias", pagina: "/" }, await procurarMagias(q), ({ id, t }) => ({ nome: t.nome, linha: t.linha, href: "/o/" + id }));
     junta({ titulo: "Poderes", pagina: "/poderes" }, await procurarPoderes(q), ({ id, t }) => ({ nome: t.nome, linha: t.linha, href: "/d/" + id }));
@@ -549,7 +551,7 @@ async function tratar(req, res) {
     if (!col) return json(res, 404, { erro: "coleção não existe no servidor" });
     if (c[2]) { const it = col.porId.get(c[2]); return it ? json(res, 200, it) : json(res, 404, { erro: "não existe" }); }
     const q = norm(url.searchParams.get("q")).trim();
-    const itens = q ? (await procurarColecao(c[1], q)).map(({ t, rel, sem }) => ({ ...resumo(t), rel, sem })) : col.itens.map(resumo);
+    const itens = q ? (await procurarColecao(c[1], q)).map(({ t, rel, sem, trecho, num }) => ({ ...resumo(t), rel, sem, trecho, num })) : col.itens.map(resumo);
     return json(res, 200, { meta: col.meta, itens });
   }
   if (p === "/api/colecoes") return json(res, 200, lerJson(join(DADOS, "colecoes", "INDEX.json"), { contagem: {} }));
@@ -906,9 +908,14 @@ function separar(w, vocab) {
 }
 // "entre aspas" = trecho cru: casa exatamente (com a pontuação, "1/4", "+2 na Defesa"), sem sinônimo, raiz,
 // correção nem IA. Vira um termo que começa com aspa — palavra solta nunca tem aspa, então tem() sabe a diferença.
+// O trecho aceita VARIÁVEIS (lib/trecho.mjs): # = qualquer número, % = uma a quatro palavras, (a|b) = alternativas —
+// "+#m" acha +3m, +6m, +1,5m; "+# em %" acha "+2 em Atletismo". Trecho é obrigatório: quem não tem, não entra.
 function termosBusca(q, vocab) {
   const literais = [];
-  q = norm(q).replace(/"([^"]*)"?/g, (_, t) => { t = t.trim().replace(/\s+/g, " "); if (t) literais.push(Object.assign([`"${t}"`], { fortes: 1 })); return " "; });
+  const guarda = (t) => { t = t.trim().replace(/\s+/g, " "); if (t) literais.push(Object.assign([`"${t}"`], { fortes: 1 })); return " "; };
+  q = norm(q).replace(/"([^"]*)"?/g, (_, t) => guarda(t))
+    // palavra solta com # ("+#m", "#d#") é trecho com variável mesmo sem aspas — desde que o # não esteja sozinho nem colado num número ("#219")
+    .replace(/(^|\s)(\S*#(?!\d)\S*)(?=\s|$)/g, (_, antes, t) => /[^#\s]/.test(t) ? antes + guarda(t) : antes + " ");
   return [...literais, ...termosSoltos(q, vocab)];
 }
 function termosSoltos(q, vocab) {
@@ -930,8 +937,8 @@ function termosSoltos(q, vocab) {
 // palavra de até 3 letras ("for", "sab", "1") só casa inteira: "for 1" não pode achar "forma"
 const fronteiras = new Map();
 function tem(texto, x) {
-  if (x[0] === '"') x = x.slice(1, -1); // trecho cru: sempre com borda (o "1/4" não acha "11/40")
-  else if (x.length > 3) return texto.includes(x);
+  if (x[0] === '"') return padrao(x.slice(1, -1)).re.test(texto); // trecho cru (com # e % como variáveis): lib/trecho.mjs
+  if (x.length > 3) return texto.includes(x);
   if (!fronteiras.has(x)) fronteiras.set(x, new RegExp(`(?:^|[^a-z0-9])${x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:[^a-z0-9]|$)`));
   return fronteiras.get(x).test(texto);
 }
@@ -940,7 +947,9 @@ const bate = (blob, termos) => termos.every((alts) => alts.some((t) => tem(blob,
 function filtrar(lista, blob, termos) {
   if (!termos.length) return lista;
   const todas = lista.filter((x) => bate(blob(x), termos));
-  return todas.length || termos.length < 2 ? todas : lista.filter((x) => termos.some((alts) => alts.some((t) => tem(blob(x), t))));
+  if (todas.length || termos.length < 2) return todas;
+  const fixos = termos.filter((alts) => alts[0][0] === '"'); // trecho entre aspas é obrigatório mesmo aqui
+  return lista.filter((x) => { const b = blob(x); return fixos.every((alts) => tem(b, alts[0])) && termos.some((alts) => alts.some((t) => tem(b, t))); });
 }
 // relevância: nome ×3 > linha/escola/categoria ×2 > corpo ×1 por grupo (fraca vale metade); nome igual à consulta ou começando por ela sobe
 function relevancia(partes, termos, q) {
@@ -993,7 +1002,7 @@ const vetores = criarVetores(join(DADOS, "vetores"), { desligado: CHECK });
 const ehFrase = (q) => q.replace(/"[^"]*"?/g, " ").trim().split(/\s+/).filter(Boolean).length >= 3;
 /** id → cosseno dos itens da fonte mais parecidos com a consulta; null se a consulta é curta, é só aspas, ou o Ollama não respondeu a tempo. */
 async function sentidoDe(fonte, q, ms) {
-  const livre = q.replace(/"[^"]*"?/g, " ").trim();
+  const livre = q.replace(/"[^"]*"?/g, " ").replace(/\S*#\S*/g, " ").trim();
   if (livre.length < 4 || !vetores.tem(fonte)) return null;
   const v = await vetores.embutir(livre, ms);
   return v ? new Map(vetores.vizinhos(fonte, v, 60, 0.46)) : null;
@@ -1006,22 +1015,45 @@ async function sentidoDe(fonte, q, ms) {
  *  3. corte: o que entrou por ter só parte das palavras, ou só pelo sentido, sai se ficou muito abaixo do melhor
  *     (senão "arma que volta pra mão depois de arremessada" devolve 500 itens). Quem tem todas as palavras nunca é cortado.
  */
-async function procurar({ fonte, chave, itens, blob, partes, q, ms, limiares }) {
+async function procurar({ fonte, chave, itens, blob, partes, campos, q, ms, limiares }) {
   const termos = await comIA(termosBusca(q, vocabDe(chave, () => itens.map(([, t]) => blob(t)))));
   if (!termos.length) return itens.map(([id, t]) => ({ id, t, rel: 0 }));
+  // trecho entre aspas (ou com #) é OBRIGATÓRIO: quem não tem o trecho não entra nem por parte das palavras, nem pelo sentido.
+  // E é procurado no texto CRU do item (o que a pessoa lê: `campos`), não no blob — o blob tem os temas ("#pericia") e
+  // outros campos de apoio, e "perícia" entre aspas acharia 285 poderes que não têm a palavra. Assim todo resultado mostra onde casou.
+  const padroes = termos.filter((alts) => alts[0][0] === '"').map((alts) => padrao(alts[0].slice(1, -1)));
   const n = termos.length, casados = [];
   for (const [id, t] of itens) {
+    if (padroes.length) { const cru = cruDe(t, campos); if (!padroes.every((p) => p.re.test(cru))) continue; }
     const b = blob(t);
     let k = 0;
-    for (const alts of termos) if (alts.some((x) => tem(b, x))) k++;
+    for (const alts of termos) if (alts[0][0] === '"' || alts.some((x) => tem(b, x))) k++;
     if (k) casados.push([id, t, k]);
   }
   const cheios = casados.filter((c) => c[2] === n), parcial = n >= 2 && cheios.length < 6;
   const lexico = (parcial ? casados : cheios).map(([id, t, k]) => ({ id, t, cheio: k === n, rel: relevancia(partes(t), termos, q) + (k === n && n > 1 ? 3 : 0) }));
   const porId = new Map(itens);
-  const out = fundir(lexico, await sentidoDe(fonte, q, ms), (id) => porId.has(id) && { id, t: porId.get(id) }, cheios.length < 12 || ehFrase(q), limiares);
+  const sem = padroes.length ? null : await sentidoDe(fonte, q, ms);
+  const out = fundir(lexico, sem, (id) => porId.has(id) && { id, t: porId.get(id) }, cheios.length < 12 || ehFrase(q), limiares);
   const corte = Math.max(1, 0.3 * Math.max(0, ...out.map((x) => x.rel)));
-  return out.filter((x) => x.cheio || x.rel >= corte);
+  const fica = out.filter((x) => x.cheio || x.rel >= corte);
+  // mostra ONDE o trecho casou (com o texto original) e, se ele tem #, o maior número achado — a página ordena por ele
+  if (padroes.length) {
+    const p = padroes.find((x) => x.numeros) || padroes[0]; // com dois trechos, manda o primeiro que tem número
+    for (const x of fica) Object.assign(x, destacar(campos(x.t), p) || {});
+  }
+  return fica;
+}
+// texto cru de cada item, normalizado e guardado (um por item, como o blob)
+const crus = new WeakMap();
+function cruDe(t, campos) {
+  if (!crus.has(t)) crus.set(t, norm(campos(t).filter(Boolean).join("\n")));
+  return crus.get(t);
+}
+/** O trecho da consulta que dita o destaque e o número: o primeiro com #, senão o primeiro; null se a consulta não tem trecho. */
+function padraoDaConsulta(termos) {
+  const ps = termos.filter((alts) => alts[0][0] === '"').map((alts) => padrao(alts[0].slice(1, -1)));
+  return ps.find((x) => x.numeros) || ps[0] || null;
 }
 
 /** Poderes que casam com a consulta: [{ id, t, rel, sem? }] sem ordem. `soPre` procura só no pré-requisito (aí vale a palavra exata). */
@@ -1029,21 +1061,25 @@ async function procurarPoderes(q, { soPre = false, ms } = {}) {
   const todos = carregarPoderes();
   if (soPre) {
     const termos = await comIA(termosBusca(q, vocabDe(todos, () => Object.values(todos).map(blobDe))));
-    return filtrar(Object.entries(todos).filter(([, t]) => t.prereq), ([, t]) => norm(t.prereq), termos).map(([id, t]) => ({ id, t, rel: relevancia([t.nome, t.prereq, ""], termos, q) }));
+    const p = padraoDaConsulta(termos);
+    return filtrar(Object.entries(todos).filter(([, t]) => t.prereq), ([, t]) => norm(t.prereq), termos)
+      .map(([id, t]) => ({ id, t, rel: relevancia([t.nome, t.prereq, ""], termos, q), ...(p && destacar(["Pré-requisito: " + t.prereq], p)) }));
   }
-  return procurar({ fonte: "poderes", chave: todos, itens: Object.entries(todos), blob: blobDe, partes: (t) => [t.nome, meioDe(t), [t.resumo, t.descricao].join(" ")], q, ms });
+  return procurar({ fonte: "poderes", chave: todos, itens: Object.entries(todos), blob: blobDe, partes: (t) => [t.nome, meioDe(t), [t.resumo, t.descricao].join(" ")], q, ms,
+    campos: (t) => [t.descricao, t.prereq && "Pré-requisito: " + t.prereq, t.resumo, t.nome, t.linha] });
 }
 const aprsDe = (t) => (t.aprimoramentos || []).map((a) => a.texto || a).join(" ");
 async function procurarMagias(q, { ms } = {}) {
   const textos = carregarTextos();
   return procurar({ fonte: "magias", chave: textos, itens: Object.entries(textos), blob: blobDe, q, ms,
+    campos: (t) => [t.descricao, Object.entries(t.stats || {}).map(([k, v]) => `${k}: ${v}`).join("; "), ...(t.aprimoramentos || []).map((a) => `${a.custo}: ${a.texto || a}`), t.resumo, t.nome, t.linha, t.publicacao],
     partes: (t) => [t.nome, [meioDe(t), t.escola, t.grupo, t.resumo, t.descricao, Object.values(t.stats || {}).join(" ")].join(" "), aprsDe(t)] });
 }
 async function procurarColecao(nome, q, { ms } = {}) {
   const col = carregarColecao(nome);
   if (!col) return null;
   col.pares ??= col.itens.map((i) => [i.id, i]);
-  return procurar({ fonte: "c-" + nome, chave: col, itens: col.pares, blob: (i) => i.t, q, ms, limiares: LONGO,
+  return procurar({ fonte: "c-" + nome, chave: col, itens: col.pares, blob: (i) => i.t, q, ms, limiares: LONGO, campos: (i) => [semHtml(i.html), i.nome, i.linha],
     partes: (i) => [i.nome, [i.linha, ...Object.values(i.f || {})].join(" "), i.t] });
 }
 const porRel = (a, b) => b.rel - a.rel || a.t.nome.localeCompare(b.t.nome, "pt");
@@ -1059,8 +1095,11 @@ const COLECOES_ARAUTO = ["itens", "ameacas", "regras", "str", "perigos", "parcei
 const pag = (t) => t.livro ? `${t.livro}${t.pagina ? ", p. " + t.pagina : ""}` : "";
 const linhaPoder = (slug, t) => [`d:${slug}`, t.nome, `${t.linha.split(" · ").slice(0, -1).join(" · ") || t.linha}${t.opcaoDe ? ` (opção de ${t.opcaoDe})` : ""}`, pag(t), t.prereq ? "pré: " + t.prereq : "sem pré-requisito", t.custo, t.resumo].filter(Boolean).join(" | ");
 const linhaMagia = (slug, t) => [`o:${slug}`, t.nome, t.linha, pag(t), t.resumo].filter(Boolean).join(" | ");
+// consulta com trecho entre aspas: onde casou no texto; e, se o trecho tem # (número), quem tem o maior vem primeiro (sort é estável: o resto segue por relevância)
+const citar = (trecho) => trecho ? ` | trecho: “${trecho.join("").trim()}”` : "";
+const porNum = (a, b) => (b.num ?? -Infinity) - (a.num ?? -Infinity);
 const acha = (lista, nome) => { const n = norm(nome).trim(); return lista.find((x) => norm(x.nome) === n) || lista.find((x) => norm(x.nome).startsWith(n)) || lista.find((x) => norm(x.nome).includes(n)); };
-const semHtml = (h) => String(h || "").replace(/<(br|\/p|\/div|\/li|\/h\d|\/tr)[^>]*>/gi, "\n").replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
+const semHtml = (h) => String(h || "").replace(/<(br|\/p|\/div|\/li|\/h\d|\/tr|\/td|\/th)[^>]*>/gi, "\n").replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
 
 const ferramentasArauto = {
   async buscar({ onde, consulta = "", tema, acesso, dono, circulo, limite }) {
@@ -1072,14 +1111,14 @@ const ferramentasArauto = {
       let lista = q ? (await procurarPoderes(q, { ms })).sort(porRel) : Object.entries(P).map(([id, t]) => ({ id, t })).sort((a, b) => a.t.nome.localeCompare(b.t.nome, "pt"));
       lista = lista.filter(({ t }) => (!tema || t.tags.includes(tema)) && (!acesso || t.acesso === acesso) && (!dn || t.donos.some((d) => norm(d).includes(dn)) || (t.racas || []).some((d) => norm(d) === dn)));
       if (!lista.length) return "Nenhum poder com esses critérios. Tente outras palavras, ou só o tema, ou tire o filtro de dono.";
-      return [cab(lista.length, "poderes"), ...lista.slice(0, n).map(({ id, t }) => linhaPoder(id, t))].join("\n");
+      return [cab(lista.length, "poderes"), ...lista.sort(porNum).slice(0, n).map(({ id, t, trecho }) => linhaPoder(id, t) + citar(trecho))].join("\n");
     }
     if (onde === "magias") {
       const T = carregarTextos();
       let lista = q ? (await procurarMagias(q, { ms })).sort(porRel) : Object.entries(T).map(([id, t]) => ({ id, t })).sort((a, b) => a.t.circulo - b.t.circulo || a.t.nome.localeCompare(b.t.nome, "pt"));
       lista = lista.filter(({ t }) => (!tema || (t.tags || []).includes(tema)) && (!circulo || t.circulo === Number(circulo)));
       if (!lista.length) return "Nenhuma magia com esses critérios.";
-      return [cab(lista.length, "magias"), ...lista.slice(0, n).map(({ id, t }) => linhaMagia(id, t))].join("\n");
+      return [cab(lista.length, "magias"), ...lista.sort(porNum).slice(0, n).map(({ id, t, trecho }) => linhaMagia(id, t) + citar(trecho))].join("\n");
     }
     const B = carregarBase(), P = carregarPoderes();
     const casa = (texto) => !q || termosBusca(q).every((alts) => alts.some((x) => tem(norm(texto), x)));
@@ -1099,7 +1138,7 @@ const ferramentasArauto = {
     }
     if (COLECOES_ARAUTO.includes(onde)) {
       const lista = q ? ((await procurarColecao(onde, q, { ms })) || []).sort(porRel) : [];
-      return lista.length ? [cab(lista.length, onde), ...lista.slice(0, n).map(({ t }) => [`c:${onde}/${t.id}`, t.nome, t.linha].filter(Boolean).join(" | "))].join("\n") : `Nada em ${onde} para “${consulta}” (essa parte do acervo só aceita busca por palavras).`;
+      return lista.length ? [cab(lista.length, onde), ...lista.sort(porNum).slice(0, n).map(({ t, trecho }) => [`c:${onde}/${t.id}`, t.nome, t.linha].filter(Boolean).join(" | ") + citar(trecho))].join("\n") : `Nada em ${onde} para “${consulta}” (essa parte do acervo só aceita busca por palavras).`;
     }
     if (onde === "tudo") {
       const partes = [];
@@ -1350,9 +1389,9 @@ if (CHECK) {
       if (relevancia(["Encouraçado", "", ""], termosBusca("encoracado", voc), "encoracado") < 4) return falha("nome quase igual devia pontuar");
       // poderes v2 (base inventada: o self-test não lê dados/): como se obtém, tema na busca, frase de pergunta, link antigo
       carregarPoderes.cache = {
-        atletico: { nome: "Atlético", categoria: "Destino", acesso: "geral", donos: [], tags: ["deslocamento", "pericia"], livro: "Livro Básico", pagina: 130, linha: "Poder de destino · Livro Básico", prereq: "For 2", pre: { poderes: [] }, custo: "", descricao: "Texto de teste: corre mais que os outros.", resumo: "Resumo de teste: corre mais.", libera: ["maratonista"] },
+        atletico: { nome: "Atlético", categoria: "Destino", acesso: "geral", donos: [], tags: ["deslocamento", "pericia"], livro: "Livro Básico", pagina: 130, linha: "Poder de destino · Livro Básico", prereq: "For 2", pre: { poderes: [] }, custo: "", descricao: "Texto de teste: ganha +3m de passo.", resumo: "Resumo de teste: corre mais.", libera: ["maratonista"] },
         maratonista: { nome: "Maratonista", categoria: "Destino", acesso: "geral", donos: [], tags: ["pericia"], livro: "Livro Básico", linha: "Poder de destino · Livro Básico", prereq: "Atlético", pre: { poderes: ["Atlético"] }, custo: "", descricao: "Texto de teste: aguenta a estrada." },
-        graca: { nome: "Graça", categoria: "Racial", acesso: "raca", donos: ["Elfo"], racas: ["Elfo"], tags: ["deslocamento"], livro: "Livro Básico", linha: "Habilidade de raça · Elfo · Livro Básico", prereq: "", custo: "", descricao: "Texto de teste: passo leve." },
+        graca: { nome: "Graça", categoria: "Racial", acesso: "raca", donos: ["Elfo"], racas: ["Elfo"], tags: ["deslocamento"], livro: "Livro Básico", linha: "Habilidade de raça · Elfo · Livro Básico", prereq: "", custo: "", descricao: "Texto de teste: passo leve de +6m, e ainda +2m no 5º nível." },
         "ataque-especial": { nome: "Ataque Especial", categoria: "Habilidade", acesso: "classe-habilidade", donos: ["Guerreiro"], niveis: { Guerreiro: [1, 5] }, tags: ["dano"], livro: "Livro Básico", linha: "Habilidade de classe · Guerreiro · Livro Básico", prereq: "", custo: "1 PM", descricao: "Texto de teste: golpe da classe." },
       };
       carregarPoderes.porNome = null;
@@ -1366,6 +1405,29 @@ if (CHECK) {
       if (soPre.poderes.map((x) => x.slug).join() !== "maratonista") return falha("busca só no pré-requisito: " + JSON.stringify(soPre.poderes.map((x) => x.slug)));
       const parc = await (await fetch(`${base}/api/poderes?q=${encodeURIComponent("golpe estrada")}`, { headers: H })).json(); // ninguém tem as duas palavras
       if (parc.poderes.map((x) => x.slug).sort().join() !== "ataque-especial,maratonista") return falha("sem ninguém com todas as palavras, vale quem tem parte: " + JSON.stringify(parc.poderes.map((x) => x.slug)));
+      // trecho com variável: # = qualquer número. Vem o trecho que casou (texto original) e o MAIOR número do item
+      const pt = await (await fetch(`${base}/api/poderes?q=${encodeURIComponent('"+#m"')}`, { headers: H })).json();
+      const porSlug = Object.fromEntries(pt.poderes.map((x) => [x.slug, x]));
+      if (pt.poderes.length !== 2 || porSlug.atletico?.num !== 3 || porSlug.graca?.num !== 6) return falha("trecho com #: " + JSON.stringify(pt.poderes.map((x) => [x.slug, x.num])));
+      if (JSON.stringify(porSlug.atletico.trecho) !== JSON.stringify(["Texto de teste: ganha ", "+3m", " de passo."])) return falha("trecho destacado: " + JSON.stringify(porSlug.atletico.trecho));
+      const semAspas = await (await fetch(`${base}/api/poderes?q=${encodeURIComponent("+#m passo")}`, { headers: H })).json(); // palavra com # vira trecho sem precisar de aspas
+      if (semAspas.poderes.map((x) => x.slug).sort().join() !== "atletico,graca" || semAspas.poderes[0].num == null) return falha("# fora das aspas: " + JSON.stringify(semAspas.poderes.map((x) => x.slug)));
+      const obrig = await (await fetch(`${base}/api/poderes?q=${encodeURIComponent('"+#m" golpe')}`, { headers: H })).json(); // "golpe" só existe em quem não tem +Nm
+      if (obrig.poderes.some((x) => x.slug === "ataque-especial") || obrig.poderes.length !== 2) return falha("trecho é obrigatório: quem só tem a outra palavra não entra: " + JSON.stringify(obrig.poderes.map((x) => x.slug)));
+      const soltos = termosBusca("db #219 nd # +#m", vocabDe({}, () => ["db nd"])).map((a) => a[0]);
+      if (soltos.join("|") !== '"+#m"|db|219|nd') return falha("# colado em número ou sozinho não vira trecho: " + JSON.stringify(soltos));
+      const pal = await (await fetch(`${base}/api/poderes?q=${encodeURIComponent('"+#m % passo"')}`, { headers: H })).json(); // % = uma a quatro palavras
+      if (pal.poderes.map((x) => x.slug).join() !== "atletico") return falha("trecho com %: " + JSON.stringify(pal.poderes.map((x) => x.slug)));
+      // o trecho é procurado no texto que a pessoa lê, não nos temas: "deslocamento" é só TEMA de atletico e graca (o texto diz "passo")
+      const soTema = await (await fetch(`${base}/api/poderes?q=${encodeURIComponent('"deslocamento"')}`, { headers: H })).json();
+      if (soTema.poderes.length) return falha("trecho entre aspas não pode casar com tema escondido: " + JSON.stringify(soTema.poderes.map((x) => x.slug)));
+      const naLinha = await (await fetch(`${base}/api/poderes?q=${encodeURIComponent('"habilidade de classe"')}`, { headers: H })).json();
+      if (naLinha.poderes.map((x) => x.slug).join() !== "ataque-especial" || naLinha.poderes[0].trecho?.[1] !== "Habilidade de classe") return falha("trecho na linha do tipo: " + JSON.stringify(naLinha.poderes));
+      const preNum = await (await fetch(`${base}/api/poderes?em=pre&q=${encodeURIComponent('"for #"')}`, { headers: H })).json();
+      if (preNum.poderes.map((x) => x.slug).join() !== "atletico" || preNum.poderes[0].num !== 2 || preNum.poderes[0].trecho?.[1] !== "For 2") return falha("trecho na busca só de pré-requisito: " + JSON.stringify(preNum.poderes));
+      if (semHtml("<table><tr><td>Salada</td><td>+1,5m</td></tr></table>").includes("Salada+")) return falha("células de tabela coladas");
+      const fn = await ferramentasArauto.buscar({ onde: "poderes", consulta: '"+#m"' });
+      if (!(fn.indexOf("d:graca") < fn.indexOf("d:atletico")) || !fn.includes("trecho: “")) return falha("Arauto: maior número primeiro, com o trecho: " + fn);
       const pd = await (await fetch(`${base}/api/poder/atletico-velho`, { headers: H })).json();
       if (pd.slug !== "atletico" || pd.libera[0]?.nome !== "Maratonista" || !pd.comoObter.includes("qualquer personagem")) return falha("ficha do poder (link antigo, libera, como obter): " + JSON.stringify(pd).slice(0, 300));
       if ((await (await fetch(`${base}/api/poder/maratonista`, { headers: H })).json()).exige[0]?.slug !== "atletico") return falha("poder devia apontar o pré-requisito");

@@ -3,8 +3,8 @@
 // Serve à busca (palavra digitada → tema), aos chips de filtro e ao Arauto (ferramenta `buscar`).
 // [id, rótulo do chip, radicais que alguém digitaria pra falar disso (sem acento, minúsculas)]
 export const TEMAS = [
-  ["deslocamento", "🏃 deslocamento", ["veloz", "velocidade", "rapid", "correr", "corrida", "ligeir", "mais deslocamento", "andar mais"]],
-  ["movimento-extra", "⏩ movimento extra", ["movimento extra", "acao de movimento", "mover", "movimentac", "mobilidade"]],
+  ["deslocamento", "🏃 deslocamento", ["veloz", "velocidade", "rapid", "correr", "corrida", "ligeir", "mais deslocamento", "andar mais", "movimento", "movimentac"]],
+  ["movimento-extra", "⏩ movimento extra", ["movimento", "acao de movimento", "mover", "movimentac", "mobilidade"]],
   ["investida", "🐗 investida", ["investida", "atropel"]],
   ["voo", "🪽 voo", ["voar", "voo", "voador", "asas", "pairar", "levit", "planar"]],
   ["natacao-escalada", "🧗 natação e escalada", ["nadar", "natac", "escalar", "escalada", "escavar", "mergulh", "respirar na agua", "aquatic"]],
@@ -106,7 +106,8 @@ if (typeof process !== "undefined" && process.argv?.[1]?.replace(/\\/g, "/").end
   const eq = (a, b, m) => { if (JSON.stringify(a) !== JSON.stringify(b)) { console.error("FALHOU:", m, JSON.stringify(a)); process.exitCode = 1; } };
   eq(temasDaConsulta("personagem focado em ser veloz"), ["deslocamento"], "veloz → deslocamento");
   eq(temasDaConsulta("poderes relacionados a investidas"), ["investida"], "investidas → investida");
-  eq(temasDaConsulta("mais movimentação e Voar"), ["movimento-extra", "voo"], "movimentação e voo");
+  eq(temasDaConsulta("mais movimentação e Voar"), ["deslocamento", "movimento-extra", "voo"], "movimentação (na mesa = deslocamento ou ação de movimento) e voo");
+  eq(temasDaConsulta("movimento"), ["deslocamento", "movimento-extra"], "movimento → os dois temas de movimento");
   eq(temasDaConsulta("espada longa"), ["corpo-a-corpo"], "espada → corpo a corpo");
   eq(temasDaConsulta("marah"), [], "nome próprio não vira tema");
   eq(temasDaConsulta("espada grande e limite de carga"), ["corpo-a-corpo"], "palavra genérica (grande, carga) não vira tema");

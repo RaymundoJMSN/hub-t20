@@ -213,7 +213,7 @@ function fixar(sim) { document.documentElement.classList.toggle("lado-fixo", sim
 
 // busca em tudo: /api/busca devolve as melhores de cada fonte; "ver todas" abre a página da fonte já filtrada
 function caixaDeBusca() {
-  const caixa = el("input", { type: "search", className: "hub-busca", placeholder: "Buscar em tudo…", autocomplete: "off", title: "buscar em magias, poderes, bestiário, itens, regras… (Ctrl+K) · \"entre aspas\" = texto exato" });
+  const caixa = el("input", { type: "search", className: "hub-busca", placeholder: "Buscar em tudo…", autocomplete: "off", title: "buscar em magias, poderes, bestiário, itens, regras… (Ctrl+K) · \"entre aspas\" = texto exato · # = qualquer número · % = qualquer palavra (ex.: \"+#m\")" });
   const res = el("div", { className: "hub-resultados", hidden: true });
   let timer, n = 0;
   const paginaDe = (g, q) => {
@@ -231,7 +231,8 @@ function caixaDeBusca() {
     res.replaceChildren(el("a", { className: "hub-res-arauto", href: "/arauto?q=" + encodeURIComponent(q), textContent: `🪶 perguntar ao Arauto: “${q.length > 60 ? q.slice(0, 60) + "…" : q}”` }),
       ...(r.grupos?.length ? r.grupos.map((g) => el("div", { className: "hub-res-grupo" },
       el("a", { className: "hub-res-titulo", href: paginaDe(g, q), textContent: `${g.titulo} · ${g.total}${g.total > g.itens.length ? " — ver todas" : ""}` }),
-      ...g.itens.map((i) => el("a", { className: "hub-res-item", href: i.href }, el("b", { textContent: i.nome }), el("span", { textContent: i.linha || "" })))))
+      ...g.itens.map((i) => el("a", { className: "hub-res-item", href: i.href }, el("b", { textContent: i.nome }),
+        i.trecho ? el("span", {}, i.trecho[0], el("mark", { textContent: i.trecho[1] }), i.trecho[2]) : el("span", { textContent: i.linha || "" })))))
       : [el("div", { className: "hub-res-vazio", textContent: "nada encontrado com essas palavras" })]));
     res.hidden = false;
   }

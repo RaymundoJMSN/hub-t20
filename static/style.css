@@ -673,3 +673,11 @@ select.a-cat { font-size: .74rem; padding: 2px 4px; width: 100%; }
 .a-rodape { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .a-rodape .explica { margin: 0; }
 @media (max-width: 700px) { .a-conversa { max-height: calc(100vh - 360px); } .a-msg { max-width: 96%; } }
+
+/* ---- trecho com variável ("+#m"): onde casou no texto, com a parte casada marcada; dica com exemplos clicáveis ---- */
+.card .trecho { margin-top: 4px; font-size: .84rem; line-height: 1.35; color: var(--texto-2); }
+.card .trecho mark, .hub-res-item mark { background: rgba(201, 162, 39, .32); color: #fff; padding: 0 3px; border-radius: 3px; font-weight: 700; }
+.g-dica { margin: -2px 0 8px; font-size: .82rem; }
+.g-dica b { color: var(--ouro-claro); font-family: ui-monospace, Consolas, monospace; }
+.g-exemplo { background: none; border: 0; padding: 0 5px; color: var(--ouro-claro); font: inherit; font-family: ui-monospace, Consolas, monospace; cursor: pointer; text-decoration: underline dotted; }
+.g-exemplo:hover { color: #fff; }

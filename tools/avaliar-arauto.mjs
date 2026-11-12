@@ -28,6 +28,7 @@ const PERGUNTAS = [
   { q: "Quero jogar com um duende. Como a raça é montada?", espera: [/natureza/, /tamanho/, /(presente|dons)/, /herois de arton/], nota: "raça montada por escolhas" },
   { q: "Quem é Thwor Ironfist?", espera: [/(goblinoide|bugbear|duyshidakk|alianca negra|deus)/], nota: "ambientação pelos livros" },
   { q: "Tem alguma magia que me deixa mais rápido ou me dá ações extras?", espera: [/velocidade/, /\(o:[\w-]+\)/], nota: "magias por tema" },
+  { q: "Quais poderes dão os maiores bônus de deslocamento em metros? Liste do maior para o menor.", espera: [/\+ ?9 ?m/, /\+ ?6 ?m/, /\(d:[\w-]+\)/], nota: "trecho com número variável: \"+#m\" (Truques de Capa +9m no topo)" },
 ];
 
 const args = process.argv.slice(2), ver = args.includes("--ver");

@@ -22,14 +22,23 @@ if (!pagina.abas.some(([c]) => c === filtro.aba)) filtro.aba = pagina.abas[0][0]
 let META = { filtros: [], ordem: {} }, ITENS = [], buscaTimer;
 const MAX_CHIPS = 12;
 
-const busca = el("input", { type: "search", className: "g-busca", value: filtro.q, autocomplete: "off", placeholder: "Pesquisar por nome ou texto… (\"entre aspas\" = exato, ex.: \"1/4\")",
+const busca = el("input", { type: "search", className: "g-busca", value: filtro.q, autocomplete: "off", placeholder: "Pesquisar por nome ou texto…",
   oninput: (e) => { filtro.q = e.target.value; clearTimeout(buscaTimer); buscaTimer = setTimeout(buscar, 300); } });
 const barraAbas = el("div", { className: "g-abas" });
 const boxFiltros = el("div", { className: "g-filtros" });
 const conta = el("div", { className: "explica" });
 const ordem = el("div", { className: "g-abas g-ordem", title: "agrupar por" }); // botões num bloco só, como as abas
 const lista = el("div", { className: "grimorio-lista" });
-raiz.append(barraAbas, busca, boxFiltros, el("div", { className: "g-conta-linha" }, conta, ordem), lista);
+// a busca aceita trecho exato com variáveis (# = número, % = palavra); exemplos clicáveis, um jogo por coleção
+const EXEMPLOS = { ameacas: ['"voo #m"', '"#d# de dano de fogo"', '"imunidade a %"'], itens: ['"+# na Defesa"', '"T$ #"', '"#d# de dano"'], regras: ['"CD #"', '"+# em testes de %"'],
+  str: ['"#d# de dano"', '"+# na Defesa"'], perigos: ['"CD #"', '"#d# pontos de dano"'], parceiros: ['"+# em %"', '"+# na Defesa"'] };
+const dica = el("div", { className: "explica g-dica" });
+function desenharDica() {
+  const exs = EXEMPLOS[filtro.aba] || ['"1/4"', '"+# em %"'];
+  dica.replaceChildren('"entre aspas" = texto exato · ', el("b", { textContent: "#" }), " = qualquer número · ", el("b", { textContent: "%" }), " = qualquer palavra · ex.: ",
+    ...exs.map((ex) => el("button", { type: "button", className: "g-exemplo", textContent: ex, title: "pesquisar este trecho", onclick: () => { busca.value = filtro.q = ex; buscar(); } })));
+}
+raiz.append(barraAbas, busca, dica, boxFiltros, el("div", { className: "g-conta-linha" }, conta, ordem), lista);
 
 for (const [col, rot] of pagina.abas) {
   const b = el("button", { type: "button", className: "chip g-aba", textContent: capitalizar(rot), onclick: () => { if (filtro.aba !== col) { filtro.aba = col; filtro.sel = {}; filtro.ex = {}; filtro.faixa = {}; filtro.ord = null; trocarAba(); } } });
@@ -51,6 +60,7 @@ function gravarUrl() {
 }
 async function trocarAba() {
   for (const b of barraAbas.children) b.classList.toggle("on", b.dataset.col === filtro.aba);
+  desenharDica();
   await buscar();
   marcarAtiva(); // a aba (raças, classes…) é um item do menu lateral
 }
@@ -143,12 +153,16 @@ function render() {
   lista.replaceChildren();
   const itens = ITENS.filter(passa);
   const acordeao = META.modo === "acordeao", buscando = !!filtro.q.trim();
-  // com busca, quem mais se parece com o que foi digitado vem primeiro, sem separar por grupo
+  // com busca, quem mais se parece com o que foi digitado vem primeiro, sem separar por grupo (e o "Agrupar" some: não faria nada)
   const k = buscando ? "" : filtro.ord;
+  ordem.hidden = acordeao || buscando;
   const chave = (it) => String(it.f?.[k] ?? "").split("|")[0];
   if (k) itens.sort((a, b) => posicao(k, chave(a)) - posicao(k, chave(b)) || a.nome.localeCompare(b.nome));
   else if (buscando) itens.sort((a, b) => (b.rel || 0) - (a.rel || 0) || (acordeao ? 0 : a.nome.localeCompare(b.nome)));
   else if (!acordeao) itens.sort((a, b) => a.nome.localeCompare(b.nome));
+  // busca com número variável ("#d# de dano", "voo #m"): por cima da relevância, o maior número achado vem primeiro
+  // (fora da cadeia de cima de propósito: um `if` no meio dela faria o "por nome" valer sempre)
+  if (buscando && itens.some((it) => it.num != null)) itens.sort((a, b) => (b.num ?? -Infinity) - (a.num ?? -Infinity));
   conta.textContent = `${itens.length} ${itens.length === 1 ? (acordeao ? "resposta" : "ficha") : (acordeao ? "respostas" : "fichas")}` + (acordeao ? " · clique numa pergunta pra ler" : " · clique ou arraste pra pôr na mesa");
   lista.classList.toggle("lista-acordeao", acordeao);
   if (!itens.length) return lista.append(el("div", { className: "vazio", textContent: "nada com esses filtros." }));
@@ -175,7 +189,8 @@ function render() {
       onclick: () => mesa.abrir(ch), ondragstart: (e) => { e.dataTransfer.setData(TIPO_ARRASTO, ch); e.dataTransfer.effectAllowed = "copy"; } },
       el("span", { className: "circ", textContent: badge(it) }),
       el("h3", { textContent: it.nome }),
-      el("div", { className: "meta", textContent: it.linha || "" })));
+      el("div", { className: "meta", textContent: it.linha || "" }),
+      it.trecho ? el("div", { className: "trecho" }, it.trecho[0], el("mark", { textContent: it.trecho[1] }), it.trecho[2]) : null));
   }
 }
 
