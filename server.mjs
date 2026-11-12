@@ -1285,7 +1285,9 @@ const ferramentasArauto = {
   },
 };
 // no self-test o Arauto não lê a configuração de verdade (não fala com a API nem gasta a cota de ninguém)
-const arauto = criarArauto({ dados: DADOS, ferramentas: ferramentasArauto, temas: TEMA_IDS, colecoes: COLECOES_ARAUTO, lerJson: CHECK ? (a, p) => p : lerJson, gravarJson, silencioso: CHECK });
+// id de carta que existe de verdade: d:<poder> (ou link antigo), o:<magia>, c:<coleção>/<id>
+const cartaExiste = (id) => { const tipo = id[0], resto = id.slice(2); return tipo === "d" ? !!poderPorSlug(resto)[1] : tipo === "o" ? !!carregarTextos()[resto] : !!carregarColecao(resto.split("/")[0])?.porId.has(resto.split("/").slice(1).join("/")); };
+const arauto = criarArauto({ dados: DADOS, ferramentas: ferramentasArauto, temas: TEMA_IDS, colecoes: COLECOES_ARAUTO, existe: cartaExiste, lerJson: CHECK ? (a, p) => p : lerJson, gravarJson, silencioso: CHECK });
 
 // ---- ranking de aprimoramentos oficiais contra a magia do usuário ----
 const semAcento = (s) => (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
@@ -1509,6 +1511,7 @@ if (CHECK) {
       const fi = await ferramentasArauto.buscar({ onde: "itens", tema: "deslocamento" });
       if (!fi.includes("c:itens/bota | Bota de Teste") || fi.includes("corda")) return falha("buscar itens por tema: " + fi);
       if (!(await ferramentasArauto.buscar({ onde: "poderes", tema: "deslocamento", limite: 1 })).includes("ordem alfabética")) return falha("lista cortada sem consulta devia avisar que é alfabética");
+      if (!cartaExiste("d:atletico") || !cartaExiste("d:atletico-velho") || cartaExiste("d:nao-existe") || !cartaExiste("c:itens/bota") || cartaExiste("c:itens/inventada") || cartaExiste("c:zzz/x") || cartaExiste("o:nao-existe")) return falha("cartaExiste");
       const ff = await ferramentasArauto.ficha({ tipo: "raca", nome: "elfo" });
       if (!ff.includes("Deslocamento: 12m") || !ff.includes("[d:graca]")) return falha("ficha de raça: " + ff);
       const fc = await ferramentasArauto.ficha({ tipo: "classe", nome: "inovador" });
